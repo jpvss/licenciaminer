@@ -222,6 +222,21 @@ def outorgas(ctx: click.Context, uf: str) -> None:
     click.echo(f"ANA Outorgas: dados salvos em {path}")
 
 
+@collect.command("copam")
+@click.option(
+    "--max-meetings", type=int, default=None,
+    help="Limitar número de reuniões (para testes).",
+)
+@click.pass_context
+def copam(ctx: click.Context, max_meetings: int | None) -> None:
+    """Coletar reuniões da CMI (mineração) do COPAM."""
+    from licenciaminer.collectors.copam import scrape_copam_cmi
+
+    output_dir: Path = ctx.obj["data_dir"]
+    path = scrape_copam_cmi(output_dir, max_meetings=max_meetings)
+    click.echo(f"COPAM CMI: dados salvos em {path}")
+
+
 @collect.command("spatial")
 @click.option(
     "--layer",
