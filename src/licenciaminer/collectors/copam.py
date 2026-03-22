@@ -45,7 +45,7 @@ COPAM_UPLOADS_BASE = (
     "https://sistemas.meioambiente.mg.gov.br/reunioes/uploads"
 )
 
-PER_PAGE = 50
+PER_PAGE = 20  # Portal ignores higher values
 
 
 @retry(
