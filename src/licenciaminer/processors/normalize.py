@@ -61,6 +61,12 @@ def parse_date_epoch_ms(series: pd.Series[Any]) -> pd.Series[Any]:
     return pd.to_datetime(series, unit="ms", errors="coerce")
 
 
+def has_content(series: pd.Series[Any]) -> pd.Series[Any]:
+    """Verifica se uma série tem conteúdo real (não NaN, não vazio, não 'nan')."""
+    as_str = series.astype(str).str.strip()
+    return series.notna() & (as_str != "") & (as_str.str.lower() != "nan")
+
+
 def add_metadata(df: pd.DataFrame, source: str) -> pd.DataFrame:
     """Adiciona colunas de metadados ao DataFrame."""
     df = df.copy()

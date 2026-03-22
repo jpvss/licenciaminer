@@ -124,16 +124,19 @@ def collect_cnpj_data(
 
     df_new = pd.DataFrame(records)
 
+    # Metadata apenas nos novos registros (preserva timestamps dos existentes)
+    if not df_new.empty:
+        df_new = add_metadata(df_new, source="receita_federal_cnpj")
+
     # Juntar com existentes
     if already_done and not df_new.empty:
         df_existing = pd.read_parquet(output_path)
         df = pd.concat([df_existing, df_new], ignore_index=True)
+        df = df.drop_duplicates(subset="cnpj", keep="first")
     elif already_done:
         df = pd.read_parquet(output_path)
     else:
         df = df_new
-
-    df = add_metadata(df, source="receita_federal_cnpj")
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     atomic_parquet_write(df, output_path)

@@ -233,7 +233,9 @@ def enrich_with_details(
     # Pular registros que já têm documentos_pdf
     already_enriched: set[str] = set()
     if "documentos_pdf" in df.columns:
-        has_docs = df["documentos_pdf"].astype(str).str.len() > 1
+        from licenciaminer.processors.normalize import has_content
+
+        has_docs = has_content(df["documentos_pdf"])
         already_enriched = set(
             df.loc[has_docs, "detail_id"].dropna().astype(str)
         )
@@ -485,11 +487,12 @@ def scrape_mg_semad(
 
     # Concatenar com existentes em modo incremental
     if df_existing is not None and not full_refresh and not df_new.empty:
-        # Alinhar colunas — novos registros não têm documentos_pdf/texto_documentos
-        df = pd.concat([df_new, df_existing], ignore_index=True)
-        # Remover duplicatas por detail_id (manter a primeira — a mais recente)
+        # Existing rows go FIRST — keep="first" preserves enrichment columns
+        df = pd.concat([df_existing, df_new], ignore_index=True)
         if "detail_id" in df.columns:
             df = df.drop_duplicates(subset="detail_id", keep="first")
+
+        # Garantir que novos registros sem detail_id duplicado sejam incluídos
         logger.info(
             "MG SEMAD Scraper: %d novos + %d existentes = %d total",
             len(df_new),

@@ -173,8 +173,10 @@ def enrich_parquet_with_texts(
             "Execute 'licenciaminer collect mg-docs' primeiro."
         )
 
+    from licenciaminer.processors.normalize import has_content
+
     # Selecionar registros para processar
-    has_docs = df["documentos_pdf"].astype(str).str.len() > 1
+    has_docs = has_content(df["documentos_pdf"])
 
     if mining_only and "atividade" in df.columns:
         is_mining = df["atividade"].astype(str).str.startswith(MG_MINING_CODE_PREFIX)
@@ -184,7 +186,7 @@ def enrich_parquet_with_texts(
 
     # Pular registros já processados
     if "texto_documentos" in df.columns:
-        already_done = df["texto_documentos"].astype(str).str.len() > 1
+        already_done = has_content(df["texto_documentos"])
         mask = mask & ~already_done
 
     indices = df[mask].index.tolist()
@@ -219,7 +221,7 @@ def enrich_parquet_with_texts(
             time.sleep(0.3)
 
     atomic_parquet_write(df, parquet_path)
-    processed = (df["texto_documentos"].astype(str).str.len() > 1).sum()
+    processed = has_content(df["texto_documentos"]).sum()
     logger.info(
         "PDF Extractor: parquet atualizado — %d registros com texto (%s)",
         processed,

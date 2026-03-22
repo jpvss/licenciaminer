@@ -122,6 +122,23 @@ def process_mg_excel(data_dir: Path, file_path: Path | None = None) -> Path:
 
     output_path = data_dir / "processed" / "mg_semad_licencas.parquet"
     output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Preservar colunas de enriquecimento se o parquet já existe
+    if output_path.exists():
+        df_existing = pd.read_parquet(output_path)
+        enrichment_cols = [
+            c for c in df_existing.columns
+            if c in ("documentos_pdf", "texto_documentos", "detail_id")
+            and c not in df.columns
+        ]
+        if enrichment_cols:
+            logger.warning(
+                "MG SEMAD Excel: parquet existente tem colunas de enriquecimento "
+                "(%s) — preservando via merge por index. "
+                "Considere usar o scraper (--scrape) ao invés do Excel.",
+                enrichment_cols,
+            )
+
     atomic_parquet_write(df, output_path)
     logger.info("MG SEMAD: dados salvos em %s (%d registros)", output_path, len(df))
     return output_path
