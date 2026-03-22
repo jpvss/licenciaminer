@@ -43,7 +43,12 @@ def _fetch_sislic() -> list[dict[str, object]]:
     with httpx.Client(timeout=HTTP_TIMEOUT) as client:
         response = client.get(IBAMA_SISLIC_URL)
         response.raise_for_status()
-        data: list[dict[str, object]] = response.json()
+        raw = response.json()
+        # API retorna envelope {"data": [...]}
+        if isinstance(raw, dict) and "data" in raw:
+            data: list[dict[str, object]] = raw["data"]
+        else:
+            data = raw
         logger.info("IBAMA: %d registros brutos recebidos", len(data))
         return data
 
