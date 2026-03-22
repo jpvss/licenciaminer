@@ -196,6 +196,40 @@ def cnpj(ctx: click.Context, max_records: int | None) -> None:
     click.echo(f"CNPJ: dados salvos em {path}")
 
 
+@collect.command("spatial")
+@click.option(
+    "--layer",
+    type=click.Choice(["all", "biomas", "ucs", "tis", "anm-geo", "overlaps"]),
+    default="all",
+    help="Camada espacial para coletar.",
+)
+@click.pass_context
+def spatial(ctx: click.Context, layer: str) -> None:
+    """Coletar dados geoespaciais (UCs, TIs, biomas, geometrias ANM)."""
+    from licenciaminer.collectors.spatial import (
+        collect_anm_geometries,
+        collect_funai_tis,
+        collect_ibge_biomas,
+        collect_icmbio_ucs,
+        compute_spatial_overlaps,
+    )
+
+    output_dir: Path = ctx.obj["data_dir"]
+
+    if layer in ("all", "biomas"):
+        collect_ibge_biomas(output_dir)
+    if layer in ("all", "ucs"):
+        collect_icmbio_ucs(output_dir)
+    if layer in ("all", "tis"):
+        collect_funai_tis(output_dir)
+    if layer in ("all", "anm-geo"):
+        collect_anm_geometries(output_dir)
+    if layer in ("all", "overlaps"):
+        compute_spatial_overlaps(output_dir)
+
+    click.echo("Spatial: coleta concluída")
+
+
 @collect.command("all")
 @click.pass_context
 def collect_all(ctx: click.Context) -> None:

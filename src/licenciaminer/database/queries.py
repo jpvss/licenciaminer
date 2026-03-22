@@ -209,3 +209,70 @@ LEFT JOIN empresa_cfem ec ON ed.cnpj_cpf = ec.cnpj
 ORDER BY ed.total_decisoes DESC
 LIMIT 50
 """
+
+# Sobreposição espacial vs taxa de aprovação
+QUERY_SPATIAL_VS_APROVACAO = """
+WITH spatial_flags AS (
+    SELECT
+        PROCESSO,
+        COALESCE(tem_uc, FALSE) AS tem_uc,
+        COALESCE(tem_ti, FALSE) AS tem_ti,
+        biomas
+    FROM v_spatial
+),
+decisoes_mining AS (
+    SELECT
+        cnpj_cpf,
+        decisao,
+        atividade
+    FROM v_mg_semad
+    WHERE atividade LIKE 'A-0%'
+)
+SELECT
+    'Resultados por sobreposição espacial' AS analise,
+    NULL AS categoria,
+    NULL AS total_decisoes,
+    NULL AS deferidos,
+    NULL AS taxa_aprovacao
+WHERE FALSE
+
+UNION ALL
+
+SELECT
+    'UC (Unidade de Conservação)' AS analise,
+    CASE WHEN sf.tem_uc THEN 'Com UC' ELSE 'Sem UC' END AS categoria,
+    COUNT(*) AS total_decisoes,
+    SUM(CASE WHEN dm.decisao = 'deferido' THEN 1 ELSE 0 END) AS deferidos,
+    ROUND(
+        100.0 * SUM(CASE WHEN dm.decisao = 'deferido' THEN 1 ELSE 0 END)
+        / COUNT(*), 1
+    ) AS taxa_aprovacao
+FROM decisoes_mining dm
+INNER JOIN v_anm anm ON dm.cnpj_cpf = REGEXP_REPLACE(
+    COALESCE(anm.NOME, ''), '[^0-9]', '', 'g'
+)
+LEFT JOIN spatial_flags sf ON anm.PROCESSO = sf.PROCESSO
+WHERE sf.PROCESSO IS NOT NULL
+GROUP BY CASE WHEN sf.tem_uc THEN 'Com UC' ELSE 'Sem UC' END
+
+UNION ALL
+
+SELECT
+    'Bioma' AS analise,
+    sf.biomas AS categoria,
+    COUNT(*) AS total_decisoes,
+    SUM(CASE WHEN dm.decisao = 'deferido' THEN 1 ELSE 0 END) AS deferidos,
+    ROUND(
+        100.0 * SUM(CASE WHEN dm.decisao = 'deferido' THEN 1 ELSE 0 END)
+        / COUNT(*), 1
+    ) AS taxa_aprovacao
+FROM decisoes_mining dm
+INNER JOIN v_anm anm ON dm.cnpj_cpf = REGEXP_REPLACE(
+    COALESCE(anm.NOME, ''), '[^0-9]', '', 'g'
+)
+LEFT JOIN spatial_flags sf ON anm.PROCESSO = sf.PROCESSO
+WHERE sf.biomas IS NOT NULL
+GROUP BY sf.biomas
+HAVING COUNT(*) >= 10
+ORDER BY analise, total_decisoes DESC
+"""
