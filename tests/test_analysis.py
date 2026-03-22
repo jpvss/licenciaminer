@@ -48,7 +48,7 @@ class TestRunAnalysis:
             {
                 "ano": [2023, 2023, 2023],
                 "classe": [5, 4, 5],
-                "codigo_de_atividade": ["A-02-01-1", "A-03-01-1", "A-02-01-1"],
+                "atividade": ["A-02-01-1", "A-03-01-1", "A-02-01-1"],
                 "regional": ["SUPRAM CM", "SUPRAM CM", "SUPRAM NM"],
                 "decisao": ["deferido", "indeferido", "deferido"],
                 "_source": ["mg_semad"] * 3,
@@ -70,7 +70,7 @@ class TestRunAnalysis:
             {
                 "ano": [2023],
                 "classe": [5],
-                "codigo_de_atividade": ["A-02"],
+                "atividade": ["A-02"],
                 "regional": ["CM"],
                 "decisao": ["deferido"],
                 "_source": ["mg_semad"],

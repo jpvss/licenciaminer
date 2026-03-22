@@ -130,6 +130,27 @@ def mg_docs(ctx: click.Context, max_records: int | None, mining_only: bool) -> N
     click.echo(f"MG SEMAD Docs: parquet atualizado em {path}")
 
 
+@collect.command("mg-textos")
+@click.option(
+    "--max-records", type=int, default=None,
+    help="Limitar número de registros (para testes).",
+)
+@click.option(
+    "--mining-only", is_flag=True, default=False,
+    help="Processar apenas registros de mineração (A-0x).",
+)
+@click.pass_context
+def mg_textos(ctx: click.Context, max_records: int | None, mining_only: bool) -> None:
+    """Baixar PDFs e extrair texto das decisões da SEMAD/MG."""
+    from licenciaminer.processors.pdf_extractor import enrich_parquet_with_texts
+
+    output_dir: Path = ctx.obj["data_dir"]
+    path = enrich_parquet_with_texts(
+        output_dir, max_records=max_records, mining_only=mining_only
+    )
+    click.echo(f"MG SEMAD Textos: parquet atualizado em {path}")
+
+
 @collect.command("all")
 @click.pass_context
 def collect_all(ctx: click.Context) -> None:
