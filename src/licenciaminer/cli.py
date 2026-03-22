@@ -196,10 +196,36 @@ def cnpj(ctx: click.Context, max_records: int | None) -> None:
     click.echo(f"CNPJ: dados salvos em {path}")
 
 
+@collect.command("ral")
+@click.option("--uf", default="MG", help="Filtrar por UF.")
+@click.pass_context
+def ral(ctx: click.Context, uf: str) -> None:
+    """Coletar dados de produção mineral RAL da ANM."""
+    from licenciaminer.collectors.anm_ral import collect_ral
+
+    output_dir: Path = ctx.obj["data_dir"]
+    uf_filter = None if uf == "ALL" else uf
+    path = collect_ral(output_dir, uf_filter=uf_filter)
+    click.echo(f"RAL: dados salvos em {path}")
+
+
+@collect.command("outorgas")
+@click.option("--uf", default="MG", help="Filtrar por UF.")
+@click.pass_context
+def outorgas(ctx: click.Context, uf: str) -> None:
+    """Coletar outorgas de uso de água da ANA."""
+    from licenciaminer.collectors.ana_outorgas import collect_ana_outorgas
+
+    output_dir: Path = ctx.obj["data_dir"]
+    uf_filter = None if uf == "ALL" else uf
+    path = collect_ana_outorgas(output_dir, uf_filter=uf_filter)
+    click.echo(f"ANA Outorgas: dados salvos em {path}")
+
+
 @collect.command("spatial")
 @click.option(
     "--layer",
-    type=click.Choice(["all", "biomas", "ucs", "tis", "anm-geo", "overlaps"]),
+    type=click.Choice(["all", "biomas", "ucs", "tis", "caves", "anm-geo", "overlaps"]),
     default="all",
     help="Camada espacial para coletar.",
 )
@@ -208,6 +234,7 @@ def spatial(ctx: click.Context, layer: str) -> None:
     """Coletar dados geoespaciais (UCs, TIs, biomas, geometrias ANM)."""
     from licenciaminer.collectors.spatial import (
         collect_anm_geometries,
+        collect_cecav_caves,
         collect_funai_tis,
         collect_ibge_biomas,
         collect_icmbio_ucs,
@@ -220,6 +247,8 @@ def spatial(ctx: click.Context, layer: str) -> None:
         collect_ibge_biomas(output_dir)
     if layer in ("all", "ucs"):
         collect_icmbio_ucs(output_dir)
+    if layer in ("all", "caves"):
+        collect_cecav_caves(output_dir)
     if layer in ("all", "tis"):
         collect_funai_tis(output_dir)
     if layer in ("all", "anm-geo"):

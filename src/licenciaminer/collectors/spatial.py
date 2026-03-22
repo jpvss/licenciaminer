@@ -51,12 +51,11 @@ FUNAI_TI_URL = (
     "&outputFormat=SHAPE-ZIP"
     "&CQL_FILTER=uf_sigla%20LIKE%20%27%25MG%25%27"
 )
-# ICMBio via WFS — filter to MG
-ICMBIO_UC_URL = (
-    "https://geoservicos.inde.gov.br/geoserver/ICMBio/ows"
-    "?service=WFS&version=1.0.0&request=GetFeature"
-    "&typeName=ICMBio:ucsfedpol"
-    "&outputFormat=SHAPE-ZIP"
+# CECAV cave occurrence areas
+CECAV_CAVES_URL = (
+    "https://www.gov.br/icmbio/pt-br/assuntos/centros-de-pesquisa/"
+    "cavernas/publicacoes/Area%20de%20Ocorrencia%20de%20Cavernas/"
+    "areas_ocorrencia_cavernas_brasil.zip"
 )
 
 
@@ -157,6 +156,20 @@ def collect_funai_tis(data_dir: Path) -> Path:
     gdf.to_parquet(output_path)
     save_collection_metadata(data_dir, "funai_tis", len(gdf))
     logger.info("FUNAI TIs: salvos em %s", output_path)
+    return output_path
+
+
+def collect_cecav_caves(data_dir: Path) -> Path:
+    """Baixa áreas de ocorrência de cavernas do CECAV/ICMBio."""
+    zip_bytes = _download_file(CECAV_CAVES_URL)
+    gdf = _read_shapefile_from_zip(zip_bytes)
+    logger.info("CECAV Cavernas: %d áreas de ocorrência", len(gdf))
+
+    output_path = data_dir / "reference" / "cecav_cavernas.parquet"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    gdf.to_parquet(output_path)
+    save_collection_metadata(data_dir, "cecav_cavernas", len(gdf))
+    logger.info("CECAV Cavernas: salvos em %s", output_path)
     return output_path
 
 
