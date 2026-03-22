@@ -1,0 +1,53 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "licenciaminer"
+version = "0.1.0"
+description = "Base analítica de licenciamento ambiental minerário no Brasil"
+requires-python = ">=3.11"
+dependencies = [
+    "click>=8.1",
+    "duckdb>=1.2",
+    "httpx>=0.27",
+    "pandas>=2.2",
+    "pyarrow>=18.0",
+    "openpyxl>=3.1",
+    "tenacity>=9.0",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-httpx>=0.35",
+    "ruff>=0.8",
+    "mypy>=1.13",
+    "pandas-stubs>=2.2",
+]
+
+[project.scripts]
+licenciaminer = "licenciaminer.cli:cli"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/licenciaminer"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 99
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+plugins = []
+
+[[tool.mypy.overrides]]
+module = ["duckdb", "openpyxl"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

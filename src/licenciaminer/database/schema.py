@@ -1,0 +1,8 @@
+"""Definições de schema para o DuckDB."""
+
+# Mapeamento de views para arquivos parquet
+PARQUET_SOURCES: dict[str, str] = {
+    "v_ibama": "ibama_licencas.parquet",
+    "v_anm": "anm_processos.parquet",
+    "v_mg_semad": "mg_semad_licencas.parquet",
+}
