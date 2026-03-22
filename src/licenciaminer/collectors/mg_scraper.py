@@ -125,15 +125,145 @@ def _parse_table_rows(html: str) -> list[dict[str, str]]:
             cell_text = re.sub(r"\s+", " ", cell_text)
             cells.append(cell_text)
 
-        # A última coluna pode ter botão "Visualizar" — ignorar
         # Mapear células para colunas (ignorando extras no final)
         if len(cells) >= len(TABLE_COLUMNS):
             row = {
                 col: cells[i] for i, col in enumerate(TABLE_COLUMNS)
             }
+
+            # Extrair ID do link "Visualizar" (view-externo?id=NNNNN)
+            id_match = re.search(
+                r'view-externo\?id=(\d+)', tr_content
+            )
+            if id_match:
+                row["detail_id"] = id_match.group(1)
+
             rows.append(row)
 
     return rows
+
+
+MG_DETAIL_URL = (
+    "https://sistemas.meioambiente.mg.gov.br/licenciamento/site/view-externo"
+)
+MG_UPLOADS_BASE = (
+    "https://sistemas.meioambiente.mg.gov.br/licenciamento/uploads"
+)
+
+
+@retry(
+    stop=stop_after_attempt(RETRY_ATTEMPTS),
+    wait=wait_exponential(multiplier=1, min=RETRY_MIN_WAIT, max=RETRY_MAX_WAIT),
+    retry=retry_if_exception_type(
+        (httpx.HTTPStatusError, httpx.ConnectError, httpx.ReadTimeout)
+    ),
+    before_sleep=before_sleep_log(logger, logging.WARNING),
+    reraise=True,
+)
+def _fetch_detail(client: httpx.Client, detail_id: str) -> dict[str, str]:
+    """Busca página de detalhe e extrai links de documentos PDF."""
+    response = client.get(MG_DETAIL_URL, params={"id": detail_id})
+    response.raise_for_status()
+    html = response.text
+
+    # Extrair links para PDFs em /licenciamento/uploads/
+    pdf_links = re.findall(
+        r'href="(/licenciamento/uploads/[^"]+\.pdf)"', html
+    )
+
+    # Extrair nomes dos documentos (texto antes do link)
+    doc_names = re.findall(
+        r'<a[^>]*href="/licenciamento/uploads/[^"]+\.pdf"[^>]*>\s*([^<]+)',
+        html,
+    )
+
+    # Construir URLs completas e juntar com nomes
+    docs: list[str] = []
+    for i, pdf_path in enumerate(pdf_links):
+        url = f"https://sistemas.meioambiente.mg.gov.br{pdf_path}"
+        name = doc_names[i].strip() if i < len(doc_names) else "documento.pdf"
+        docs.append(f"{name}|{url}")
+
+    # Extrair modalidade (presente no detalhe mas não na lista)
+    modalidade_match = re.search(
+        r"Modalidade.*?<td[^>]*>(.*?)</td>", html, re.DOTALL
+    )
+    modalidade = ""
+    if modalidade_match:
+        modalidade = re.sub(r"<[^>]+>", "", modalidade_match.group(1)).strip()
+
+    return {
+        "documentos_pdf": ";".join(docs),
+        "modalidade_detalhe": modalidade,
+    }
+
+
+def enrich_with_details(
+    data_dir: Path,
+    max_records: int | None = None,
+) -> Path:
+    """Enriquece parquet existente com links de documentos das páginas de detalhe.
+
+    Lê o parquet salvo pelo scraper, busca a página de detalhe para cada
+    registro que tem detail_id, e adiciona colunas com links de PDFs.
+    """
+    import pandas as pd
+
+    parquet_path = data_dir / "processed" / "mg_semad_licencas.parquet"
+    if not parquet_path.exists():
+        raise FileNotFoundError(
+            f"Parquet não encontrado: {parquet_path}. "
+            "Execute 'licenciaminer collect mg --scrape' primeiro."
+        )
+
+    df = pd.read_parquet(parquet_path)
+
+    if "detail_id" not in df.columns:
+        logger.warning("Coluna detail_id não encontrada — re-execute o scraper")
+        return parquet_path
+
+    ids_to_fetch = df["detail_id"].dropna().unique()
+    if max_records is not None:
+        ids_to_fetch = ids_to_fetch[:max_records]
+
+    logger.info(
+        "MG SEMAD Detalhe: buscando documentos de %d registros",
+        len(ids_to_fetch),
+    )
+
+    details_map: dict[str, dict[str, str]] = {}
+    with httpx.Client(timeout=HTTP_TIMEOUT, follow_redirects=True) as client:
+        for i, detail_id in enumerate(ids_to_fetch):
+            try:
+                detail = _fetch_detail(client, str(detail_id))
+                details_map[str(detail_id)] = detail
+            except Exception:
+                logger.exception(
+                    "MG SEMAD Detalhe: erro no id=%s — continuando",
+                    detail_id,
+                )
+
+            if (i + 1) % 100 == 0:
+                logger.info(
+                    "MG SEMAD Detalhe: %d/%d processados",
+                    i + 1,
+                    len(ids_to_fetch),
+                )
+            time.sleep(0.5)
+
+    # Mapear detalhes de volta ao DataFrame
+    df["documentos_pdf"] = df["detail_id"].map(
+        lambda x: details_map.get(str(x), {}).get("documentos_pdf", "")
+        if pd.notna(x)
+        else ""
+    )
+
+    atomic_parquet_write(df, parquet_path)
+    logger.info(
+        "MG SEMAD Detalhe: parquet atualizado com documentos (%d registros)",
+        len(df),
+    )
+    return parquet_path
 
 
 def scrape_mg_semad(
