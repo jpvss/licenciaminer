@@ -151,6 +151,45 @@ def mg_textos(ctx: click.Context, max_records: int | None, mining_only: bool) ->
     click.echo(f"MG SEMAD Textos: parquet atualizado em {path}")
 
 
+@collect.command("infracoes")
+@click.option("--uf", default="MG", help="Filtrar por UF (padrão: MG, use ALL para todos).")
+@click.pass_context
+def infracoes(ctx: click.Context, uf: str) -> None:
+    """Coletar autos de infração ambiental do IBAMA."""
+    from licenciaminer.collectors.ibama_infracoes import collect_ibama_infracoes
+
+    output_dir: Path = ctx.obj["data_dir"]
+    uf_filter = None if uf == "ALL" else uf
+    path = collect_ibama_infracoes(output_dir, uf_filter=uf_filter)
+    click.echo(f"IBAMA Infrações: dados salvos em {path}")
+
+
+@collect.command("cfem")
+@click.option("--uf", default="MG", help="Filtrar por UF (padrão: MG, use ALL para todos).")
+@click.option("--full-history", is_flag=True, default=False, help="Baixar histórico completo.")
+@click.pass_context
+def cfem(ctx: click.Context, uf: str, full_history: bool) -> None:
+    """Coletar dados de arrecadação CFEM (royalties) da ANM."""
+    from licenciaminer.collectors.anm_cfem import collect_cfem
+
+    output_dir: Path = ctx.obj["data_dir"]
+    uf_filter = None if uf == "ALL" else uf
+    path = collect_cfem(output_dir, uf_filter=uf_filter, full_history=full_history)
+    click.echo(f"CFEM: dados salvos em {path}")
+
+
+@collect.command("cnpj")
+@click.option("--max-records", type=int, default=None, help="Limitar consultas (para testes).")
+@click.pass_context
+def cnpj(ctx: click.Context, max_records: int | None) -> None:
+    """Enriquecer CNPJs com dados cadastrais da Receita Federal."""
+    from licenciaminer.collectors.cnpj_enrichment import collect_cnpj_data
+
+    output_dir: Path = ctx.obj["data_dir"]
+    path = collect_cnpj_data(output_dir, max_records=max_records)
+    click.echo(f"CNPJ: dados salvos em {path}")
+
+
 @collect.command("all")
 @click.pass_context
 def collect_all(ctx: click.Context) -> None:
