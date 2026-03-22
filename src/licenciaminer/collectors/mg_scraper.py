@@ -201,6 +201,7 @@ def _fetch_detail(client: httpx.Client, detail_id: str) -> dict[str, str]:
 def enrich_with_details(
     data_dir: Path,
     max_records: int | None = None,
+    mining_only: bool = False,
 ) -> Path:
     """Enriquece parquet existente com links de documentos das páginas de detalhe.
 
@@ -222,7 +223,13 @@ def enrich_with_details(
         logger.warning("Coluna detail_id não encontrada — re-execute o scraper")
         return parquet_path
 
-    ids_to_fetch = df["detail_id"].dropna().unique()
+    # Filtrar apenas mineração se solicitado
+    if mining_only and "atividade" in df.columns:
+        mask = df["atividade"].astype(str).str.startswith(MG_MINING_CODE_PREFIX)
+        ids_to_fetch = df.loc[mask, "detail_id"].dropna().unique()
+        logger.info("MG SEMAD Detalhe: filtro mineração — %d registros", len(ids_to_fetch))
+    else:
+        ids_to_fetch = df["detail_id"].dropna().unique()
     if max_records is not None:
         ids_to_fetch = ids_to_fetch[:max_records]
 
