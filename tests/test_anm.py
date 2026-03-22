@@ -1,7 +1,7 @@
 """Testes para o coletor ANM SIGMINE."""
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pandas as pd
 
@@ -11,11 +11,19 @@ from licenciaminer.collectors.anm import collect_anm
 class TestCollectAnm:
     """Testes para coleta de dados da ANM."""
 
+    def _mock_query(self, sample: dict[str, object]) -> None:
+        """Helper para configurar mocks da ANM."""
+
     def test_collects_features(
         self, tmp_data_dir: Path, sample_anm_response: dict[str, object]
     ) -> None:
         """Deve coletar features do ArcGIS e salvar como parquet."""
-        with patch("licenciaminer.collectors.anm._query_arcgis") as mock_query:
+        with (
+            patch("licenciaminer.collectors.anm._query_count") as mock_count,
+            patch("licenciaminer.collectors.anm._query_arcgis") as mock_query,
+        ):
+            # UF tem menos que 5000 — query simples
+            mock_count.return_value = 2
             mock_query.return_value = sample_anm_response
             path = collect_anm(tmp_data_dir, ufs=["MG"])
 
@@ -28,7 +36,11 @@ class TestCollectAnm:
         self, tmp_data_dir: Path, sample_anm_response: dict[str, object]
     ) -> None:
         """Deve adicionar colunas de metadados."""
-        with patch("licenciaminer.collectors.anm._query_arcgis") as mock_query:
+        with (
+            patch("licenciaminer.collectors.anm._query_count") as mock_count,
+            patch("licenciaminer.collectors.anm._query_arcgis") as mock_query,
+        ):
+            mock_count.return_value = 2
             mock_query.return_value = sample_anm_response
             path = collect_anm(tmp_data_dir, ufs=["MG"])
 
@@ -40,7 +52,11 @@ class TestCollectAnm:
         self, tmp_data_dir: Path, sample_anm_response: dict[str, object]
     ) -> None:
         """Deve salvar no caminho correto."""
-        with patch("licenciaminer.collectors.anm._query_arcgis") as mock_query:
+        with (
+            patch("licenciaminer.collectors.anm._query_count") as mock_count,
+            patch("licenciaminer.collectors.anm._query_arcgis") as mock_query,
+        ):
+            mock_count.return_value = 2
             mock_query.return_value = sample_anm_response
             path = collect_anm(tmp_data_dir, ufs=["MG"])
 
@@ -51,7 +67,11 @@ class TestCollectAnm:
         self, tmp_data_dir: Path, sample_anm_response: dict[str, object]
     ) -> None:
         """Deve coletar de múltiplas UFs."""
-        with patch("licenciaminer.collectors.anm._query_arcgis") as mock_query:
+        with (
+            patch("licenciaminer.collectors.anm._query_count") as mock_count,
+            patch("licenciaminer.collectors.anm._query_arcgis") as mock_query,
+        ):
+            mock_count.return_value = 2
             mock_query.return_value = sample_anm_response
             path = collect_anm(tmp_data_dir, ufs=["MG", "PA"])
 
