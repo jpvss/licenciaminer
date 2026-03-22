@@ -72,13 +72,42 @@ def anm(ctx: click.Context, uf: tuple[str, ...]) -> None:
     default=None,
     help="Arquivo Excel da SEMAD/MG.",
 )
+@click.option(
+    "--scrape", is_flag=True, default=False,
+    help="Scrapar dados do portal web (ignora Excel).",
+)
+@click.option(
+    "--all-activities", is_flag=True, default=False,
+    help="Coletar todas as atividades (não filtrar apenas mineração).",
+)
+@click.option(
+    "--max-pages", type=int, default=None,
+    help="Limitar número de páginas (para testes).",
+)
 @click.pass_context
-def mg(ctx: click.Context, file_path: Path | None) -> None:
-    """Processar dados da SEMAD/MG (requer download manual)."""
-    from licenciaminer.collectors.mg_semad import process_mg_excel
-
+def mg(
+    ctx: click.Context,
+    file_path: Path | None,
+    scrape: bool,
+    all_activities: bool,
+    max_pages: int | None,
+) -> None:
+    """Processar dados da SEMAD/MG (Excel ou scraping do portal)."""
     output_dir: Path = ctx.obj["data_dir"]
-    path = process_mg_excel(output_dir, file_path=file_path)
+
+    if scrape:
+        from licenciaminer.collectors.mg_scraper import scrape_mg_semad
+
+        path = scrape_mg_semad(
+            output_dir,
+            max_pages=max_pages,
+            mining_only=not all_activities,
+        )
+    else:
+        from licenciaminer.collectors.mg_semad import process_mg_excel
+
+        path = process_mg_excel(output_dir, file_path=file_path)
+
     click.echo(f"MG SEMAD: dados salvos em {path}")
 
 
