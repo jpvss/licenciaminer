@@ -103,6 +103,9 @@ def collect_ibama_infracoes(data_dir: Path, uf_filter: str | None = "MG") -> Pat
     output_path = data_dir / "processed" / "ibama_infracoes.parquet"
     output_path.parent.mkdir(parents=True, exist_ok=True)
     atomic_parquet_write(df, output_path)
+    from licenciaminer.collectors.metadata import save_collection_metadata
+
+    save_collection_metadata(data_dir, "ibama_infracoes", len(df))
     logger.info(
         "IBAMA Infrações: dados salvos em %s (%d registros)", output_path, len(df)
     )

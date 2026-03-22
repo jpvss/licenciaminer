@@ -227,5 +227,7 @@ def collect_anm(data_dir: Path, ufs: list[str] | None = None) -> Path:
     output_path = data_dir / "processed" / "anm_processos.parquet"
     output_path.parent.mkdir(parents=True, exist_ok=True)
     atomic_parquet_write(df, output_path)
+    from licenciaminer.collectors.metadata import save_collection_metadata
+    save_collection_metadata(data_dir, "anm_processos", len(df))
     logger.info("ANM: dados salvos em %s (%d registros)", output_path, len(df))
     return output_path

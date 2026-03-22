@@ -86,8 +86,11 @@ def collect_ibama(data_dir: Path) -> Path:
 
     df = add_metadata(df, source="ibama_sislic")
 
+    from licenciaminer.collectors.metadata import save_collection_metadata
+
     output_path = data_dir / "processed" / "ibama_licencas.parquet"
     output_path.parent.mkdir(parents=True, exist_ok=True)
     atomic_parquet_write(df, output_path)
+    save_collection_metadata(data_dir, "ibama_licencas", len(df))
     logger.info("IBAMA: dados salvos em %s (%d registros)", output_path, len(df))
     return output_path

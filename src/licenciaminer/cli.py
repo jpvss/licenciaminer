@@ -84,6 +84,10 @@ def anm(ctx: click.Context, uf: tuple[str, ...]) -> None:
     "--max-pages", type=int, default=None,
     help="Limitar número de páginas (para testes).",
 )
+@click.option(
+    "--full-refresh", is_flag=True, default=False,
+    help="Forçar coleta completa (ignorar dados existentes).",
+)
 @click.pass_context
 def mg(
     ctx: click.Context,
@@ -91,6 +95,7 @@ def mg(
     scrape: bool,
     all_activities: bool,
     max_pages: int | None,
+    full_refresh: bool,
 ) -> None:
     """Processar dados da SEMAD/MG (Excel ou scraping do portal)."""
     output_dir: Path = ctx.obj["data_dir"]
@@ -102,6 +107,7 @@ def mg(
             output_dir,
             max_pages=max_pages,
             mining_only=not all_activities,
+            full_refresh=full_refresh,
         )
     else:
         from licenciaminer.collectors.mg_semad import process_mg_excel

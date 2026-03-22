@@ -13,6 +13,7 @@ import time
 from pathlib import Path
 
 import httpx
+import pandas as pd
 from tenacity import (
     before_sleep_log,
     retry,
@@ -208,8 +209,6 @@ def enrich_with_details(
     Lê o parquet salvo pelo scraper, busca a página de detalhe para cada
     registro que tem detail_id, e adiciona colunas com links de PDFs.
     """
-    import pandas as pd
-
     parquet_path = data_dir / "processed" / "mg_semad_licencas.parquet"
     if not parquet_path.exists():
         raise FileNotFoundError(
@@ -226,10 +225,29 @@ def enrich_with_details(
     # Filtrar apenas mineração se solicitado
     if mining_only and "atividade" in df.columns:
         mask = df["atividade"].astype(str).str.startswith(MG_MINING_CODE_PREFIX)
-        ids_to_fetch = df.loc[mask, "detail_id"].dropna().unique()
-        logger.info("MG SEMAD Detalhe: filtro mineração — %d registros", len(ids_to_fetch))
+        candidate_ids = df.loc[mask, "detail_id"].dropna().unique()
+        logger.info("MG SEMAD Detalhe: filtro mineração — %d registros", len(candidate_ids))
     else:
-        ids_to_fetch = df["detail_id"].dropna().unique()
+        candidate_ids = df["detail_id"].dropna().unique()
+
+    # Pular registros que já têm documentos_pdf
+    already_enriched: set[str] = set()
+    if "documentos_pdf" in df.columns:
+        has_docs = df["documentos_pdf"].astype(str).str.len() > 1
+        already_enriched = set(
+            df.loc[has_docs, "detail_id"].dropna().astype(str)
+        )
+
+    ids_to_fetch = [
+        did for did in candidate_ids
+        if str(did) not in already_enriched
+    ]
+    logger.info(
+        "MG SEMAD Detalhe: %d já enriquecidos, %d novos para buscar",
+        len(already_enriched),
+        len(ids_to_fetch),
+    )
+
     if max_records is not None:
         ids_to_fetch = ids_to_fetch[:max_records]
 
@@ -273,74 +291,11 @@ def enrich_with_details(
     return parquet_path
 
 
-def scrape_mg_semad(
-    data_dir: Path,
-    max_pages: int | None = None,
-    mining_only: bool = True,
-) -> Path:
-    """Scrapa dados de licenciamento da SEMAD/MG via tabela HTML paginada.
-
-    Coleta todas as páginas da tabela, opcionalmente filtrando apenas
-    atividades de mineração (códigos A-0x).
-    """
-    import pandas as pd
-
-    all_rows: list[dict[str, str]] = []
-
-    with httpx.Client(timeout=HTTP_TIMEOUT, follow_redirects=True) as client:
-        # Primeira página para descobrir total
-        logger.info("MG SEMAD Scraper: baixando página 1...")
-        html = _fetch_page(client, page=1)
-        total_items = _extract_total_items(html)
-        total_pages = (total_items + PER_PAGE - 1) // PER_PAGE
-
-        if max_pages is not None:
-            total_pages = min(total_pages, max_pages)
-
-        logger.info(
-            "MG SEMAD Scraper: %d itens, %d páginas para coletar",
-            total_items,
-            total_pages,
-        )
-
-        # Parsear primeira página
-        rows = _parse_table_rows(html)
-        all_rows.extend(rows)
-        logger.info("MG SEMAD Scraper: página 1 — %d registros", len(rows))
-
-        # Coletar demais páginas
-        for page in range(2, total_pages + 1):
-            time.sleep(1.0)  # Rate limiting
-            try:
-                html = _fetch_page(client, page=page)
-                rows = _parse_table_rows(html)
-                all_rows.extend(rows)
-
-                if page % 50 == 0 or page == total_pages:
-                    logger.info(
-                        "MG SEMAD Scraper: página %d/%d — %d registros acumulados",
-                        page,
-                        total_pages,
-                        len(all_rows),
-                    )
-            except Exception:
-                logger.exception(
-                    "MG SEMAD Scraper: erro na página %d — continuando",
-                    page,
-                )
-                continue
-
-    logger.info("MG SEMAD Scraper: %d registros brutos coletados", len(all_rows))
-
-    df = pd.DataFrame(all_rows)
+def _normalize_new_rows(df: pd.DataFrame, mining_only: bool) -> pd.DataFrame:
+    """Normaliza um DataFrame de linhas recém-scrapadas."""
 
     if df.empty:
-        logger.warning("MG SEMAD Scraper: nenhum registro coletado")
-        df = add_metadata(df, source="mg_semad_scraper")
-        output_path = data_dir / "processed" / "mg_semad_licencas.parquet"
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        atomic_parquet_write(df, output_path)
-        return output_path
+        return df
 
     # Normalizar decisão
     if "Decisão" in df.columns:
@@ -394,10 +349,163 @@ def scrape_mg_semad(
         )
 
     df = add_metadata(df, source="mg_semad_scraper")
+    return df
+
+
+def scrape_mg_semad(
+    data_dir: Path,
+    max_pages: int | None = None,
+    mining_only: bool = True,
+    full_refresh: bool = False,
+) -> Path:
+    """Scrapa dados de licenciamento da SEMAD/MG via tabela HTML paginada.
+
+    Modo incremental (padrão): scrapa páginas mais recentes até encontrar
+    um detail_id já existente no parquet. Novos registros são concatenados.
+
+    Modo full (--full-refresh): scrapa tudo do zero, substituindo o parquet.
+    """
+    from licenciaminer.collectors.metadata import save_collection_metadata
 
     output_path = data_dir / "processed" / "mg_semad_licencas.parquet"
+
+    # Carregar IDs existentes para modo incremental
+    existing_ids: set[str] = set()
+    df_existing: pd.DataFrame | None = None
+    if not full_refresh and output_path.exists():
+        df_existing = pd.read_parquet(output_path)
+        if "detail_id" in df_existing.columns:
+            existing_ids = set(df_existing["detail_id"].dropna().astype(str))
+            logger.info(
+                "MG SEMAD Scraper: modo incremental — %d registros existentes",
+                len(existing_ids),
+            )
+
+    all_rows: list[dict[str, str]] = []
+    hit_existing = False
+
+    with httpx.Client(timeout=HTTP_TIMEOUT, follow_redirects=True) as client:
+        # Primeira página para descobrir total
+        logger.info("MG SEMAD Scraper: baixando página 1...")
+        html = _fetch_page(client, page=1)
+        total_items = _extract_total_items(html)
+        total_pages = (total_items + PER_PAGE - 1) // PER_PAGE
+
+        if max_pages is not None:
+            total_pages = min(total_pages, max_pages)
+
+        logger.info(
+            "MG SEMAD Scraper: %d itens, %d páginas para coletar",
+            total_items,
+            total_pages,
+        )
+
+        # Parsear primeira página
+        rows = _parse_table_rows(html)
+
+        # Em modo incremental, verificar se já temos estes registros
+        if existing_ids:
+            new_rows = [
+                r for r in rows
+                if r.get("detail_id", "") not in existing_ids
+            ]
+            if len(new_rows) < len(rows):
+                hit_existing = True
+            all_rows.extend(new_rows)
+            logger.info(
+                "MG SEMAD Scraper: página 1 — %d novos de %d",
+                len(new_rows),
+                len(rows),
+            )
+        else:
+            all_rows.extend(rows)
+            logger.info("MG SEMAD Scraper: página 1 — %d registros", len(rows))
+
+        # Coletar demais páginas (parar se modo incremental e todos conhecidos)
+        for page in range(2, total_pages + 1):
+            if hit_existing and existing_ids and not full_refresh:
+                # Página anterior já tinha IDs conhecidos — parar
+                logger.info(
+                    "MG SEMAD Scraper: encontrou registros existentes na "
+                    "página %d — parando coleta incremental (%d novos)",
+                    page - 1,
+                    len(all_rows),
+                )
+                break
+
+            time.sleep(1.0)
+            try:
+                html = _fetch_page(client, page=page)
+                rows = _parse_table_rows(html)
+
+                if existing_ids:
+                    new_rows = [
+                        r for r in rows
+                        if r.get("detail_id", "") not in existing_ids
+                    ]
+                    if len(new_rows) < len(rows):
+                        hit_existing = True
+                    all_rows.extend(new_rows)
+                else:
+                    all_rows.extend(rows)
+
+                if page % 50 == 0 or page == total_pages:
+                    logger.info(
+                        "MG SEMAD Scraper: página %d/%d — %d registros acumulados",
+                        page,
+                        total_pages,
+                        len(all_rows),
+                    )
+            except Exception:
+                logger.exception(
+                    "MG SEMAD Scraper: erro na página %d — continuando",
+                    page,
+                )
+                continue
+
+    logger.info("MG SEMAD Scraper: %d registros novos coletados", len(all_rows))
+
+    if not all_rows:
+        logger.info("MG SEMAD Scraper: nenhum registro novo — dados atualizados")
+        if df_existing is not None:
+            save_collection_metadata(
+                data_dir, "mg_semad", len(df_existing), "incremental — sem novos"
+            )
+            return output_path
+        # Parquet vazio
+        df = pd.DataFrame()
+        df = add_metadata(df, source="mg_semad_scraper")
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        atomic_parquet_write(df, output_path)
+        return output_path
+
+    df_new = pd.DataFrame(all_rows)
+    df_new = _normalize_new_rows(df_new, mining_only=mining_only)
+
+    # Concatenar com existentes em modo incremental
+    if df_existing is not None and not full_refresh and not df_new.empty:
+        # Alinhar colunas — novos registros não têm documentos_pdf/texto_documentos
+        df = pd.concat([df_new, df_existing], ignore_index=True)
+        # Remover duplicatas por detail_id (manter a primeira — a mais recente)
+        if "detail_id" in df.columns:
+            df = df.drop_duplicates(subset="detail_id", keep="first")
+        logger.info(
+            "MG SEMAD Scraper: %d novos + %d existentes = %d total",
+            len(df_new),
+            len(df_existing),
+            len(df),
+        )
+    else:
+        df = df_new
+
     output_path.parent.mkdir(parents=True, exist_ok=True)
     atomic_parquet_write(df, output_path)
+    save_collection_metadata(
+        data_dir,
+        "mg_semad",
+        len(df),
+        f"{'full' if full_refresh else 'incremental'} — {len(all_rows)} novos",
+    )
     logger.info(
         "MG SEMAD Scraper: dados salvos em %s (%d registros)",
         output_path,
