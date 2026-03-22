@@ -276,12 +276,13 @@ def enrich_with_details(
                 )
             time.sleep(0.5)
 
-    # Mapear detalhes de volta ao DataFrame
-    df["documentos_pdf"] = df["detail_id"].map(
-        lambda x: details_map.get(str(x), {}).get("documentos_pdf", "")
-        if pd.notna(x)
-        else ""
-    )
+    # Mapear detalhes de volta ao DataFrame — apenas atualizar registros buscados
+    if "documentos_pdf" not in df.columns:
+        df["documentos_pdf"] = ""
+
+    for detail_id_str, detail_data in details_map.items():
+        mask = df["detail_id"].astype(str) == detail_id_str
+        df.loc[mask, "documentos_pdf"] = detail_data.get("documentos_pdf", "")
 
     atomic_parquet_write(df, parquet_path)
     logger.info(
