@@ -5,7 +5,7 @@ QUERY_MG_APPROVAL_RATES = """
 SELECT
     ano,
     classe,
-    codigo_de_atividade,
+    atividade,
     regional,
     COUNT(*) AS total,
     SUM(CASE WHEN decisao = 'deferido' THEN 1 ELSE 0 END) AS deferidos,
@@ -15,7 +15,7 @@ SELECT
         1
     ) AS taxa_aprovacao
 FROM v_mg_semad
-GROUP BY ano, classe, codigo_de_atividade, regional
+GROUP BY ano, classe, atividade, regional
 ORDER BY ano DESC, classe
 """
 
