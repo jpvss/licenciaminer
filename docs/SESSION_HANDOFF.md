@@ -1,13 +1,12 @@
-# Session Handoff — 2026-03-21
+# Session Handoff — 2026-03-22
 
 ## What's Running
 
-**PDF text extraction** is running in background:
-- Progress: ~1,000/8,040 mining records (12%)
-- ETA: ~3 hours from now (~01:45 UTC)
-- Saves every 50 records to `data/processed/mg_semad_licencas.parquet`
-- Fully resumable — skips already-processed records
-- Command: `licenciaminer collect mg-textos --mining-only`
+**CNPJ enrichment** running in background:
+- ~21,840 unique CNPJs to query (14 already done)
+- BrasilAPI at 0.5s/query = ~3 hours
+- Resumable — skips already-fetched CNPJs
+- ~70% hit rate (30% are invalid/malformed CNPJs from source)
 
 ## What's Done
 
@@ -15,82 +14,94 @@
 
 | Source | File | Records | Status |
 |--------|------|---------|--------|
-| MG SEMAD decisions | `mg_semad_licencas.parquet` | 42,758 (8,072 mining) | ✅ Scraped from portal |
-| MG SEMAD PDF links | (in mg_semad_licencas) | 8,045 with links, 14,735 PDFs | ✅ Enriched |
-| MG SEMAD PDF text | (in mg_semad_licencas) | ~1,000 extracted so far | 🔄 Running |
+| MG SEMAD decisions | `mg_semad_licencas.parquet` | 42,758 (8,072 mining) | ✅ |
+| MG SEMAD PDF links | (in mg_semad_licencas) | 8,045 with links, 14,735 PDFs | ✅ |
+| MG SEMAD PDF text | (in mg_semad_licencas) | **6,964 extracted** (86.6% coverage) | ✅ |
 | IBAMA licenses | `ibama_licencas.parquet` | 1,115 | ✅ |
 | ANM processes (MG) | `anm_processos.parquet` | 50,723 | ✅ |
-| IBAMA infractions | `ibama_infracoes.parquet` | 702,280 (all Brazil) | ✅ |
+| IBAMA infractions | `ibama_infracoes.parquet` | 702,280 (all Brazil, 113K MG) | ✅ |
 | ANM CFEM royalties | `anm_cfem.parquet` | 91,026 (MG, 2022-2026) | ✅ |
-| CNPJ data | `cnpj_empresas.parquet` | 14 (test batch) | ✅ Working, needs full run |
+| CNPJ data | `cnpj_empresas.parquet` | 14 (test) | 🔄 Full run in progress |
+
+### PDF Extraction Results
+- 253.5 MB of text extracted from 6,964 mining decision PDFs
+- Average 36,395 chars per record (~18 pages)
+- Deferido: 4,621 records (avg 43K chars)
+- Indeferido: 1,197 records (avg 19K chars)
+- Arquivamento: 810 records (avg 17K chars)
+- 1,081 PDFs could not be extracted (likely scanned images)
+
+### Cross-Source Analysis Working
+DuckDB views linking SEMAD ↔ IBAMA infractions ↔ CFEM via CNPJ.
+
+**Key findings:**
+- Companies with IBAMA infractions: **66.6% approval** vs 62.3% without
+  (counterintuitive — larger established operations navigate better)
+- CFEM payers: **65.6% approval** vs 60.5% non-payers
+- Outlier: CNPJ 00881112000107 — 0% approval (0/20 deferidos, 18 indeferidos)
 
 ### Code Quality
-- 39 tests passing
-- ruff: clean
-- mypy: clean (strict mode, 21 source files)
-- 11 git commits on main
-
-### Research Completed
-- `docs/research/api-research.md` — API documentation
-- `docs/research/specflow-gaps.md` — edge cases and design decisions
-- `docs/research/competitor-landscape.md` — no direct competitor, TAM R$15-75M/yr
-- `docs/research/other-states.md` — SP (CETESB) easiest expansion
-- `docs/research/complementary-data-sources.md` — 8 quick-win sources
-- `docs/research/data-map-mg.md` — comprehensive MG data map
+- 39 tests passing, ruff clean, mypy strict (21 source files)
+- 14 git commits on main
 
 ## Known Issues
 
-1. **IBAMA infractions**: no `uf_infracao` column found — collected all Brazil (702K records). Filter by CNPJ join at query time.
-2. **CNPJ collector**: ~30% of "CNPJs" from SEMAD are invalid (malformed, zero-padded CPFs). BrasilAPI returns 400 for these — handled gracefully.
-3. **ANM collector**: `resultOffset` doesn't work on ANM server. Uses UF→FASE→ANO iteration instead. Fully working.
-4. **IBAMA collector**: JSON wrapped in `{"data": [...]}` envelope — handled.
+1. **IBAMA infractions CNPJs have punctuation** — fixed in queries with REGEXP_REPLACE
+2. **CNPJ collector**: ~30% invalid CNPJs from source data (handled gracefully, returns 400)
+3. **PDF extraction**: 13.4% of records with PDF links had no extractable text (scanned PDFs)
+4. **CFEM ValorRecolhido**: stored as string with comma decimal — needs REPLACE in queries
 
-## Next Session Todo
+## Next Steps
 
-### Immediate (validate before building more)
-1. **Check PDF extraction completed** — verify record count and data quality
-2. **Spot-check 10 records** per source against original portals
-3. **Run CNPJ enrichment** full batch (~21K CNPJs, ~3 hours at 0.5s/query)
-
-### Sprint 2 Remaining
-4. **DuckDB views** linking SEMAD decisions ↔ infractions ↔ CFEM via CNPJ
-5. **First cross-source query**: "Do companies with IBAMA infractions have lower approval rates?"
-6. **ANM RAL** production data (need to locate correct CSV URL in dados.gov.br)
+### Immediate
+1. Check CNPJ enrichment completed
+2. Add CNPJ data to cross-source queries (company age, porte, CNAE)
 
 ### Sprint 3: Spatial Overlays
-7. Download ICMBio UCs, FUNAI TIs, CECAV caves, IBGE biomes (shapefiles)
-8. Add geopandas dependency
-9. Spatial join with ANM polygons
-10. Add overlap columns to enriched dataset
+3. Download shapefiles: ICMBio UCs, FUNAI TIs, CECAV caves, IBGE biomes
+4. Add geopandas dependency
+5. Spatial join with ANM polygons
+6. Create restriction overlay columns
 
 ### Sprint 4: COPAM Governance
-11. Scrape CMI meeting list (filter ~150-200 of 1,761 meetings)
-12. Download Decision + Pauta PDFs from detail pages
-13. Extract voting records via NLP
+7. Scrape CMI meeting list (~150-200 of 1,761 meetings)
+8. Fetch detail pages + PDF links
+9. Download Decision PDFs
+10. NLP extraction of voting records
 
-## Architecture Notes
+### Product
+11. Design predictive model features from cross-source data
+12. Build risk score prototype
+13. Consider FastAPI endpoints for queries
+
+## CLI Commands
+
+```bash
+# Core data
+licenciaminer collect ibama
+licenciaminer collect anm --uf MG
+licenciaminer collect mg --scrape --all-activities
+
+# Enrichment
+licenciaminer collect mg-docs --mining-only
+licenciaminer collect mg-textos --mining-only
+licenciaminer collect infracoes
+licenciaminer collect cfem
+licenciaminer collect cnpj
+
+# Analysis
+licenciaminer analyze
+licenciaminer analyze -o results.json
+```
+
+## File Sizes
 
 ```
-CLI Commands Available:
-  licenciaminer collect ibama          # IBAMA licenses
-  licenciaminer collect anm --uf MG   # ANM processes
-  licenciaminer collect mg --scrape    # MG SEMAD (scraper)
-  licenciaminer collect mg --file X    # MG SEMAD (Excel)
-  licenciaminer collect mg-docs        # PDF link enrichment
-  licenciaminer collect mg-textos      # PDF text extraction
-  licenciaminer collect infracoes      # IBAMA infractions
-  licenciaminer collect cfem           # ANM CFEM royalties
-  licenciaminer collect cnpj           # CNPJ enrichment
-  licenciaminer analyze                # Run analysis
+data/processed/
+  mg_semad_licencas.parquet    120.0 MB  (42,758 records + PDF text)
+  ibama_infracoes.parquet      129.9 MB  (702,280 records)
+  anm_processos.parquet          4.0 MB  (50,723 records)
+  anm_cfem.parquet               2.4 MB  (91,026 records)
+  ibama_licencas.parquet         0.04 MB (1,115 records)
+  cnpj_empresas.parquet          0.01 MB (14 records, growing)
 ```
-
-All data flows through Parquet → DuckDB views. Each source has `_source` and `_collected_at` metadata columns. Sprint 2 sources also have `_source_url` for auditability.
-
-## Key Findings
-
-- **Mining approval rate in MG: 63%** (vs 78.3% for all activities)
-- **Classe 5 mining: 39.4%** approval — significantly harder
-- **Regional variation: 48.5% (Zona da Mata) to 83.9% (Alto Paranaíba)**
-- **Approval trend improving**: 54.3% (2019) → 75.8% (2025)
-- **Parecer Técnico PDFs average 22K chars** — contain full technical analysis, conditions, and rejection reasoning
-- **No direct competitor** exists for this data/analytics combination
