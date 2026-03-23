@@ -15,9 +15,9 @@ from app.components.data_loader import (  # noqa: E402
     run_query_df,
 )
 
-st.title("Explorar Dados")
-st.markdown("Navegue pelos datasets, filtre, e verifique qualquer registro na fonte original.")
-st.divider()
+st.markdown("# 🔍 Explorar Dados")
+st.markdown("*Navegue pelos datasets, filtre e verifique qualquer registro na fonte original.*")
+st.markdown("")
 
 # ── Dataset Selector ──
 datasets = get_dataset_options()
@@ -36,8 +36,11 @@ except Exception as e:
     st.error(f"Erro ao carregar dataset: {e}")
     st.stop()
 
+# Heavy columns to exclude from table view and search
+exclude_cols = {"texto_documentos", "documentos_pdf", "documents_str"}
+
 # ── Filters ──
-st.subheader("Filtros")
+st.markdown('<p class="section-header">Filtros</p>', unsafe_allow_html=True)
 
 # Build dynamic filters based on dataset
 where_clauses: list[str] = []
@@ -47,15 +50,17 @@ filter_cols = st.columns(3)
 with filter_cols[0]:
     search_text = st.text_input("Busca por texto", placeholder="CNPJ, empresa, etc.")
     if search_text:
-        # Search across all string columns
-        search_conditions = []
-        for col in all_columns:
-            if sample[col].dtype == "object":
-                search_conditions.append(
-                    f"LOWER(CAST({col} AS VARCHAR)) LIKE '%{search_text.lower()}%'"
-                )
-        if search_conditions:
-            where_clauses.append(f"({' OR '.join(search_conditions)})")
+        # Sanitize input — remove SQL special chars
+        safe_search = search_text.replace("'", "").replace(";", "").replace("--", "").lower()
+        if safe_search:
+            search_conditions = []
+            for col in all_columns:
+                if col not in exclude_cols and sample[col].dtype == "object":
+                    search_conditions.append(
+                        f"LOWER(CAST({col} AS VARCHAR)) LIKE '%{safe_search}%'"
+                    )
+            if search_conditions:
+                where_clauses.append(f"({' OR '.join(search_conditions)})")
 
 # Dataset-specific filters
 if view_name == "v_mg_semad":
@@ -112,8 +117,6 @@ offset = (page - 1) * page_size
 
 st.caption(f"Página {page} de {total_pages}")
 
-# Exclude heavy columns from table view
-exclude_cols = {"texto_documentos", "documentos_pdf", "documents_str"}
 select_cols = [c for c in all_columns if c not in exclude_cols]
 select_sql = ", ".join(select_cols)
 

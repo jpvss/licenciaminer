@@ -86,10 +86,19 @@ def get_source_info() -> list[dict]:
 
     for source_key, display_name in source_names.items():
         meta = metadata.get(source_key, {})
-        records = meta.get("records", "—")
+        records_raw = meta.get("records", "—")
+        # Convert string records to int for formatting
+        try:
+            records = int(records_raw) if records_raw != "—" else "—"
+        except (ValueError, TypeError):
+            records = records_raw
+
         last_collected = meta.get("last_collected", "—")
-        if last_collected != "—":
-            last_collected = last_collected[:10]  # Just date part
+        last_collected = (
+            str(last_collected)[:10]
+            if last_collected not in ("—", "")
+            else "—"
+        )
 
         sources.append({
             "Fonte": display_name,

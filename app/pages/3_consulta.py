@@ -94,12 +94,12 @@ def _render_company_profile(cnpj: str) -> None:
 
 # ── Page Layout ──
 
-st.title("Consulta de Inteligência")
+st.markdown("# 💡 Consulta de Inteligência")
 st.markdown(
-    "Busque por parâmetros de projeto ou por CNPJ para obter um briefing "
-    "com estatísticas, casos similares e perfil da empresa."
+    "*Busque por parâmetros de projeto ou por CNPJ para obter um briefing "
+    "com estatísticas, casos similares e perfil da empresa.*"
 )
-st.divider()
+st.markdown("")
 
 # ── Search Mode ──
 mode = st.radio(
