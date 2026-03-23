@@ -35,9 +35,8 @@ def run_query(query: str, params: list | None = None) -> list[dict]:
 def run_query_df(query: str, params: list | None = None):
     """Executa query e retorna DataFrame pandas."""
     con = get_connection()
-    if params:
-        return con.execute(query, params).df()
-    return con.execute(query).df()
+    result = con.execute(query, params) if params else con.execute(query)
+    return result.df()
 
 
 def load_metadata() -> dict:
