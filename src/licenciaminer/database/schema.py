@@ -9,4 +9,6 @@ PARQUET_SOURCES: dict[str, str] = {
     "v_cfem": "anm_cfem.parquet",
     "v_cnpj": "cnpj_empresas.parquet",
     "v_spatial": "anm_spatial_overlaps.parquet",
+    "v_copam": "copam_cmi_reunioes.parquet",
+    "v_ral": "anm_ral.parquet",
 }

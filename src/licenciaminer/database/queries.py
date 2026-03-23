@@ -276,3 +276,142 @@ GROUP BY sf.biomas
 HAVING COUNT(*) >= 10
 ORDER BY analise, total_decisoes DESC
 """
+
+# ============================================================
+# PARAMETERIZED QUERIES (for app)
+# ============================================================
+
+
+def query_similar_cases(
+    atividade: str,
+    classe: int | None = None,
+    regional: str | None = None,
+    limit: int = 5,
+) -> str:
+    """Gera query para casos similares com relaxamento progressivo."""
+    conditions = ["atividade LIKE ?"]
+    params_desc = [f"{atividade}%"]
+
+    if classe is not None:
+        conditions.append("classe = ?")
+        params_desc.append(str(classe))
+
+    if regional is not None:
+        conditions.append("regional = ?")
+        params_desc.append(regional)
+
+    where = " AND ".join(conditions)
+    return f"""
+SELECT
+    detail_id, empreendimento, municipio, cnpj_cpf,
+    atividade, classe, regional, modalidade,
+    decisao, ano, data_de_publicacao,
+    LENGTH(CAST(texto_documentos AS VARCHAR)) AS texto_chars
+FROM v_mg_semad
+WHERE {where}
+  AND atividade LIKE 'A-0%'
+ORDER BY data_de_publicacao DESC
+LIMIT {limit}
+"""
+
+
+def query_approval_stats(
+    atividade_prefix: str | None = None,
+    classe: int | None = None,
+    regional: str | None = None,
+) -> str:
+    """Gera query para estatísticas de aprovação filtradas."""
+    conditions = ["atividade LIKE 'A-0%'"]
+
+    if atividade_prefix:
+        conditions.append(f"atividade LIKE '{atividade_prefix}%'")
+    if classe is not None:
+        conditions.append(f"classe = {classe}")
+    if regional:
+        conditions.append(f"regional = '{regional}'")
+
+    where = " AND ".join(conditions)
+    return f"""
+SELECT
+    COUNT(*) AS total,
+    SUM(CASE WHEN decisao = 'deferido' THEN 1 ELSE 0 END) AS deferidos,
+    SUM(CASE WHEN decisao = 'indeferido' THEN 1 ELSE 0 END) AS indeferidos,
+    SUM(CASE WHEN decisao = 'arquivamento' THEN 1 ELSE 0 END) AS arquivamentos,
+    ROUND(
+        100.0 * SUM(CASE WHEN decisao = 'deferido' THEN 1 ELSE 0 END) / COUNT(*),
+        1
+    ) AS taxa_aprovacao
+FROM v_mg_semad
+WHERE {where}
+"""
+
+
+QUERY_CNPJ_PROFILE = """
+SELECT
+    s.cnpj_cpf,
+    c.razao_social,
+    c.cnae_fiscal,
+    c.cnae_descricao,
+    c.porte,
+    c.data_abertura,
+    c.situacao,
+    COUNT(DISTINCT s.detail_id) AS total_decisoes,
+    SUM(CASE WHEN s.decisao = 'deferido' THEN 1 ELSE 0 END) AS deferidos,
+    SUM(CASE WHEN s.decisao = 'indeferido' THEN 1 ELSE 0 END) AS indeferidos,
+    SUM(CASE WHEN s.decisao = 'arquivamento' THEN 1 ELSE 0 END) AS arquivamentos,
+    ROUND(
+        100.0 * SUM(CASE WHEN s.decisao = 'deferido' THEN 1 ELSE 0 END)
+        / NULLIF(COUNT(*), 0), 1
+    ) AS taxa_aprovacao
+FROM v_mg_semad s
+LEFT JOIN v_cnpj c ON s.cnpj_cpf = c.cnpj
+WHERE s.cnpj_cpf = ?
+  AND s.atividade LIKE 'A-0%'
+GROUP BY s.cnpj_cpf, c.razao_social, c.cnae_fiscal,
+         c.cnae_descricao, c.porte, c.data_abertura, c.situacao
+"""
+
+QUERY_CNPJ_INFRACOES = """
+SELECT
+    COUNT(*) AS total_infracoes,
+    COUNT(DISTINCT EXTRACT(YEAR FROM
+        TRY_CAST(DAT_HORA_AUTO_INFRACAO AS TIMESTAMP)
+    )) AS anos_com_infracao
+FROM v_ibama_infracoes
+WHERE REGEXP_REPLACE(CPF_CNPJ_INFRATOR, '[^0-9]', '', 'g') = ?
+"""
+
+QUERY_CNPJ_CFEM = """
+SELECT
+    COUNT(*) AS meses_pagamento,
+    SUM(TRY_CAST(
+        REPLACE(REPLACE(ValorRecolhido, '.', ''), ',', '.') AS DOUBLE
+    )) AS total_pago
+FROM v_cfem
+WHERE CPF_CNPJ = ?
+"""
+
+QUERY_CNPJ_ANM_TITULOS = """
+SELECT
+    PROCESSO, FASE, SUBS, AREA_HA, ANO
+FROM v_anm
+WHERE NOME LIKE '%' || ? || '%'
+ORDER BY ANO DESC
+LIMIT 20
+"""
+
+QUERY_MINING_TREND = """
+SELECT
+    ano,
+    COUNT(*) AS total,
+    SUM(CASE WHEN decisao = 'deferido' THEN 1 ELSE 0 END) AS deferidos,
+    ROUND(
+        100.0 * SUM(CASE WHEN decisao = 'deferido' THEN 1 ELSE 0 END)
+        / COUNT(*), 1
+    ) AS taxa_aprovacao
+FROM v_mg_semad
+WHERE atividade LIKE 'A-0%'
+GROUP BY ano
+HAVING COUNT(*) >= 10
+ORDER BY ano
+"""
