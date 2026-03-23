@@ -10,6 +10,8 @@ for p in [_project_root, _project_root + "/src"]:
 
 import streamlit as st  # noqa: E402
 
+from app.styles.theme import inject_theme, hero_html  # noqa: E402
+
 st.set_page_config(
     page_title="LicenciaMiner",
     page_icon="⛏️",
@@ -17,97 +19,97 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ── Custom CSS (shared across all pages) ──
-st.markdown("""
-<style>
-    .block-container { padding-top: 2rem; padding-bottom: 1rem; }
+inject_theme(st)
 
-    [data-testid="stMetric"] {
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-        border: 1px solid #2a2a4a;
-        border-radius: 12px;
-        padding: 1rem 1.2rem;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    }
-    [data-testid="stMetricValue"] {
-        font-size: 1.8rem; color: #e8b931; font-weight: 700;
-    }
-    [data-testid="stMetricLabel"] {
-        font-size: 0.85rem; color: #a0a0b0;
-        text-transform: uppercase; letter-spacing: 0.05em;
-    }
+# ── Sidebar branding ──
+with st.sidebar:
+    st.markdown("""
+    <div class="sidebar-brand">
+        <h2>⛏️ LicenciaMiner</h2>
+        <p>Inteligência Ambiental Minerária</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-    .insight-card {
-        background: #111827;
-        border-left: 3px solid #e8b931;
-        border-radius: 0 8px 8px 0;
-        padding: 1rem 1.2rem;
-        margin-bottom: 0.8rem;
-    }
-    .insight-card h4 { margin: 0 0 4px 0; color: #f0f0f0; font-size: 1rem; }
-    .insight-card p { margin: 0; color: #a0a0b0; font-size: 0.85rem; }
-    .insight-card .stat {
-        color: #e8b931; font-size: 1.3rem; font-weight: 700;
-    }
+    st.caption(
+        "Dados de fontes públicas oficiais. "
+        "Cada registro é rastreável à fonte original."
+    )
 
-    .source-row {
-        display: flex; align-items: center;
-        padding: 0.6rem 0; border-bottom: 1px solid #1e2740;
-    }
-    .source-name { flex: 2; color: #e0e0e0; font-weight: 500; }
-    .source-count {
-        flex: 1; color: #e8b931; font-weight: 600; text-align: right;
-    }
-    .source-date {
-        flex: 1; color: #6b7280; font-size: 0.85rem; text-align: right;
-    }
-    .source-link { flex: 0.5; text-align: right; }
-    .source-link a {
-        color: #6b8afd; text-decoration: none; font-size: 0.8rem;
-    }
+    # Data freshness
+    try:
+        from app.components.data_loader import load_metadata
+        meta = load_metadata()
+        last_date = meta.get("mg_semad", {}).get("last_collected", "")[:10]
+        if last_date:
+            st.markdown(f"""
+            <div class="sidebar-freshness">
+                <span class="dot"></span>
+                Dados: {last_date}
+            </div>
+            """, unsafe_allow_html=True)
+    except Exception:
+        pass
 
-    .fresh { color: #22c55e; }
-    .old { color: #ef4444; }
-
-    .section-header {
-        font-size: 0.75rem; text-transform: uppercase;
-        letter-spacing: 0.12em; color: #6b7280;
-        margin-bottom: 0.5rem; padding-bottom: 0.3rem;
-        border-bottom: 1px solid #1e2740;
-    }
-
-    .case-card {
-        background: #111827; border-radius: 8px;
-        padding: 1rem; margin-bottom: 0.5rem;
-        border: 1px solid #1e2740;
-    }
-    .case-card:hover { border-color: #e8b931; }
-</style>
-""", unsafe_allow_html=True)
-
-st.sidebar.markdown("### ⛏️ LicenciaMiner")
-st.sidebar.caption("Inteligência de Licenciamento Ambiental Minerário — MG")
-st.sidebar.divider()
-st.sidebar.markdown(
-    "📊 Dados de fontes públicas oficiais. "
-    "Cada informação mostra sua fonte e data de atualização."
-)
-
-# ── Landing Page ──
-st.markdown("# ⛏️ LicenciaMiner")
+# ── Hero ──
 st.markdown(
-    "*Inteligência de Licenciamento Ambiental Minerário — Minas Gerais*"
+    hero_html("LicenciaMiner", "Inteligência de Licenciamento Ambiental Minerário — Minas Gerais"),
+    unsafe_allow_html=True,
 )
 
-st.markdown("")
+# ── Live stats for nav cards ──
+try:
+    from app.components.data_loader import run_query
+    semad_n = run_query("SELECT COUNT(*) AS n FROM v_mg_semad")[0]["n"]
+    anm_n = run_query("SELECT COUNT(*) AS n FROM v_anm")[0]["n"]
+    mining_n = run_query(
+        "SELECT COUNT(*) AS n FROM v_mg_semad WHERE atividade LIKE 'A-0%'"
+    )[0]["n"]
+except Exception:
+    semad_n, anm_n, mining_n = 0, 0, 0
 
+# ── Navigation cards ──
 col1, col2, col3 = st.columns(3)
+
 with col1:
-    st.page_link("pages/1_visao_geral.py", label="Visão Geral", icon="📊")
-    st.caption("Resumo do banco de dados, fontes e insights")
+    st.markdown(f"""
+    <div class="geo-nav-card animate-in-d1">
+        <span class="nav-icon">📊</span>
+        <p class="nav-title">Visão Geral</p>
+        <p class="nav-desc">Resumo executivo do banco de dados, tendências de aprovação e insights chave</p>
+        <span class="nav-stat">{semad_n:,} decisões</span>
+    </div>
+    """, unsafe_allow_html=True)
+    st.page_link("pages/1_visao_geral.py", label="Abrir Visão Geral →", icon=None)
+
 with col2:
-    st.page_link("pages/2_explorar_dados.py", label="Explorar Dados", icon="🔍")
-    st.caption("Navegue pelos datasets, filtre e exporte")
+    st.markdown(f"""
+    <div class="geo-nav-card animate-in-d2">
+        <span class="nav-icon">🔍</span>
+        <p class="nav-title">Explorar Dados</p>
+        <p class="nav-desc">Navegue pelos datasets, filtre registros e verifique na fonte original</p>
+        <span class="nav-stat">{anm_n:,} processos ANM</span>
+    </div>
+    """, unsafe_allow_html=True)
+    st.page_link("pages/2_explorar_dados.py", label="Abrir Explorador →", icon=None)
+
 with col3:
-    st.page_link("pages/3_consulta.py", label="Consulta", icon="💡")
-    st.caption("Busque por projeto ou empresa")
+    st.markdown(f"""
+    <div class="geo-nav-card animate-in-d3">
+        <span class="nav-icon">💡</span>
+        <p class="nav-title">Consulta</p>
+        <p class="nav-desc">Busque por projeto ou empresa para obter um briefing com estatísticas e casos similares</p>
+        <span class="nav-stat">{mining_n:,} decisões mineração</span>
+    </div>
+    """, unsafe_allow_html=True)
+    st.page_link("pages/3_consulta.py", label="Abrir Consulta →", icon=None)
+
+# ── Trust strip ──
+st.markdown("")
+st.markdown("""
+<div style="text-align: center; padding: 1rem 0; border-top: 1px solid var(--stratum-3);">
+    <span style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--slate-dim);
+                 letter-spacing: 0.06em;">
+        12 FONTES OFICIAIS · 100% RASTREÁVEL · DADOS PÚBLICOS
+    </span>
+</div>
+""", unsafe_allow_html=True)

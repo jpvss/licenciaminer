@@ -1,4 +1,4 @@
-"""Tab 2: Explorar Dados — Browse datasets with filters, detail view, export."""
+"""Tab 2: Explorar Dados — Data laboratory with filters, detail view, export."""
 
 import sys
 from pathlib import Path
@@ -15,20 +15,32 @@ from app.components.data_loader import (  # noqa: E402
     run_query,
     run_query_df,
 )
+from app.styles.theme import (  # noqa: E402
+    decision_badge,
+    empty_state,
+    hero_html,
+    inject_theme,
+    section_header,
+    source_attribution,
+)
 
-st.markdown("# 🔍 Explorar Dados")
+inject_theme(st)
+
 st.markdown(
-    "*Navegue pelos datasets, filtre e verifique qualquer registro "
-    "na fonte original.*"
+    hero_html("Explorar Dados", "Navegue pelos datasets, filtre e verifique na fonte original"),
+    unsafe_allow_html=True,
 )
 
 # ── Dataset Selector ──
 datasets = get_dataset_options()
 if not datasets:
-    st.error("Nenhum dataset disponível. Execute os coletores primeiro.")
+    st.markdown(
+        empty_state("📭", "Nenhum dataset disponível. Execute os coletores primeiro."),
+        unsafe_allow_html=True,
+    )
     st.stop()
 
-selected_label = st.selectbox("Dataset", list(datasets.keys()))
+selected_label = st.selectbox("Dataset", list(datasets.keys()), label_visibility="collapsed")
 view_name = datasets[selected_label]
 
 # ── Get columns ──
@@ -39,12 +51,12 @@ except Exception as e:
     st.error(f"Erro ao carregar dataset: {e}")
     st.stop()
 
-# Heavy columns to exclude
+# Heavy columns to exclude from display
 exclude_cols = {"texto_documentos", "documentos_pdf", "documents_str"}
 
-# ── Filters in sidebar for better UX ──
+# ── Filters in sidebar ──
 with st.sidebar:
-    st.markdown("### Filtros")
+    st.markdown(section_header("Filtros"), unsafe_allow_html=True)
 
     where_clauses: list[str] = []
 
@@ -63,7 +75,7 @@ with st.sidebar:
                 where_clauses.append(f"({' OR '.join(conds)})")
 
     if view_name == "v_mg_semad":
-        mining_only = st.checkbox("Apenas mineração", value=True)
+        mining_only = st.toggle("Apenas mineração", value=True)
         if mining_only:
             where_clauses.append("atividade LIKE 'A-0%'")
 
@@ -89,6 +101,14 @@ with st.sidebar:
         if uf != "Todos":
             where_clauses.append(f"UF = '{uf}'")
 
+    # Active filter chips
+    active_filters = [c for c in where_clauses if "CAST(ano" not in c]
+    if active_filters:
+        st.markdown(
+            source_attribution(f"{len(active_filters)} filtro(s) ativo(s)"),
+            unsafe_allow_html=True,
+        )
+
 where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
 
 # ── Count ──
@@ -100,8 +120,7 @@ except Exception:
 
 # ── Results header ──
 st.markdown(
-    f'<p class="section-header">'
-    f'{total_count:,} registros encontrados</p>',
+    section_header(f"{total_count:,} registros encontrados"),
     unsafe_allow_html=True,
 )
 
@@ -112,10 +131,14 @@ total_pages = max(1, (total_count + page_size - 1) // page_size)
 col_page, col_info = st.columns([1, 3])
 with col_page:
     page = st.number_input(
-        "Página", min_value=1, max_value=total_pages, value=1, label_visibility="collapsed"
+        "Página", min_value=1, max_value=total_pages, value=1,
+        label_visibility="collapsed",
     )
 with col_info:
-    st.caption(f"Página {page} de {total_pages} · {page_size} por página")
+    st.markdown(
+        source_attribution(f"Página {page} de {total_pages} · {page_size} por página"),
+        unsafe_allow_html=True,
+    )
 
 offset = (page - 1) * page_size
 
@@ -136,22 +159,23 @@ except Exception as e:
     st.stop()
 
 if df.empty:
-    st.info("Nenhum registro encontrado.")
+    st.markdown(
+        empty_state("🔍", "Nenhum registro encontrado. Tente ajustar os filtros."),
+        unsafe_allow_html=True,
+    )
     st.stop()
 
 # ── Table with row selection ──
 if view_name == "v_mg_semad" and "detail_id" in df.columns:
-    # Use st.dataframe with selection
     event = st.dataframe(
         df,
         use_container_width=True,
         hide_index=True,
-        height=450,
+        height=420,
         on_select="rerun",
         selection_mode="single-row",
     )
 
-    # Auto-show detail for selected row
     selected_rows = event.selection.rows if event.selection else []
 
     if selected_rows:
@@ -160,11 +184,11 @@ if view_name == "v_mg_semad" and "detail_id" in df.columns:
         selected_id = str(row.get("detail_id", ""))
 
         st.markdown(
-            '<p class="section-header">Detalhes do Registro</p>',
+            section_header("Detalhes do Registro"),
             unsafe_allow_html=True,
         )
 
-        # Full record with enrichment columns
+        # Full record
         detail = run_query_df(
             f"SELECT * FROM {view_name} WHERE detail_id = ?",
             [selected_id],
@@ -173,53 +197,88 @@ if view_name == "v_mg_semad" and "detail_id" in df.columns:
         if not detail.empty:
             full_row = detail.iloc[0]
 
-            c1, c2, c3 = st.columns(3)
-            with c1:
-                st.markdown("**Empreendimento**")
-                st.markdown(f"{full_row.get('empreendimento', '—')}")
-                st.markdown(f"**CNPJ**: `{full_row.get('cnpj_cpf', '—')}`")
-            with c2:
-                st.markdown("**Atividade**")
-                st.markdown(f"{full_row.get('atividade', '—')}")
-                st.markdown(
-                    f"**Classe**: {full_row.get('classe', '—')} · "
-                    f"**Modalidade**: {full_row.get('modalidade', '—')}"
-                )
-            with c3:
-                decisao_val = full_row.get("decisao", "—")
-                icon = {
-                    "deferido": "✅", "indeferido": "❌", "arquivamento": "📁"
-                }.get(decisao_val, "❓")
-                st.markdown(f"**Decisão**: {icon} {decisao_val}")
-                st.markdown("**Regional**")
-                reg = str(full_row.get("regional", "—")).replace(
-                    "Unidade Regional de Regularização Ambiental ", ""
-                )
-                st.markdown(reg)
+            decisao_val = str(full_row.get("decisao", "—"))
+            badge = decision_badge(decisao_val)
+            empreendimento = full_row.get("empreendimento", "—")
+            cnpj = full_row.get("cnpj_cpf", "—")
+            atividade = full_row.get("atividade", "—")
+            classe_val = full_row.get("classe", "—")
+            modalidade = full_row.get("modalidade", "—")
+            regional_val = str(full_row.get("regional", "—")).replace(
+                "Unidade Regional de Regularização Ambiental ", ""
+            )
+            municipio = full_row.get("municipio", "—")
+            ano_val = full_row.get("ano", "—")
 
-            # Source link
             portal_url = (
                 "https://sistemas.meioambiente.mg.gov.br/"
                 f"licenciamento/site/view-externo?id={selected_id}"
             )
-            st.markdown(f"🔗 [Ver no portal SEMAD]({portal_url})")
 
-            # PDF documents
+            # Build detail card HTML
+            docs_html = ""
             docs = str(full_row.get("documentos_pdf", ""))
             if docs and len(docs) > 5:
-                st.markdown("**Documentos:**")
+                doc_links = []
                 for entry in docs.split(";"):
                     if "|" in entry:
                         name, url = entry.split("|", 1)
-                        st.markdown(
-                            f"- 📄 [{name.strip()}]({url.strip()})"
+                        doc_links.append(
+                            f'<a href="{url.strip()}" target="_blank">'
+                            f'📄 {name.strip()}</a>'
                         )
+                if doc_links:
+                    docs_html = (
+                        '<div class="detail-actions">'
+                        + " ".join(doc_links)
+                        + "</div>"
+                    )
+
+            st.markdown(f"""
+            <div class="geo-detail">
+                <div class="detail-header">
+                    <p class="detail-title">{empreendimento}</p>
+                    {badge}
+                </div>
+                <div class="detail-grid">
+                    <div class="detail-field">
+                        <span class="detail-label">CNPJ</span>
+                        <span class="detail-value mono">{cnpj}</span>
+                    </div>
+                    <div class="detail-field">
+                        <span class="detail-label">Atividade</span>
+                        <span class="detail-value">{atividade}</span>
+                    </div>
+                    <div class="detail-field">
+                        <span class="detail-label">Classe · Modalidade</span>
+                        <span class="detail-value">{classe_val} · {modalidade}</span>
+                    </div>
+                    <div class="detail-field">
+                        <span class="detail-label">Regional</span>
+                        <span class="detail-value">{regional_val}</span>
+                    </div>
+                    <div class="detail-field">
+                        <span class="detail-label">Município · Ano</span>
+                        <span class="detail-value">{municipio} · {ano_val}</span>
+                    </div>
+                </div>
+                <div class="detail-actions">
+                    <a href="{portal_url}" target="_blank">🔗 Portal SEMAD</a>
+                </div>
+                {docs_html}
+            </div>
+            """, unsafe_allow_html=True)
+
+            st.markdown(
+                source_attribution(f"SEMAD MG · ID {selected_id}"),
+                unsafe_allow_html=True,
+            )
 
             # Parecer text
             texto = str(full_row.get("texto_documentos", ""))
             if texto and len(texto) > 10:
                 with st.expander(
-                    f"📝 Texto do Parecer ({len(texto):,} caracteres)"
+                    f"Texto do Parecer ({len(texto):,} caracteres)"
                 ):
                     st.text(texto[:8000])
                     if len(texto) > 8000:
@@ -227,25 +286,28 @@ if view_name == "v_mg_semad" and "detail_id" in df.columns:
                             f"Mostrando 8.000 de {len(texto):,} caracteres"
                         )
     else:
-        st.caption("👆 Clique em uma linha acima para ver os detalhes")
+        st.markdown(
+            empty_state(
+                "👆",
+                "Selecione um registro na tabela acima para ver os detalhes completos",
+            ),
+            unsafe_allow_html=True,
+        )
 
 else:
-    # Non-SEMAD datasets: simple table
-    st.dataframe(df, use_container_width=True, hide_index=True, height=450)
+    st.dataframe(df, use_container_width=True, hide_index=True, height=420)
 
 # ── Export ──
 st.markdown("")
 if total_count <= 50000:
-    export_query = (
-        f"SELECT * FROM {view_name} WHERE {where_sql}"
-    )
+    export_query = f"SELECT * FROM {view_name} WHERE {where_sql}"
 
     @st.cache_data(ttl=60)
     def get_csv(q: str) -> bytes:
         return run_query_df(q).to_csv(index=False).encode("utf-8")
 
     st.download_button(
-        f"📥 Exportar CSV ({total_count:,} registros)",
+        f"Exportar CSV ({total_count:,} registros)",
         get_csv(export_query),
         file_name=f"{view_name}.csv",
         mime="text/csv",

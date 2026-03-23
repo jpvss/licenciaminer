@@ -1,8 +1,11 @@
 # Data (downloaded/processed)
 data/raw/*
-data/processed/*
+data/processed/*.csv
 !data/raw/.gitkeep
 !data/processed/.gitkeep
+!data/processed/*.parquet
+!data/processed/collection_metadata.json
+!data/reference/*.parquet
 
 # DuckDB
 *.duckdb
