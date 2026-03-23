@@ -153,10 +153,10 @@ MG_UPLOADS_BASE = (
 
 
 @retry(
-    stop=stop_after_attempt(RETRY_ATTEMPTS),
-    wait=wait_exponential(multiplier=1, min=RETRY_MIN_WAIT, max=RETRY_MAX_WAIT),
+    stop=stop_after_attempt(2),
+    wait=wait_exponential(multiplier=1, min=1, max=5),
     retry=retry_if_exception_type(
-        (httpx.HTTPStatusError, httpx.ConnectError, httpx.ReadTimeout)
+        (httpx.ConnectError, httpx.ReadTimeout)
     ),
     before_sleep=before_sleep_log(logger, logging.WARNING),
     reraise=True,
@@ -258,33 +258,33 @@ def enrich_with_details(
         len(ids_to_fetch),
     )
 
-    details_map: dict[str, dict[str, str]] = {}
+    if "documentos_pdf" not in df.columns:
+        df["documentos_pdf"] = ""
+
     with httpx.Client(timeout=HTTP_TIMEOUT, follow_redirects=True) as client:
         for i, detail_id in enumerate(ids_to_fetch):
             try:
                 detail = _fetch_detail(client, str(detail_id))
-                details_map[str(detail_id)] = detail
+                # Atualizar imediatamente no DataFrame
+                mask = df["detail_id"].astype(str) == str(detail_id)
+                df.loc[mask, "documentos_pdf"] = detail.get(
+                    "documentos_pdf", ""
+                )
             except Exception:
-                logger.exception(
+                logger.warning(
                     "MG SEMAD Detalhe: erro no id=%s — continuando",
                     detail_id,
                 )
 
-            if (i + 1) % 100 == 0:
+            if (i + 1) % 200 == 0:
+                # Salvar progresso a cada 200
+                atomic_parquet_write(df, parquet_path)
                 logger.info(
-                    "MG SEMAD Detalhe: %d/%d processados",
+                    "MG SEMAD Detalhe: %d/%d processados (salvo)",
                     i + 1,
                     len(ids_to_fetch),
                 )
-            time.sleep(0.5)
-
-    # Mapear detalhes de volta ao DataFrame — apenas atualizar registros buscados
-    if "documentos_pdf" not in df.columns:
-        df["documentos_pdf"] = ""
-
-    for detail_id_str, detail_data in details_map.items():
-        mask = df["detail_id"].astype(str) == detail_id_str
-        df.loc[mask, "documentos_pdf"] = detail_data.get("documentos_pdf", "")
+            time.sleep(0.3)
 
     atomic_parquet_write(df, parquet_path)
     logger.info(
