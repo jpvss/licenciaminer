@@ -82,13 +82,14 @@ def _render_company_profile(cnpj: str) -> None:
         decisions = run_query_df(
             "SELECT ano, decisao, atividade, classe, modalidade, detail_id "
             "FROM v_mg_semad "
-            f"WHERE cnpj_cpf = '{cnpj}' AND atividade LIKE 'A-0%' "
-            "ORDER BY data_de_publicacao DESC"
+            "WHERE cnpj_cpf = ? AND atividade LIKE 'A-0%' "
+            "ORDER BY data_de_publicacao DESC",
+            [cnpj],
         )
         if not decisions.empty:
             st.dataframe(decisions, use_container_width=True, hide_index=True)
-    except Exception:
-        pass
+    except Exception as e:
+        st.warning(f"Erro ao carregar decisões: {e}")
     st.caption("Fonte: SEMAD MG")
 
 
