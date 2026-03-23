@@ -3,11 +3,14 @@
 import sys
 from pathlib import Path
 
-import plotly.express as px
-import streamlit as st
+# Add project root + src to path
+_project_root = str(Path(__file__).resolve().parent.parent.parent)
+for p in [_project_root, _project_root + "/src"]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
 
-# Add project root to path so we can import licenciaminer
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "src"))
+import plotly.express as px  # noqa: E402
+import streamlit as st  # noqa: E402
 
 from app.components.data_loader import (  # noqa: E402
     get_source_info,

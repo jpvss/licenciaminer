@@ -3,9 +3,12 @@
 import sys
 from pathlib import Path
 
-import streamlit as st
+_project_root = str(Path(__file__).resolve().parent.parent.parent)
+for p in [_project_root, _project_root + "/src"]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "src"))
+import streamlit as st  # noqa: E402
 
 from app.components.data_loader import run_query, run_query_df  # noqa: E402
 from licenciaminer.database.queries import (  # noqa: E402
