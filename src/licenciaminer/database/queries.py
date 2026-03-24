@@ -211,6 +211,7 @@ LIMIT 50
 """
 
 # Sobreposição espacial vs taxa de aprovação
+# Bridge: SEMAD (cnpj_cpf) → SCM (cpf_cnpj_do_titular, processo_norm) → Spatial (PROCESSO)
 QUERY_SPATIAL_VS_APROVACAO = """
 WITH spatial_flags AS (
     SELECT
@@ -220,6 +221,14 @@ WITH spatial_flags AS (
         biomas
     FROM v_spatial
 ),
+scm_bridge AS (
+    SELECT DISTINCT
+        cpf_cnpj_do_titular AS cnpj,
+        processo_norm
+    FROM v_scm
+    WHERE cpf_cnpj_do_titular IS NOT NULL
+      AND processo_norm IS NOT NULL
+),
 decisoes_mining AS (
     SELECT
         cnpj_cpf,
@@ -227,17 +236,8 @@ decisoes_mining AS (
         atividade
     FROM v_mg_semad
     WHERE atividade LIKE 'A-0%'
+      AND LENGTH(cnpj_cpf) = 14
 )
-SELECT
-    'Resultados por sobreposição espacial' AS analise,
-    NULL AS categoria,
-    NULL AS total_decisoes,
-    NULL AS deferidos,
-    NULL AS taxa_aprovacao
-WHERE FALSE
-
-UNION ALL
-
 SELECT
     'UC (Unidade de Conservação)' AS analise,
     CASE WHEN sf.tem_uc THEN 'Com UC' ELSE 'Sem UC' END AS categoria,
@@ -248,10 +248,8 @@ SELECT
         / COUNT(*), 1
     ) AS taxa_aprovacao
 FROM decisoes_mining dm
-INNER JOIN v_anm anm ON dm.cnpj_cpf = REGEXP_REPLACE(
-    COALESCE(anm.NOME, ''), '[^0-9]', '', 'g'
-)
-LEFT JOIN spatial_flags sf ON anm.PROCESSO = sf.PROCESSO
+INNER JOIN scm_bridge scm ON dm.cnpj_cpf = scm.cnpj
+LEFT JOIN spatial_flags sf ON scm.processo_norm = sf.PROCESSO
 WHERE sf.PROCESSO IS NOT NULL
 GROUP BY CASE WHEN sf.tem_uc THEN 'Com UC' ELSE 'Sem UC' END
 
@@ -267,10 +265,8 @@ SELECT
         / COUNT(*), 1
     ) AS taxa_aprovacao
 FROM decisoes_mining dm
-INNER JOIN v_anm anm ON dm.cnpj_cpf = REGEXP_REPLACE(
-    COALESCE(anm.NOME, ''), '[^0-9]', '', 'g'
-)
-LEFT JOIN spatial_flags sf ON anm.PROCESSO = sf.PROCESSO
+INNER JOIN scm_bridge scm ON dm.cnpj_cpf = scm.cnpj
+LEFT JOIN spatial_flags sf ON scm.processo_norm = sf.PROCESSO
 WHERE sf.biomas IS NOT NULL
 GROUP BY sf.biomas
 HAVING COUNT(*) >= 10
@@ -287,21 +283,24 @@ def query_similar_cases(
     classe: int | None = None,
     regional: str | None = None,
     limit: int = 5,
-) -> str:
-    """Gera query para casos similares com relaxamento progressivo."""
+) -> tuple[str, list]:
+    """Gera query parametrizada para casos similares.
+
+    Retorna tupla (query_sql, params) para execução segura.
+    """
     conditions = ["atividade LIKE ?"]
-    params_desc = [f"{atividade}%"]
+    params: list = [f"{atividade}%"]
 
     if classe is not None:
         conditions.append("classe = ?")
-        params_desc.append(str(classe))
+        params.append(classe)
 
     if regional is not None:
         conditions.append("regional = ?")
-        params_desc.append(regional)
+        params.append(regional)
 
     where = " AND ".join(conditions)
-    return f"""
+    query = f"""
 SELECT
     detail_id, empreendimento, municipio, cnpj_cpf,
     atividade, classe, regional, modalidade,
@@ -313,25 +312,33 @@ WHERE {where}
 ORDER BY data_de_publicacao DESC
 LIMIT {limit}
 """
+    return query, params
 
 
 def query_approval_stats(
     atividade_prefix: str | None = None,
     classe: int | None = None,
     regional: str | None = None,
-) -> str:
-    """Gera query para estatísticas de aprovação filtradas."""
+) -> tuple[str, list]:
+    """Gera query parametrizada para estatísticas de aprovação filtradas.
+
+    Retorna tupla (query_sql, params) para execução segura.
+    """
     conditions = ["atividade LIKE 'A-0%'"]
+    params: list = []
 
     if atividade_prefix:
-        conditions.append(f"atividade LIKE '{atividade_prefix}%'")
+        conditions.append("atividade LIKE ?")
+        params.append(f"{atividade_prefix}%")
     if classe is not None:
-        conditions.append(f"classe = {classe}")
+        conditions.append("classe = ?")
+        params.append(classe)
     if regional:
-        conditions.append(f"regional = '{regional}'")
+        conditions.append("regional = ?")
+        params.append(regional)
 
     where = " AND ".join(conditions)
-    return f"""
+    query = f"""
 SELECT
     COUNT(*) AS total,
     SUM(CASE WHEN decisao = 'deferido' THEN 1 ELSE 0 END) AS deferidos,
@@ -344,6 +351,7 @@ SELECT
 FROM v_mg_semad
 WHERE {where}
 """
+    return query, params
 
 
 QUERY_CNPJ_PROFILE = """

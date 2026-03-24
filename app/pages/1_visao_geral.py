@@ -16,6 +16,7 @@ from app.components.data_loader import (  # noqa: E402
     load_metadata,
     run_query,
     run_query_df,
+    safe_query,
 )
 from app.styles.theme import (  # noqa: E402
     hero_html,
@@ -40,32 +41,30 @@ st.markdown(
 # ── Metric Cards ──
 st.markdown(section_header("Painel de Indicadores"), unsafe_allow_html=True)
 
-try:
-    semad_count = run_query("SELECT COUNT(*) AS n FROM v_mg_semad")[0]["n"]
-    mining_count = run_query(
-        "SELECT COUNT(*) AS n FROM v_mg_semad WHERE atividade LIKE 'A-0%'"
-    )[0]["n"]
-except Exception:
-    semad_count = 0
-    mining_count = 0
+_semad_r = safe_query(
+    "SELECT COUNT(*) AS n FROM v_mg_semad", context="SEMAD", fallback=[{"n": 0}]
+)
+semad_count = _semad_r[0]["n"] if _semad_r else 0
 
-try:
-    anm_count = run_query("SELECT COUNT(*) AS n FROM v_anm")[0]["n"]
-except Exception:
-    anm_count = 0
+_mining_r = safe_query(
+    "SELECT COUNT(*) AS n FROM v_mg_semad WHERE atividade LIKE 'A-0%'",
+    context="SEMAD mineração", fallback=[{"n": 0}],
+)
+mining_count = _mining_r[0]["n"] if _mining_r else 0
 
-try:
-    inf_count = run_query(
-        "SELECT COUNT(*) AS n FROM v_ibama_infracoes WHERE UF = 'MG'"
-    )[0]["n"]
-except Exception:
-    inf_count = 0
+_anm_r = safe_query(
+    "SELECT COUNT(*) AS n FROM v_anm", context="ANM", fallback=[{"n": 0}]
+)
+anm_count = _anm_r[0]["n"] if _anm_r else 0
 
-try:
-    mg_summary = run_query(QUERY_MG_SUMMARY)
-    approval_rate = mg_summary[0].get("taxa_aprovacao_geral", 0) if mg_summary else 0
-except Exception:
-    approval_rate = 0
+_inf_r = safe_query(
+    "SELECT COUNT(*) AS n FROM v_ibama_infracoes WHERE UF = 'MG'",
+    context="IBAMA Infrações", fallback=[{"n": 0}],
+)
+inf_count = _inf_r[0]["n"] if _inf_r else 0
+
+_mg_summary = safe_query(QUERY_MG_SUMMARY, context="Resumo MG", fallback=[])
+approval_rate = _mg_summary[0].get("taxa_aprovacao_geral", 0) if _mg_summary else 0
 
 metadata = load_metadata()
 
@@ -193,7 +192,7 @@ with chart_col:
                     "font": {"family": "Instrument Sans", "size": 12},
                 },
             )
-            st.plotly_chart(fig, width="stretch",
+            st.plotly_chart(fig, use_container_width=True,
                             config={"displayModeBar": False})
             st.markdown(
                 source_attribution(

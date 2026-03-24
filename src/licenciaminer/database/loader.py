@@ -26,13 +26,26 @@ def create_views(
     loaded: dict[str, bool] = {}
 
     for view_name, parquet_spec in PARQUET_SOURCES.items():
-        # Support single file or list of parts
+        # Support single file or list of parts (with single-file fallback)
         if isinstance(parquet_spec, list):
             paths = [processed_dir / f for f in parquet_spec]
             all_exist = all(p.exists() for p in paths)
-            path_list = ", ".join(f"'{p}'" for p in paths)
-            read_expr = f"read_parquet([{path_list}])"
-            display_name = ", ".join(parquet_spec)
+
+            if all_exist:
+                path_list = ", ".join(f"'{p}'" for p in paths)
+                read_expr = f"read_parquet([{path_list}])"
+                display_name = ", ".join(parquet_spec)
+            else:
+                # Fallback: try single file (e.g. ibama_infracoes.parquet)
+                # Derive name from first part: "xxx_part1.parquet" → "xxx.parquet"
+                base_name = parquet_spec[0].replace("_part1", "")
+                single_path = processed_dir / base_name
+                if single_path.exists():
+                    read_expr = f"read_parquet('{single_path}')"
+                    display_name = base_name
+                    all_exist = True
+                else:
+                    display_name = ", ".join(parquet_spec)
         else:
             parquet_path = processed_dir / parquet_spec
             all_exist = parquet_path.exists()

@@ -4,10 +4,13 @@ Wrapper sobre licenciaminer.database com caching Streamlit.
 """
 
 import json
+import logging
 from pathlib import Path
 
 import duckdb
 import streamlit as st
+
+logger = logging.getLogger(__name__)
 
 from licenciaminer.config import DATA_DIR
 from licenciaminer.database.loader import create_views
@@ -34,20 +37,34 @@ def get_connection() -> duckdb.DuckDBPyConnection:
 
 @st.cache_data(ttl=300, max_entries=30)
 def run_query(query: str, params: list | None = None) -> list[dict]:
-    """Executa query no DuckDB e retorna lista de dicts."""
+    """Executa query no DuckDB e retorna lista de dicts.
+
+    Usa cursor separado para thread-safety entre sessões Streamlit.
+    """
     con = get_connection()
-    result = con.execute(query, params) if params else con.execute(query)
-    columns = [desc[0] for desc in result.description]
-    rows = result.fetchall()
-    return [dict(zip(columns, row, strict=False)) for row in rows]
+    cursor = con.cursor()
+    try:
+        result = cursor.execute(query, params) if params else cursor.execute(query)
+        columns = [desc[0] for desc in result.description]
+        rows = result.fetchall()
+        return [dict(zip(columns, row, strict=False)) for row in rows]
+    finally:
+        cursor.close()
 
 
 @st.cache_data(ttl=120, max_entries=15)
 def run_query_df(query: str, params: list | None = None):
-    """Executa query e retorna DataFrame pandas."""
+    """Executa query e retorna DataFrame pandas.
+
+    Usa cursor separado para thread-safety entre sessões Streamlit.
+    """
     con = get_connection()
-    result = con.execute(query, params) if params else con.execute(query)
-    return result.df()
+    cursor = con.cursor()
+    try:
+        result = cursor.execute(query, params) if params else cursor.execute(query)
+        return result.df()
+    finally:
+        cursor.close()
 
 
 def load_metadata() -> dict:
@@ -124,15 +141,53 @@ def get_source_info() -> list[dict]:
     return sources
 
 
+# Shared constants used across multiple pages
+REGIME_LABELS = {
+    "portaria_lavra": "Portaria de Lavra",
+    "licenciamento": "Licenciamento",
+    "plg": "Lavra Garimpeira (PLG)",
+    "registro_extracao": "Registro de Extração",
+}
+
+
+def safe_query(
+    query: str,
+    params: list | None = None,
+    context: str = "",
+    fallback: list | None = None,
+) -> list[dict] | None:
+    """Executa query com tratamento de erro diferenciado.
+
+    Distingue entre 'dados não coletados' (CatalogException) e erros reais.
+    Retorna fallback em caso de erro, mostrando mensagem adequada no Streamlit.
+    """
+    try:
+        result = run_query(query, params)
+        return result if result else fallback
+    except duckdb.CatalogException:
+        view_name = context or "fonte"
+        st.warning(f"Dados não disponíveis: {view_name}. Execute `licenciaminer collect`.")
+        logger.warning("View não encontrada para: %s", context)
+        return fallback
+    except Exception as e:
+        logger.exception("Erro em query: %s", context)
+        st.error(f"Erro ao consultar {context}: {e}")
+        return fallback
+
+
 def get_dataset_options() -> dict[str, str]:
     """Retorna datasets disponíveis para exploração."""
     get_connection()  # Ensure views exist
     processed = DATA_DIR / "processed"
     options = {}
     for view_name, parquet_spec in PARQUET_SOURCES.items():
-        # Check existence for single file or list of parts
+        # Check existence for single file or list of parts (with fallback)
         if isinstance(parquet_spec, list):
             exists = all((processed / f).exists() for f in parquet_spec)
+            if not exists:
+                # Fallback: single file (e.g. xxx_part1.parquet → xxx.parquet)
+                base_name = parquet_spec[0].replace("_part1", "")
+                exists = (processed / base_name).exists()
         else:
             exists = (processed / parquet_spec).exists()
 

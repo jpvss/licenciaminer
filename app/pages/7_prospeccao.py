@@ -10,7 +10,7 @@ for p in [_project_root, _project_root + "/src"]:
 
 import streamlit as st  # noqa: E402
 
-from app.components.data_loader import run_query, run_query_df  # noqa: E402
+from app.components.data_loader import REGIME_LABELS, run_query, run_query_df  # noqa: E402
 from app.styles.theme import (  # noqa: E402
     empty_state,
     hero_html,
@@ -37,16 +37,23 @@ try:
         raise ValueError("vazio")
     VIEW = "v_concessoes"
 except Exception:
-    st.markdown(
-        empty_state(
-            "📊",
-            "Dataset consolidado não disponível. Execute:\n\n"
-            "1. `licenciaminer collect scm`\n"
-            "2. `licenciaminer join-concessoes`",
-        ),
-        unsafe_allow_html=True,
-    )
-    st.stop()
+    # Fallback para v_scm (dados básicos sem enriquecimento)
+    try:
+        test = run_query("SELECT COUNT(*) AS n FROM v_scm LIMIT 1")
+        if not test or test[0]["n"] == 0:
+            raise ValueError("vazio")
+        VIEW = "v_scm"
+    except Exception:
+        st.markdown(
+            empty_state(
+                "📊",
+                "Dataset de concessões não disponível. Execute:\n\n"
+                "1. `licenciaminer collect scm`\n"
+                "2. `licenciaminer join-concessoes`",
+            ),
+            unsafe_allow_html=True,
+        )
+        st.stop()
 
 
 # ── Score de oportunidade ──
@@ -99,16 +106,10 @@ with st.sidebar:
         f"SELECT DISTINCT regime FROM {VIEW} WHERE regime IS NOT NULL ORDER BY regime"
     )
     regimes = [r["regime"] for r in regimes_r]
-    regime_labels = {
-        "portaria_lavra": "Portaria de Lavra",
-        "licenciamento": "Licenciamento",
-        "plg": "Lavra Garimpeira",
-        "registro_extracao": "Registro de Extração",
-    }
     selected_regimes = st.multiselect(
         "Regime",
         regimes,
-        format_func=lambda x: regime_labels.get(x, x),
+        format_func=lambda x: REGIME_LABELS.get(x, x),
     )
 
     # Filtro por categoria
@@ -235,7 +236,7 @@ if view_mode == "Top Oportunidades":
             lambda x: f"R$ {x:,.0f}" if isinstance(x, (int, float)) and x == x else "—"
         )
     if "Regime" in display_df.columns:
-        display_df["Regime"] = display_df["Regime"].map(regime_labels).fillna(display_df.get("Regime", ""))
+        display_df["Regime"] = display_df["Regime"].map(REGIME_LABELS).fillna(display_df.get("Regime", ""))
 
     st.dataframe(display_df, width="stretch", hide_index=True, height=500)
 

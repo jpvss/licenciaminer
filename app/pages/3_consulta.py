@@ -245,8 +245,8 @@ with tab_projeto:
             unsafe_allow_html=True,
         )
 
-        stats_query = query_approval_stats(atividade, classe, regional)
-        stats = run_query(stats_query)
+        stats_query, stats_params = query_approval_stats(atividade, classe, regional)
+        stats = run_query(stats_query, stats_params)
 
         if stats and stats[0]["total"] > 0:
             s = stats[0]
@@ -285,7 +285,8 @@ with tab_projeto:
                     st.metric("Deferidos / Indeferidos", f"{deferidos} / {indeferidos}")
 
                 # Comparison bar
-                overall = run_query(query_approval_stats())
+                overall_q, overall_p = query_approval_stats()
+                overall = run_query(overall_q, overall_p)
                 if overall:
                     avg = overall[0]["taxa_aprovacao"]
                     diff = taxa - avg
@@ -339,24 +340,9 @@ with tab_projeto:
             unsafe_allow_html=True,
         )
 
-        cases_query = query_similar_cases(atividade, classe, regional, limit=5)
+        cases_query, cases_params = query_similar_cases(atividade, classe, regional, limit=5)
         try:
-            cases_df = run_query_df(
-                f"""
-                SELECT
-                    detail_id, empreendimento, municipio, cnpj_cpf,
-                    atividade, classe, regional, modalidade,
-                    decisao, ano, data_de_publicacao,
-                    LENGTH(CAST(texto_documentos AS VARCHAR)) AS texto_chars
-                FROM v_mg_semad
-                WHERE atividade LIKE '{atividade}%'
-                  {"AND classe = " + str(classe) if classe else ""}
-                  {"AND regional = '" + regional + "'" if regional else ""}
-                  AND atividade LIKE 'A-0%'
-                ORDER BY data_de_publicacao DESC
-                LIMIT 5
-                """
-            )
+            cases_df = run_query_df(cases_query, cases_params)
         except Exception:
             cases_df = None
 
@@ -415,8 +401,9 @@ with tab_projeto:
 
                     if case.get("texto_chars", 0) > 10:
                         texto_row = run_query(
-                            f"SELECT texto_documentos FROM v_mg_semad "
-                            f"WHERE detail_id = '{case['detail_id']}'"
+                            "SELECT texto_documentos FROM v_mg_semad "
+                            "WHERE detail_id = ?",
+                            [case["detail_id"]],
                         )
                         if texto_row:
                             texto = str(
