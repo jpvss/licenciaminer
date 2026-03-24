@@ -111,8 +111,27 @@ def _render_company_profile(cnpj: str) -> None:
     razao = p.get("razao_social", cnpj)
     cnae = p.get("cnae_fiscal", "—")
     cnae_desc = p.get("cnae_descricao", "")
-    porte = p.get("porte", "—")
-    abertura = p.get("data_abertura", "—")
+
+    # Traduzir código de porte da Receita Federal
+    _porte_labels = {
+        "MEI": "Microempreendedor Individual (MEI)",
+        "ME": "Microempresa (ME)",
+        "EPP": "Pequeno Porte (EPP)",
+        "DEMAIS": "Médio/Grande Porte",
+    }
+    porte_raw = p.get("porte", "—") or "—"
+    porte = _porte_labels.get(porte_raw.strip().upper(), porte_raw)
+
+    # Formatar data de abertura para DD/MM/YYYY
+    abertura_raw = str(p.get("data_abertura", "—") or "—")
+    if len(abertura_raw) >= 10 and "-" in abertura_raw:
+        try:
+            parts = abertura_raw[:10].split("-")
+            abertura = f"{parts[2]}/{parts[1]}/{parts[0]}"
+        except (IndexError, ValueError):
+            abertura = abertura_raw
+    else:
+        abertura = abertura_raw
     situacao = p.get("situacao", "—")
     taxa = p.get("taxa_aprovacao", 0)
     total_dec = p.get("total_decisoes", 0)
