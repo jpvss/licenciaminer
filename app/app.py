@@ -52,8 +52,10 @@ with st.sidebar:
                 Dados: {last_date}
             </div>
             """, unsafe_allow_html=True)
+        else:
+            st.warning("Metadados de coleta não encontrados. Execute `licenciaminer collect`.")
     except Exception:
-        pass
+        st.warning("Não foi possível verificar a data dos dados.")
 
 # ── Hero ──
 st.markdown(
@@ -63,11 +65,16 @@ st.markdown(
 
 # ── Stats for nav cards (from metadata, no heavy queries at startup) ──
 try:
-    from app.components.data_loader import load_metadata
+    from app.components.data_loader import load_metadata, safe_query
     _meta = load_metadata()
     semad_n = int(_meta.get("mg_semad", {}).get("records", 0))
     anm_n = int(_meta.get("anm_processos", {}).get("records", 0))
-    mining_n = 0  # Computed lazily on Visão Geral page
+    # Mining count from a lightweight query (cached)
+    _mining_r = safe_query(
+        "SELECT COUNT(*) AS n FROM v_mg_semad WHERE atividade LIKE 'A-0%'",
+        context="mineração", fallback=[{"n": 0}],
+    )
+    mining_n = _mining_r[0]["n"] if _mining_r else 0
 except Exception:
     semad_n, anm_n, mining_n = 0, 0, 0
 
@@ -102,7 +109,7 @@ with col3:
         <span class="nav-icon">💡</span>
         <p class="nav-title">Consulta</p>
         <p class="nav-desc">Busque por projeto ou empresa para obter um briefing com estatísticas e casos similares</p>
-        <span class="nav-stat">{semad_n:,} decisões SEMAD</span>
+        <span class="nav-stat">{mining_n:,} decisões mineração</span>
     </div>
     """, unsafe_allow_html=True)
     st.page_link("pages/3_consulta.py", label="Abrir Consulta →", icon=None)
@@ -113,7 +120,7 @@ with col4:
         <span class="nav-icon">📋</span>
         <p class="nav-title">Análise de Decisões</p>
         <p class="nav-desc">Padrões de deferimento/indeferimento, fatores de risco e dossiê por empresa</p>
-        <span class="nav-stat">{semad_n:,} decisões SEMAD</span>
+        <span class="nav-stat">{anm_n:,} títulos ANM</span>
     </div>
     """, unsafe_allow_html=True)
     st.page_link("pages/4_análise_decisões.py", label="Abrir Análise →", icon=None)

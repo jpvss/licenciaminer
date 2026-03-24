@@ -15,7 +15,7 @@ SELECT
     SUM(CASE WHEN decisao = 'deferido' THEN 1 ELSE 0 END) AS deferidos,
     SUM(CASE WHEN decisao = 'indeferido' THEN 1 ELSE 0 END) AS indeferidos,
     ROUND(
-        100.0 * SUM(CASE WHEN decisao = 'deferido' THEN 1 ELSE 0 END) / COUNT(*),
+        100.0 * SUM(CASE WHEN decisao = 'deferido' THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0),
         1
     ) AS taxa_aprovacao
 FROM v_mg_semad
@@ -31,10 +31,26 @@ SELECT
     SUM(CASE WHEN decisao = 'indeferido' THEN 1 ELSE 0 END) AS indeferidos,
     SUM(CASE WHEN decisao = 'outro' THEN 1 ELSE 0 END) AS outros,
     ROUND(
-        100.0 * SUM(CASE WHEN decisao = 'deferido' THEN 1 ELSE 0 END) / COUNT(*),
-        1
+        100.0 * SUM(CASE WHEN decisao = 'deferido' THEN 1 ELSE 0 END)
+        / NULLIF(COUNT(*), 0), 1
     ) AS taxa_aprovacao_geral
 FROM v_mg_semad
+"""
+
+# MG: Resumo de aprovação — apenas mineração (atividades A-0x)
+QUERY_MINING_SUMMARY = """
+SELECT
+    COUNT(*) AS total_decisoes,
+    SUM(CASE WHEN decisao = 'deferido' THEN 1 ELSE 0 END) AS deferidos,
+    SUM(CASE WHEN decisao = 'indeferido' THEN 1 ELSE 0 END) AS indeferidos,
+    SUM(CASE WHEN decisao = 'arquivamento' THEN 1 ELSE 0 END) AS arquivamentos,
+    SUM(CASE WHEN decisao = 'outro' THEN 1 ELSE 0 END) AS outros,
+    ROUND(
+        100.0 * SUM(CASE WHEN decisao = 'deferido' THEN 1 ELSE 0 END)
+        / NULLIF(COUNT(*), 0), 1
+    ) AS taxa_aprovacao_mineracao
+FROM v_mg_semad
+WHERE atividade LIKE 'A-0%'
 """
 
 # IBAMA: Contagem por tipo de licença/ano
@@ -117,7 +133,7 @@ SELECT
     SUM(CASE WHEN dm.decisao = 'indeferido' THEN 1 ELSE 0 END) AS indeferidos,
     ROUND(
         100.0 * SUM(CASE WHEN dm.decisao = 'deferido' THEN 1 ELSE 0 END)
-        / COUNT(*), 1
+        / NULLIF(COUNT(*), 0), 1
     ) AS taxa_aprovacao
 FROM decisoes_mining dm
 LEFT JOIN empresa_infracoes ei ON dm.cnpj_cpf = ei.cnpj
@@ -155,7 +171,7 @@ SELECT
     SUM(CASE WHEN dm.decisao = 'indeferido' THEN 1 ELSE 0 END) AS indeferidos,
     ROUND(
         100.0 * SUM(CASE WHEN dm.decisao = 'deferido' THEN 1 ELSE 0 END)
-        / COUNT(*), 1
+        / NULLIF(COUNT(*), 0), 1
     ) AS taxa_aprovacao
 FROM decisoes_mining dm
 LEFT JOIN empresa_cfem ec ON dm.cnpj_cpf = ec.cnpj
@@ -245,7 +261,7 @@ SELECT
     SUM(CASE WHEN dm.decisao = 'deferido' THEN 1 ELSE 0 END) AS deferidos,
     ROUND(
         100.0 * SUM(CASE WHEN dm.decisao = 'deferido' THEN 1 ELSE 0 END)
-        / COUNT(*), 1
+        / NULLIF(COUNT(*), 0), 1
     ) AS taxa_aprovacao
 FROM decisoes_mining dm
 INNER JOIN scm_bridge scm ON dm.cnpj_cpf = scm.cnpj
@@ -262,7 +278,7 @@ SELECT
     SUM(CASE WHEN dm.decisao = 'deferido' THEN 1 ELSE 0 END) AS deferidos,
     ROUND(
         100.0 * SUM(CASE WHEN dm.decisao = 'deferido' THEN 1 ELSE 0 END)
-        / COUNT(*), 1
+        / NULLIF(COUNT(*), 0), 1
     ) AS taxa_aprovacao
 FROM decisoes_mining dm
 INNER JOIN scm_bridge scm ON dm.cnpj_cpf = scm.cnpj
@@ -345,7 +361,7 @@ SELECT
     SUM(CASE WHEN decisao = 'indeferido' THEN 1 ELSE 0 END) AS indeferidos,
     SUM(CASE WHEN decisao = 'arquivamento' THEN 1 ELSE 0 END) AS arquivamentos,
     ROUND(
-        100.0 * SUM(CASE WHEN decisao = 'deferido' THEN 1 ELSE 0 END) / COUNT(*),
+        100.0 * SUM(CASE WHEN decisao = 'deferido' THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0),
         1
     ) AS taxa_aprovacao
 FROM v_mg_semad
@@ -415,7 +431,7 @@ SELECT
     SUM(CASE WHEN decisao = 'deferido' THEN 1 ELSE 0 END) AS deferidos,
     ROUND(
         100.0 * SUM(CASE WHEN decisao = 'deferido' THEN 1 ELSE 0 END)
-        / COUNT(*), 1
+        / NULLIF(COUNT(*), 0), 1
     ) AS taxa_aprovacao
 FROM v_mg_semad
 WHERE atividade LIKE 'A-0%'
@@ -456,7 +472,7 @@ SELECT
     SUM(CASE WHEN decisao = 'deferido' THEN 1 ELSE 0 END) AS deferidos,
     SUM(CASE WHEN decisao = 'indeferido' THEN 1 ELSE 0 END) AS indeferidos,
     ROUND(
-        100.0 * SUM(CASE WHEN decisao = 'deferido' THEN 1 ELSE 0 END) / COUNT(*), 1
+        100.0 * SUM(CASE WHEN decisao = 'deferido' THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0), 1
     ) AS taxa_aprovacao
 FROM v_mg_semad
 WHERE atividade LIKE 'A-0%'
@@ -474,9 +490,9 @@ SELECT
     SUM(CASE WHEN decisao = 'indeferido' THEN 1 ELSE 0 END) AS indeferidos,
     SUM(CASE WHEN decisao = 'arquivamento' THEN 1 ELSE 0 END) AS arquivamentos,
     ROUND(100.0 * SUM(CASE WHEN decisao = 'indeferido' THEN 1 ELSE 0 END)
-        / COUNT(*), 1) AS taxa_indeferimento,
+        / NULLIF(COUNT(*), 0), 1) AS taxa_indeferimento,
     ROUND(100.0 * SUM(CASE WHEN decisao = 'arquivamento' THEN 1 ELSE 0 END)
-        / COUNT(*), 1) AS taxa_arquivamento
+        / NULLIF(COUNT(*), 0), 1) AS taxa_arquivamento
 FROM v_mg_semad
 WHERE atividade LIKE 'A-0%'
 GROUP BY ano
@@ -492,9 +508,9 @@ SELECT
     SUM(CASE WHEN decisao = 'deferido' THEN 1 ELSE 0 END) AS deferidos,
     SUM(CASE WHEN decisao = 'indeferido' THEN 1 ELSE 0 END) AS indeferidos,
     ROUND(100.0 * SUM(CASE WHEN decisao = 'deferido' THEN 1 ELSE 0 END)
-        / COUNT(*), 1) AS taxa_aprovacao,
+        / NULLIF(COUNT(*), 0), 1) AS taxa_aprovacao,
     ROUND(100.0 * SUM(CASE WHEN decisao = 'indeferido' THEN 1 ELSE 0 END)
-        / COUNT(*), 1) AS taxa_indeferimento
+        / NULLIF(COUNT(*), 0), 1) AS taxa_indeferimento
 FROM v_mg_semad
 WHERE atividade LIKE 'A-0%'
 GROUP BY regional
@@ -521,7 +537,7 @@ SELECT
     SUM(CASE WHEN s.decisao = 'deferido' THEN 1 ELSE 0 END) AS deferidos,
     SUM(CASE WHEN s.decisao = 'indeferido' THEN 1 ELSE 0 END) AS indeferidos,
     ROUND(100.0 * SUM(CASE WHEN s.decisao = 'deferido' THEN 1 ELSE 0 END)
-        / COUNT(*), 1) AS taxa_aprovacao
+        / NULLIF(COUNT(*), 0), 1) AS taxa_aprovacao
 FROM v_mg_semad s
 LEFT JOIN empresa_infracoes ei ON s.cnpj_cpf = ei.cnpj
 WHERE s.atividade LIKE 'A-0%' AND LENGTH(s.cnpj_cpf) = 14
@@ -561,7 +577,7 @@ SELECT
     COUNT(*) AS total,
     SUM(CASE WHEN decisao = 'arquivamento' THEN 1 ELSE 0 END) AS arquivamentos,
     ROUND(100.0 * SUM(CASE WHEN decisao = 'arquivamento' THEN 1 ELSE 0 END)
-        / COUNT(*), 1) AS taxa_arquivamento
+        / NULLIF(COUNT(*), 0), 1) AS taxa_arquivamento
 FROM v_mg_semad
 WHERE atividade LIKE 'A-0%'
 GROUP BY 1, 2
@@ -583,7 +599,7 @@ SELECT
     SUM(CASE WHEN decisao = 'deferido' THEN 1 ELSE 0 END) AS deferidos,
     SUM(CASE WHEN decisao = 'indeferido' THEN 1 ELSE 0 END) AS indeferidos,
     ROUND(100.0 * SUM(CASE WHEN decisao = 'deferido' THEN 1 ELSE 0 END)
-        / COUNT(*), 1) AS taxa_aprovacao
+        / NULLIF(COUNT(*), 0), 1) AS taxa_aprovacao
 FROM v_mg_semad
 WHERE atividade LIKE 'A-0%'
 GROUP BY 1, 2

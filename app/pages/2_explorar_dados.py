@@ -59,6 +59,7 @@ with st.sidebar:
     st.markdown(section_header("Filtros"), unsafe_allow_html=True)
 
     where_clauses: list[str] = []
+    query_params: list = []
 
     search_text = st.text_input(
         "Busca", placeholder="CNPJ, empresa...", key="search"
@@ -91,24 +92,29 @@ with st.sidebar:
             ["Todos", "deferido", "indeferido", "arquivamento"],
         )
         if decisao != "Todos":
-            where_clauses.append(f"decisao = '{decisao}'")
+            where_clauses.append("decisao = ?")
+            query_params.append(decisao)
 
         classe = st.selectbox(
             "Classe", ["Todas", "1", "2", "3", "4", "5", "6"]
         )
         if classe != "Todas":
-            where_clauses.append(f"classe = {classe}")
+            where_clauses.append("classe = ?")
+            query_params.append(int(classe))
 
         from datetime import datetime
         _current_year = datetime.now().year
         ano_range = st.slider("Ano", 2016, _current_year, (2018, _current_year))
-        where_clauses.append(f"CAST(ano AS INTEGER) >= {ano_range[0]}")
-        where_clauses.append(f"CAST(ano AS INTEGER) <= {ano_range[1]}")
+        where_clauses.append("CAST(ano AS INTEGER) >= ?")
+        query_params.append(ano_range[0])
+        where_clauses.append("CAST(ano AS INTEGER) <= ?")
+        query_params.append(ano_range[1])
 
     elif view_name == "v_ibama_infracoes":
         uf = st.selectbox("UF", ["MG", "Todos"])
         if uf != "Todos":
-            where_clauses.append(f"UF = '{uf}'")
+            where_clauses.append("UF = ?")
+            query_params.append(uf)
 
     # Active filter chips
     active_filters = [c for c in where_clauses if "CAST(ano" not in c]
@@ -122,7 +128,10 @@ where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
 
 # ── Count ──
 try:
-    count_r = run_query(f"SELECT COUNT(*) AS n FROM {view_name} WHERE {where_sql}")
+    count_r = run_query(
+        f"SELECT COUNT(*) AS n FROM {view_name} WHERE {where_sql}",
+        query_params or None,
+    )
     total_count = count_r[0]["n"] if count_r else 0
 except Exception:
     total_count = 0
@@ -162,7 +171,7 @@ query = (
 )
 
 try:
-    df = run_query_df(query)
+    df = run_query_df(query, query_params or None)
 except Exception as e:
     st.error(f"Erro: {e}")
     st.stop()
@@ -234,10 +243,12 @@ if view_name == "v_mg_semad" and "detail_id" in df.columns:
                 for entry in docs.split(";"):
                     if "|" in entry:
                         name, url = entry.split("|", 1)
-                        doc_links.append(
-                            f'<a href="{url.strip()}" target="_blank">'
-                            f'📄 {name.strip()}</a>'
-                        )
+                        url = url.strip()
+                        if url.startswith(("http://", "https://")):
+                            doc_links.append(
+                                f'<a href="{url}" target="_blank">'
+                                f'📄 {name.strip()}</a>'
+                            )
                 if doc_links:
                     docs_html = (
                         '<div class="detail-actions">'
@@ -322,12 +333,12 @@ if total_count <= 20000:
     export_query = f"SELECT {export_select} FROM {view_name} WHERE {where_sql}"
 
     @st.cache_data(ttl=60)
-    def get_csv(q: str) -> bytes:
-        return run_query_df(q).to_csv(index=False).encode("utf-8")
+    def get_csv(q: str, params: list | None = None) -> bytes:
+        return run_query_df(q, params).to_csv(index=False).encode("utf-8")
 
     st.download_button(
         f"Exportar CSV ({total_count:,} registros)",
-        get_csv(export_query),
+        get_csv(export_query, query_params or None),
         file_name=f"{view_name}.csv",
         mime="text/csv",
     )

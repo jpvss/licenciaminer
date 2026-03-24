@@ -33,7 +33,7 @@ def create_views(
 
             if all_exist:
                 path_list = ", ".join(f"'{p}'" for p in paths)
-                read_expr = f"read_parquet([{path_list}])"
+                read_expr = f"read_parquet([{path_list}], union_by_name=true)"
                 display_name = ", ".join(parquet_spec)
             else:
                 # Fallback: try single file (e.g. ibama_infracoes.parquet)

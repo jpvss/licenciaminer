@@ -27,6 +27,7 @@ from app.styles.theme import (  # noqa: E402
 )
 from licenciaminer.database.queries import (  # noqa: E402
     QUERY_MG_SUMMARY,
+    QUERY_MINING_SUMMARY,
     QUERY_MINING_TREND,
 )
 
@@ -64,7 +65,10 @@ _inf_r = safe_query(
 inf_count = _inf_r[0]["n"] if _inf_r else 0
 
 _mg_summary = safe_query(QUERY_MG_SUMMARY, context="Resumo MG", fallback=[])
-approval_rate = _mg_summary[0].get("taxa_aprovacao_geral", 0) if _mg_summary else 0
+general_approval_rate = _mg_summary[0].get("taxa_aprovacao_geral", 0) if _mg_summary else 0
+
+_mining_summary = safe_query(QUERY_MINING_SUMMARY, context="Resumo Mineração", fallback=[])
+mining_approval_rate = _mining_summary[0].get("taxa_aprovacao_mineracao", 0) if _mining_summary else 0
 
 metadata = load_metadata()
 
@@ -84,7 +88,8 @@ with col3:
     st.markdown(source_attribution("IBAMA Dados Abertos"), unsafe_allow_html=True)
 
 with col4:
-    st.metric("Aprovação Mineração", f"{approval_rate}%")
+    st.metric("Aprovação Mineração", f"{mining_approval_rate}%",
+              help="Deferidos / total (inclui arquivamentos no denominador)")
     st.markdown(
         source_attribution(f"N = {mining_count:,} decisões"),
         unsafe_allow_html=True,
@@ -103,8 +108,8 @@ with chart_col:
     try:
         trend_df = run_query_df(QUERY_MINING_TREND)
         if not trend_df.empty:
-            # Get overall average for reference line
-            overall_avg = approval_rate
+            # Get overall mining average for reference line
+            overall_avg = mining_approval_rate
 
             fig = go.Figure()
 
@@ -212,7 +217,7 @@ with insights_col:
         class_stats = run_query("""
             SELECT classe, COUNT(*) AS n,
                 ROUND(100.0 * SUM(CASE WHEN decisao = 'deferido' THEN 1 ELSE 0 END)
-                    / COUNT(*), 1) AS taxa
+                    / NULLIF(COUNT(*), 0), 1) AS taxa
             FROM v_mg_semad WHERE atividade LIKE 'A-0%' AND classe IS NOT NULL
             GROUP BY classe ORDER BY classe
         """)
@@ -222,7 +227,7 @@ with insights_col:
                 REPLACE(regional, 'Unidade Regional de Regularização Ambiental ', '') AS reg,
                 COUNT(*) AS n,
                 ROUND(100.0 * SUM(CASE WHEN decisao = 'deferido' THEN 1 ELSE 0 END)
-                    / COUNT(*), 1) AS taxa
+                    / NULLIF(COUNT(*), 0), 1) AS taxa
             FROM v_mg_semad WHERE atividade LIKE 'A-0%'
             GROUP BY regional HAVING COUNT(*) >= 50
             ORDER BY taxa ASC LIMIT 1
@@ -238,19 +243,19 @@ with insights_col:
             )
             SELECT COUNT(*) AS n,
                 ROUND(100.0 * SUM(CASE WHEN s.decisao = 'deferido' THEN 1 ELSE 0 END)
-                    / COUNT(*), 1) AS taxa
+                    / NULLIF(COUNT(*), 0), 1) AS taxa
             FROM v_mg_semad s
             INNER JOIN ei ON s.cnpj_cpf = ei.cnpj
             WHERE s.atividade LIKE 'A-0%'
         """)
 
         # Insight 1: Mining vs general
-        diff = approval_rate - 78
+        diff = mining_approval_rate - general_approval_rate
         tone = "negative" if diff < 0 else "positive"
         st.markdown(
             insight_card(
                 "Mineração vs Geral",
-                f"{approval_rate}% vs ~78%",
+                f"{mining_approval_rate}% vs {general_approval_rate}%",
                 f"Mineração tem taxa {'menor' if diff < 0 else 'maior'} "
                 f"({abs(diff):.0f}pp) · N={mining_count:,}",
                 tone,
@@ -259,8 +264,9 @@ with insights_col:
         )
 
         # Insight 2: Worst class
-        if class_stats:
-            worst = min(class_stats, key=lambda x: x["taxa"])
+        valid_class_stats = [c for c in class_stats if c.get("taxa") is not None]
+        if valid_class_stats:
+            worst = min(valid_class_stats, key=lambda x: x["taxa"])
             st.markdown(
                 insight_card(
                     "Classe Mais Difícil",
@@ -391,6 +397,11 @@ Processos em análise · Cavernas CECAV · Outorgas ANA
 
 **Metodologia:** APIs públicas + scraping + shapefiles · Pareceres via PyMuPDF
 (86.6% cobertura) · Cruzamento por CNPJ e sobreposição espacial
+
+**Taxa de aprovação:** Calculada como `deferidos / total de decisões`. O denominador
+inclui arquivamentos (processos encerrados sem decisão de mérito), o que reduz a taxa
+em ~10pp vs considerar apenas deferido/indeferido. Esta é uma escolha conservadora
+que reflete a realidade do processo: projetos arquivados **não obtiveram** licença.
 
 **Atualização:** Pipeline incremental — decisões novas detectadas automaticamente
 """)
