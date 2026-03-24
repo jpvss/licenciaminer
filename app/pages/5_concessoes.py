@@ -10,7 +10,7 @@ for p in [_project_root, _project_root + "/src"]:
 
 import streamlit as st  # noqa: E402
 
-from app.components.data_loader import run_query, run_query_df  # noqa: E402
+from app.components.data_loader import REGIME_LABELS, run_query, run_query_df  # noqa: E402
 from app.styles.theme import (  # noqa: E402
     empty_state,
     hero_html,
@@ -104,13 +104,6 @@ def _load_filter_options():
 
 filter_opts = _load_filter_options()
 
-REGIME_LABELS = {
-    "portaria_lavra": "Portaria de Lavra",
-    "licenciamento": "Licenciamento",
-    "plg": "Lavra Garimpeira (PLG)",
-    "registro_extracao": "Registro de Extração",
-}
-
 # ── Filtros na sidebar ──
 with st.sidebar:
     st.markdown(section_header("Filtros"), unsafe_allow_html=True)
@@ -122,17 +115,24 @@ with st.sidebar:
         "Busca", placeholder="Titular, CNPJ, processo...", key="conc_search"
     )
     if search_text:
-        safe = search_text.replace("'", "").replace(";", "").replace("--", "")
+        # Escape LIKE wildcards and SQL special chars for safe interpolation
+        safe = (
+            search_text
+            .replace("\\", "\\\\")
+            .replace("%", "\\%")
+            .replace("_", "\\_")
+            .replace("'", "''")
+        ).strip()
         if safe:
             conds = []
             for col in ["titular", "processo", "processo_norm", "substancia_principal",
                         "municipio_principal"]:
                 conds.append(
-                    f"LOWER(CAST({col} AS VARCHAR)) LIKE '%{safe.lower()}%'"
+                    f"LOWER(CAST({col} AS VARCHAR)) LIKE '%{safe.lower()}%' ESCAPE '\\'"
                 )
             # CNPJ column (varies)
             conds.append(
-                f"CAST(cpf_cnpj_do_titular AS VARCHAR) LIKE '%{safe}%'"
+                f"CAST(cpf_cnpj_do_titular AS VARCHAR) LIKE '%{safe}%' ESCAPE '\\'"
             )
             where_clauses.append(f"({' OR '.join(conds)})")
 

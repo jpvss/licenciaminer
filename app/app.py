@@ -35,6 +35,11 @@ with st.sidebar:
         "Cada registro é rastreável à fonte original."
     )
 
+    if st.button("Atualizar dados", help="Limpar cache e recarregar dados dos parquets"):
+        st.cache_data.clear()
+        st.cache_resource.clear()
+        st.rerun()
+
     # Data freshness
     try:
         from app.components.data_loader import load_metadata
@@ -108,18 +113,58 @@ with col4:
         <span class="nav-icon">📋</span>
         <p class="nav-title">Análise de Decisões</p>
         <p class="nav-desc">Padrões de deferimento/indeferimento, fatores de risco e dossiê por empresa</p>
-        <span class="nav-stat">8.000+ decisões mineração</span>
+        <span class="nav-stat">{semad_n:,} decisões SEMAD</span>
     </div>
     """, unsafe_allow_html=True)
     st.page_link("pages/4_analise_decisoes.py", label="Abrir Análise →", icon=None)
 
+# ── Additional nav cards (pages 5-7) ──
+col5, col6, col7 = st.columns(3)
+
+with col5:
+    st.markdown("""
+    <div class="geo-nav-card animate-in-d1">
+        <span class="nav-icon">🏗️</span>
+        <p class="nav-title">Concessões</p>
+        <p class="nav-desc">Decretos de lavra e instrumentos similares com filtros avançados</p>
+    </div>
+    """, unsafe_allow_html=True)
+    st.page_link("pages/5_concessoes.py", label="Abrir Concessões →", icon=None)
+
+with col6:
+    st.markdown("""
+    <div class="geo-nav-card animate-in-d2">
+        <span class="nav-icon">🗺️</span>
+        <p class="nav-title">Mapa</p>
+        <p class="nav-desc">Visualização geoespacial de polígonos de concessões minerárias</p>
+    </div>
+    """, unsafe_allow_html=True)
+    st.page_link("pages/6_mapa_concessoes.py", label="Abrir Mapa →", icon=None)
+
+with col7:
+    st.markdown("""
+    <div class="geo-nav-card animate-in-d3">
+        <span class="nav-icon">🎯</span>
+        <p class="nav-title">Prospecção</p>
+        <p class="nav-desc">Identificar oportunidades de aquisição e investimento em concessões</p>
+    </div>
+    """, unsafe_allow_html=True)
+    st.page_link("pages/7_prospeccao.py", label="Abrir Prospecção →", icon=None)
+
 # ── Trust strip ──
+# Count sources dynamically
+try:
+    from app.components.data_loader import get_source_info as _gsi
+    _n_sources = len(_gsi())
+except Exception:
+    _n_sources = 14
+
 st.markdown("")
-st.markdown("""
+st.markdown(f"""
 <div style="text-align: center; padding: 1rem 0; border-top: 1px solid var(--stratum-3);">
     <span style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--slate-dim);
                  letter-spacing: 0.06em;">
-        12 FONTES OFICIAIS · 100% RASTREÁVEL · DADOS PÚBLICOS
+        {_n_sources} FONTES OFICIAIS · 100% RASTREÁVEL · DADOS PÚBLICOS
     </span>
 </div>
 """, unsafe_allow_html=True)

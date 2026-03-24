@@ -64,10 +64,17 @@ with st.sidebar:
         "Busca", placeholder="CNPJ, empresa...", key="search"
     )
     if search_text:
-        safe = search_text.replace("'", "").replace(";", "").replace("--", "")
+        # Escape LIKE wildcards and SQL special chars for safe interpolation
+        safe = (
+            search_text
+            .replace("\\", "\\\\")
+            .replace("%", "\\%")
+            .replace("_", "\\_")
+            .replace("'", "''")
+        ).strip()
         if safe:
             conds = [
-                f"LOWER(CAST({c} AS VARCHAR)) LIKE '%{safe.lower()}%'"
+                f"LOWER(CAST({c} AS VARCHAR)) LIKE '%{safe.lower()}%' ESCAPE '\\'"
                 for c in all_columns
                 if c not in exclude_cols and sample[c].dtype == "object"
             ]
@@ -92,7 +99,9 @@ with st.sidebar:
         if classe != "Todas":
             where_clauses.append(f"classe = {classe}")
 
-        ano_range = st.slider("Ano", 2016, 2026, (2018, 2026))
+        from datetime import datetime
+        _current_year = datetime.now().year
+        ano_range = st.slider("Ano", 2016, _current_year, (2018, _current_year))
         where_clauses.append(f"CAST(ano AS INTEGER) >= {ano_range[0]}")
         where_clauses.append(f"CAST(ano AS INTEGER) <= {ano_range[1]}")
 

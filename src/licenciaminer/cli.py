@@ -290,10 +290,25 @@ def spatial(ctx: click.Context, layer: str) -> None:
 @collect.command("all")
 @click.pass_context
 def collect_all(ctx: click.Context) -> None:
-    """Coletar de todas as fontes disponíveis."""
+    """Coletar de todas as fontes automatizadas.
+
+    Executa: ibama, anm, scm, infracoes, cfem, cnpj, ral, copam, spatial.
+    Pula: mg (requer download manual), mg-docs, mg-textos, outorgas.
+    Ao final, consolida concessões via join-concessoes.
+    """
     ctx.invoke(ibama)
     ctx.invoke(anm)
     ctx.invoke(scm)
+    ctx.invoke(infracoes)
+    ctx.invoke(cfem)
+    ctx.invoke(cnpj)
+    ctx.invoke(ral)
+    ctx.invoke(copam)
+
+    try:
+        ctx.invoke(spatial)
+    except Exception as e:
+        click.echo(f"Spatial: erro (continuando) — {e}")
 
     from licenciaminer.config import MG_DEFAULT_FILE
 
@@ -304,6 +319,12 @@ def collect_all(ctx: click.Context) -> None:
             f"MG SEMAD: arquivo não encontrado em {MG_DEFAULT_FILE}. "
             "Faça o download manual e coloque o arquivo nesse caminho."
         )
+
+    # Consolidar concessões ao final
+    try:
+        ctx.invoke(join_concessoes)
+    except Exception as e:
+        click.echo(f"Join concessões: erro (continuando) — {e}")
 
 
 @cli.command("join-concessoes")

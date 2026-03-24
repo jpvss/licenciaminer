@@ -60,7 +60,7 @@ def normalize_cnpj(value: str) -> str:
     digits = re.sub(r"\D", "", value)
     if len(digits) in (11, 14):
         return digits
-    return digits  # Retorna o que tem, mesmo se tamanho inesperado
+    return ""
 
 
 def parse_date_br(series: pd.Series[Any]) -> pd.Series[Any]:

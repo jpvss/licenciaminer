@@ -38,6 +38,7 @@ except ImportError:
     st.error("Instale: `pip install folium streamlit-folium geopandas`")
     st.stop()
 
+from app.components.data_loader import REGIME_LABELS  # noqa: E402
 from licenciaminer.config import DATA_DIR, REFERENCE_DIR  # noqa: E402
 from licenciaminer.processors.normalize import normalize_processo  # noqa: E402
 
@@ -128,16 +129,10 @@ with st.sidebar:
     # Filtro por regime
     if has_enrichment and "regime" in filtered.columns:
         regimes = sorted(filtered["regime"].dropna().unique().tolist())
-        regime_labels = {
-            "portaria_lavra": "Portaria de Lavra",
-            "licenciamento": "Licenciamento",
-            "plg": "Lavra Garimpeira",
-            "registro_extracao": "Registro de Extração",
-        }
         selected_regimes = st.multiselect(
             "Regime",
             regimes,
-            format_func=lambda x: regime_labels.get(x, x),
+            format_func=lambda x: REGIME_LABELS.get(x, x),
         )
         if selected_regimes:
             filtered = filtered[filtered["regime"].isin(selected_regimes)]
@@ -302,61 +297,53 @@ m = folium.Map(
     tiles="CartoDB positron",
 )
 
-# Adicionar polígonos de concessões
-for _, row in filtered.iterrows():
-    geom = row.geometry
-    if geom is None or geom.is_empty:
-        continue
+# Adicionar polígonos de concessões — batch rendering para performance
+# Remove rows com geometria vazia
+filtered = filtered[filtered.geometry.notna() & ~filtered.geometry.is_empty]
 
-    color = _get_color(row, color_by)
+# Pre-compute color column para uso no style_function
+filtered = filtered.copy()
+filtered["_color"] = filtered.apply(lambda row: _get_color(row, color_by), axis=1)
 
-    # Popup com detalhes
-    processo = str(row.get("processo_norm", row.get("PROCESSO", "—")))
-    popup_parts = [f"<b>Processo:</b> {processo}"]
+# Popup fields
+popup_fields = ["processo_norm"]
+tooltip_fields = ["processo_norm"]
+aliases = ["Processo"]
+if has_enrichment:
+    for col, alias in [
+        ("titular", "Titular"),
+        ("substancia_principal", "Substância"),
+        ("categoria", "Categoria"),
+    ]:
+        if col in filtered.columns:
+            popup_fields.append(col)
+            aliases.append(alias)
+if "AREA_HA" in filtered.columns:
+    popup_fields.append("AREA_HA")
+    aliases.append("Área (ha)")
+if "FASE" in filtered.columns:
+    popup_fields.append("FASE")
+    aliases.append("Fase")
 
-    if has_enrichment:
-        titular = row.get("titular")
-        if titular and str(titular) != "nan":
-            popup_parts.append(f"<b>Titular:</b> {str(titular)[:50]}")
-        subs = row.get("substancia_principal")
-        if subs and str(subs) != "nan":
-            popup_parts.append(f"<b>Substância:</b> {subs}")
-        cat = row.get("categoria")
-        if cat and str(cat) != "nan":
-            popup_parts.append(f"<b>Categoria:</b> {cat}")
-
-    area = row.get("AREA_HA")
-    if area and area == area:
-        popup_parts.append(f"<b>Área:</b> {area:,.1f} ha")
-
-    fase = row.get("FASE")
-    if fase and str(fase) != "nan":
-        popup_parts.append(f"<b>Fase:</b> {fase}")
-
-    if has_enrichment:
-        cfem = row.get("cfem_total")
-        if cfem and cfem == cfem:
-            popup_parts.append(f"<b>CFEM Total:</b> R$ {cfem:,.2f}")
-        ativo = row.get("ativo_cfem")
-        if ativo is not None:
-            status = "Ativo" if ativo else "Inativo"
-            popup_parts.append(f"<b>Status:</b> {status}")
-
-    popup_html = "<br>".join(popup_parts)
-
-    # Renderizar geometria
-    geo_json = gpd.GeoDataFrame([row], geometry="geometry").to_json()
-    folium.GeoJson(
-        geo_json,
-        style_function=lambda _, c=color: {
-            "fillColor": c,
-            "color": c,
-            "weight": 1,
-            "fillOpacity": 0.4,
-        },
-        popup=folium.Popup(popup_html, max_width=300),
-        tooltip=processo,
-    ).add_to(m)
+# Build a single GeoJSON with all features (orders of magnitude faster)
+folium.GeoJson(
+    filtered[["geometry", "_color"] + [c for c in popup_fields if c in filtered.columns]].to_json(),
+    style_function=lambda feature: {
+        "fillColor": feature["properties"].get("_color", DEFAULT_COLOR),
+        "color": feature["properties"].get("_color", DEFAULT_COLOR),
+        "weight": 1,
+        "fillOpacity": 0.4,
+    },
+    popup=folium.GeoJsonPopup(
+        fields=[c for c in popup_fields if c in filtered.columns],
+        aliases=aliases[:len([c for c in popup_fields if c in filtered.columns])],
+        max_width=300,
+    ),
+    tooltip=folium.GeoJsonTooltip(
+        fields=[c for c in tooltip_fields if c in filtered.columns],
+        aliases=["Processo"],
+    ),
+).add_to(m)
 
 # ── Camadas de restrição ──
 if show_ucs:
