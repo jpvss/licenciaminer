@@ -20,7 +20,9 @@ Append as we go. Don't delete — cross out when done.
 
 ## Explorar Dados
 
-_(pending review)_
+- [ ] **No custom filters for 9 of 11 datasets** — Only SEMAD and IBAMA Infrações have sidebar filters. CFEM could benefit from UF/Ano/Substância filters. ANM from UF/FASE. Low priority since text search works.
+- [ ] **No detail view for non-SEMAD datasets** — Only SEMAD has row-click detail panel. CFEM and ANM have simpler schemas where a detail panel adds less value.
+- [ ] **IBAMA Infrações column `DES_AUTO_INFRACAO` has encoding issues** — Shows "ÃREA" instead of "ÁREA". Source data quality issue from IBAMA's CSV export.
 
 ## Análise de Decisões
 

@@ -11,6 +11,7 @@ for p in [_project_root, _project_root + "/src"]:
 import streamlit as st  # noqa: E402
 
 from app.components.data_loader import (  # noqa: E402
+    fmt_br,
     get_dataset_options,
     run_query,
     run_query_df,
@@ -147,7 +148,7 @@ except Exception:
 
 # ── Results header ──
 st.markdown(
-    section_header(f"{total_count:,} registros encontrados"),
+    section_header(f"{fmt_br(total_count)} registros encontrados"),
     unsafe_allow_html=True,
 )
 
@@ -199,15 +200,54 @@ if df.empty:
 _col_config: dict = {}
 if view_name == "v_mg_semad":
     _col_config = {
-        "detail_id": None,  # hide internal ID
+        "detail_id": None,
         "texto_documentos": None,
         "documentos_pdf": None,
         "ano": st.column_config.NumberColumn("Ano", format="%d"),
         "classe": st.column_config.NumberColumn("Classe", format="%d"),
+        "_source": None,
+        "_collected_at": None,
     }
 elif view_name == "v_ibama_infracoes":
+    # Hide the 60+ internal/empty columns, show only the useful ones
+    _useful_cols = {
+        "NUM_AUTO_INFRACAO", "TIPO_AUTO", "VAL_AUTO_INFRACAO",
+        "DES_AUTO_INFRACAO", "DAT_HORA_AUTO_INFRACAO", "MUNICIPIO", "UF",
+        "CPF_CNPJ_INFRATOR", "NOME_INFRATOR", "TIPO_INFRACAO",
+        "DES_STATUS_FORMULARIO", "SIT_CANCELADO",
+    }
     _col_config = {
-        "SEQ_AUTO_INFRACAO": st.column_config.TextColumn("Seq."),
+        c: None for c in df.columns if c not in _useful_cols
+    }
+    _col_config["NUM_AUTO_INFRACAO"] = st.column_config.TextColumn("N° Auto")
+    _col_config["DAT_HORA_AUTO_INFRACAO"] = st.column_config.TextColumn("Data")
+    _col_config["NOME_INFRATOR"] = st.column_config.TextColumn("Infrator")
+    _col_config["VAL_AUTO_INFRACAO"] = st.column_config.TextColumn("Valor (R$)")
+    _col_config["TIPO_INFRACAO"] = st.column_config.TextColumn("Tipo")
+    _col_config["DES_AUTO_INFRACAO"] = st.column_config.TextColumn("Descrição")
+elif view_name == "v_cfem":
+    _col_config = {
+        "_source": None, "_collected_at": None, "_source_url": None,
+        "Ano": st.column_config.NumberColumn("Ano", format="%d"),
+        "CPF_CNPJ": st.column_config.TextColumn("CNPJ"),
+        "Substância": st.column_config.TextColumn("Substância"),
+        "ValorRecolhido": st.column_config.TextColumn("Valor (R$)"),
+    }
+elif view_name in ("v_anm", "v_spatial"):
+    _col_config = {
+        "_source": None, "_collected_at": None,
+        "AREA_HA": st.column_config.NumberColumn("Área (ha)", format="%.1f"),
+        "ANO": st.column_config.NumberColumn("Ano", format="%d"),
+    }
+elif view_name == "v_cnpj":
+    _col_config = {
+        "_source": None, "_collected_at": None, "_source_url": None,
+    }
+else:
+    # Generic: hide internal columns
+    _col_config = {
+        c: None for c in df.columns
+        if c.startswith("_") and c not in {"_tipo_producao"}
     }
 
 # ── Table with row selection ──
@@ -368,13 +408,13 @@ if total_count <= 20000:
         return run_query_df(q, params).to_csv(index=False).encode("utf-8")
 
     st.download_button(
-        f"Exportar CSV ({total_count:,} registros)",
+        f"Exportar CSV ({fmt_br(total_count)} registros)",
         get_csv(export_query, query_params or None),
         file_name=f"{view_name}.csv",
         mime="text/csv",
     )
 else:
     st.caption(
-        f"Dataset muito grande para exportar ({total_count:,} registros). "
+        f"Dataset muito grande para exportar ({fmt_br(total_count)} registros). "
         "Aplique filtros para reduzir a menos de 20.000."
     )
