@@ -18,6 +18,11 @@ def get_theme_css() -> str:
     """Retorna o CSS completo do tema Geological Editorial."""
     return """
     <style>
+    /* ── Hide Streamlit chrome (fork button, footer, deploy button) ── */
+    .stDeployButton, [data-testid="stToolbar"],
+    footer, #MainMenu {visibility: hidden;}
+    header[data-testid="stHeader"] {background: transparent;}
+
     /* ══════════════════════════════════════════════
        DESIGN TOKENS — Geological Editorial
        ══════════════════════════════════════════════ */
