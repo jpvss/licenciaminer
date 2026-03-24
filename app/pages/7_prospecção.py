@@ -10,7 +10,9 @@ for p in [_project_root, _project_root + "/src"]:
 
 import streamlit as st  # noqa: E402
 
-from app.components.data_loader import REGIME_LABELS, run_query, run_query_df  # noqa: E402
+from app.components.data_loader import (  # noqa: E402
+    REGIME_LABELS, fmt_br, fmt_reais, run_query, run_query_df,
+)
 from app.styles.theme import (  # noqa: E402
     empty_state,
     hero_html,
@@ -105,7 +107,11 @@ WHERE regime IS NOT NULL
 with st.sidebar:
     st.markdown(section_header("Filtros de Prospecção"), unsafe_allow_html=True)
 
-    min_score = st.slider("Score mínimo", 0, 100, 30, step=5)
+    min_score = st.slider(
+        "Score mínimo", 0, 100, 30, step=5,
+        help="Score de oportunidade (0-100). Baseado em: inatividade CFEM, "
+             "mineral estratégico, área, categoria de alto valor.",
+    )
 
     # Filtro por regime
     regimes_r = run_query(
@@ -177,7 +183,7 @@ if view_mode == "Top Oportunidades":
     cols_kpi = st.columns(4)
     with cols_kpi[0]:
         st.markdown(
-            insight_card("Oportunidades", f"{len(df):,}", f"score >= {min_score}"),
+            insight_card("Oportunidades", fmt_br(len(df)), f"score >= {min_score}"),
             unsafe_allow_html=True,
         )
     with cols_kpi[1]:
@@ -189,13 +195,13 @@ if view_mode == "Top Oportunidades":
     with cols_kpi[2]:
         strategic_count = (df["estrategico"] == "sim").sum() if "estrategico" in df.columns else 0
         st.markdown(
-            insight_card("Estratégicos", f"{strategic_count:,}", "minerais"),
+            insight_card("Estratégicos", fmt_br(strategic_count), "minerais"),
             unsafe_allow_html=True,
         )
     with cols_kpi[3]:
         area_total = df["AREA_HA"].sum() if "AREA_HA" in df.columns else 0
         st.markdown(
-            insight_card("Área Total", f"{area_total:,.0f}", "hectares"),
+            insight_card("Área Total", fmt_br(area_total), "hectares"),
             unsafe_allow_html=True,
         )
 
@@ -232,19 +238,20 @@ if view_mode == "Top Oportunidades":
         columns={k: v for k, v in display_cols.items() if k in df.columns}
     )
 
-    # Formatar
+    # Formatar no padrão brasileiro
     if "Área (ha)" in display_df.columns:
         display_df["Área (ha)"] = display_df["Área (ha)"].apply(
-            lambda x: f"{x:,.1f}" if isinstance(x, (int, float)) and x == x else "—"
+            lambda x: fmt_br(x, 1) if isinstance(x, (int, float)) else "—"
         )
     if "CFEM Total" in display_df.columns:
-        display_df["CFEM Total"] = display_df["CFEM Total"].apply(
-            lambda x: f"R$ {x:,.0f}" if isinstance(x, (int, float)) and x == x else "—"
-        )
+        display_df["CFEM Total"] = display_df["CFEM Total"].apply(fmt_reais)
     if "Regime" in display_df.columns:
-        display_df["Regime"] = display_df["Regime"].map(REGIME_LABELS).fillna(display_df.get("Regime", ""))
+        display_df["Regime"] = (
+            display_df["Regime"].map(REGIME_LABELS)
+            .fillna(display_df.get("Regime", ""))
+        )
 
-    st.dataframe(display_df, width="stretch", hide_index=True, height=500)
+    st.dataframe(display_df, use_container_width=True, hide_index=True, height=500)
 
     # Export
     st.download_button(
@@ -299,7 +306,7 @@ elif view_mode == "Análise por Empresa":
     cols_kpi = st.columns(3)
     with cols_kpi[0]:
         st.markdown(
-            insight_card("Empresas", f"{len(empresas):,}", "com 2+ concessões"),
+            insight_card("Empresas", fmt_br(len(empresas)), "com 2+ concessões"),
             unsafe_allow_html=True,
         )
     with cols_kpi[1]:
@@ -312,7 +319,7 @@ elif view_mode == "Análise por Empresa":
     with cols_kpi[2]:
         total_inativas = int(empresas["inativas"].sum())
         st.markdown(
-            insight_card("Inativas", f"{total_inativas:,}", "concessões sem CFEM"),
+            insight_card("Inativas", fmt_br(total_inativas), "concessões sem CFEM"),
             unsafe_allow_html=True,
         )
 
@@ -328,17 +335,15 @@ elif view_mode == "Análise por Empresa":
     })
 
     if "CFEM Total (R$)" in display_empresas.columns:
-        display_empresas["CFEM Total (R$)"] = display_empresas["CFEM Total (R$)"].apply(
-            lambda x: f"R$ {x:,.0f}" if isinstance(x, (int, float)) and x == x else "—"
-        )
+        display_empresas["CFEM Total (R$)"] = display_empresas["CFEM Total (R$)"].apply(fmt_reais)
     if "Área Total (ha)" in display_empresas.columns:
         display_empresas["Área Total (ha)"] = display_empresas["Área Total (ha)"].apply(
-            lambda x: f"{x:,.0f}" if isinstance(x, (int, float)) and x == x else "—"
+            lambda x: fmt_br(x) if isinstance(x, (int, float)) else "—"
         )
 
     event = st.dataframe(
         display_empresas,
-        width="stretch",
+        use_container_width=True,
         hide_index=True,
         height=400,
         on_select="rerun",
@@ -366,7 +371,7 @@ elif view_mode == "Análise por Empresa":
 
         try:
             empresa_df = run_query_df(detalhe_query, [empresa_nome])
-            st.dataframe(empresa_df, width="stretch", hide_index=True, height=300)
+            st.dataframe(empresa_df, use_container_width=True, hide_index=True, height=300)
         except Exception as e:
             st.error(f"Erro: {e}")
 
@@ -422,12 +427,12 @@ elif view_mode == "Substâncias por Município":
         )
     with cols_kpi[1]:
         st.markdown(
-            insight_card("Municípios", f"{mun_df['municipio'].nunique():,}", "com concessões"),
+            insight_card("Municípios", fmt_br(mun_df['municipio'].nunique()), "com concessões"),
             unsafe_allow_html=True,
         )
     with cols_kpi[2]:
         st.markdown(
-            insight_card("Pares", f"{len(mun_df):,}", "município × substância"),
+            insight_card("Pares", fmt_br(len(mun_df)), "município × substância"),
             unsafe_allow_html=True,
         )
 
@@ -439,11 +444,9 @@ elif view_mode == "Substâncias por Município":
         "cfem": "CFEM Total (R$)",
     })
     if "CFEM Total (R$)" in display_mun.columns:
-        display_mun["CFEM Total (R$)"] = display_mun["CFEM Total (R$)"].apply(
-            lambda x: f"R$ {x:,.0f}" if isinstance(x, (int, float)) and x == x else "—"
-        )
+        display_mun["CFEM Total (R$)"] = display_mun["CFEM Total (R$)"].apply(fmt_reais)
 
-    st.dataframe(display_mun, width="stretch", hide_index=True, height=400)
+    st.dataframe(display_mun, use_container_width=True, hide_index=True, height=400)
 
     # Detalhe por município selecionado
     mun_select = st.selectbox(
@@ -467,7 +470,7 @@ elif view_mode == "Substâncias por Município":
                 "area_total": "Área Total (ha)",
                 "cfem_total": "CFEM Total (R$)",
             }),
-            width="stretch",
+            use_container_width=True,
             hide_index=True,
         )
 

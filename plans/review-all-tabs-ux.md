@@ -14,8 +14,8 @@ Review current implementation, identify gaps, propose high-value low-effort impr
 | 3 | Explorar Dados | PENDING | Review filters, table config, detail view, export |
 | 4 | Consulta | DONE | Infraction details, CFEM breakdown, ANM titles, filiais, portal links, PDF report |
 | 5 | Análise de Decisões | DONE | BR formatting, porte/date humanized, guidance caption |
-| 6 | Concessões | PENDING | Review filters, table, detail panel |
-| 7 | Mapa | PENDING | Review performance, popups, layers, legend |
+| 6 | Concessões | DONE | BR formatting, pagination guard, help tooltips, detail panel |
+| 7 | Mapa | DONE | Dark tile, BR formatting, help tooltips on UC/TI layers |
 | 8 | Prospecção | PENDING | Review scoring, empresa view, município view |
 
 ---

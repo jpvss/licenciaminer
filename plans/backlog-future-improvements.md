@@ -43,7 +43,8 @@ Append as we go. Don't delete — cross out when done.
 
 ## Prospecção
 
-_(pending review)_
+- [ ] **Opportunity → Consulta link** — From the ranked list, user can't click through to see full company dossier. Could add CNPJ lookup from titular name.
+- [ ] **Empresa detail table has raw column names** — When expanding a company's concessions, column names like `AREA_HA`, `ativo_cfem` not renamed. Should apply same column labels as main table.
 
 ---
 
