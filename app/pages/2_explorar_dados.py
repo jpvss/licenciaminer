@@ -146,17 +146,20 @@ st.markdown(
 page_size = 50
 total_pages = max(1, (total_count + page_size - 1) // page_size)
 
-col_page, col_info = st.columns([1, 3])
-with col_page:
-    page = st.number_input(
-        "Página", min_value=1, max_value=total_pages, value=1,
-        label_visibility="collapsed",
-    )
-with col_info:
-    st.markdown(
-        source_attribution(f"Página {page} de {total_pages} · {page_size} por página"),
-        unsafe_allow_html=True,
-    )
+if total_pages > 1:
+    col_page, col_info = st.columns([1, 3])
+    with col_page:
+        page = st.number_input(
+            "Página", min_value=1, max_value=total_pages, value=1,
+            label_visibility="collapsed",
+        )
+    with col_info:
+        st.markdown(
+            source_attribution(f"Página {page} de {total_pages} · {page_size} por página"),
+            unsafe_allow_html=True,
+        )
+else:
+    page = 1
 
 offset = (page - 1) * page_size
 
@@ -183,11 +186,27 @@ if df.empty:
     )
     st.stop()
 
+# ── Column config for better formatting ──
+_col_config: dict = {}
+if view_name == "v_mg_semad":
+    _col_config = {
+        "detail_id": None,  # hide internal ID
+        "texto_documentos": None,
+        "documentos_pdf": None,
+        "ano": st.column_config.NumberColumn("Ano", format="%d"),
+        "classe": st.column_config.NumberColumn("Classe", format="%d"),
+    }
+elif view_name == "v_ibama_infracoes":
+    _col_config = {
+        "SEQ_AUTO_INFRACAO": st.column_config.TextColumn("Seq."),
+    }
+
 # ── Table with row selection ──
 if view_name == "v_mg_semad" and "detail_id" in df.columns:
     event = st.dataframe(
         df,
-        width="stretch",
+        column_config=_col_config,
+        use_container_width=True,
         hide_index=True,
         height=420,
         on_select="rerun",
@@ -322,7 +341,10 @@ if view_name == "v_mg_semad" and "detail_id" in df.columns:
         )
 
 else:
-    st.dataframe(df, width="stretch", hide_index=True, height=420)
+    st.dataframe(
+        df, column_config=_col_config,
+        use_container_width=True, hide_index=True, height=420,
+    )
 
 # ── Export ──
 st.markdown("")

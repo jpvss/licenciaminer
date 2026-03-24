@@ -67,6 +67,33 @@ def run_query_df(query: str, params: list | None = None):
         cursor.close()
 
 
+# ── Brazilian number formatting ──
+
+def fmt_br(n: float | int, decimals: int = 0) -> str:
+    """Formata número no padrão brasileiro: 1.234.567,89."""
+    if n is None or (isinstance(n, float) and n != n):
+        return "—"
+    if decimals > 0:
+        formatted = f"{n:,.{decimals}f}"
+    else:
+        formatted = f"{n:,.0f}"
+    return formatted.replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def fmt_reais(n: float | None) -> str:
+    """Formata como R$ 1.234,56."""
+    if n is None or (isinstance(n, float) and n != n):
+        return "—"
+    return f"R$ {fmt_br(n, 2)}"
+
+
+def fmt_pct(n: float | None) -> str:
+    """Formata como 85,3%."""
+    if n is None or (isinstance(n, float) and n != n):
+        return "—"
+    return f"{fmt_br(n, 1)}%"
+
+
 def load_metadata() -> dict:
     """Carrega metadados de coleta."""
     meta_path = DATA_DIR / "processed" / "collection_metadata.json"

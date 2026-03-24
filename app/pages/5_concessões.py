@@ -10,7 +10,9 @@ for p in [_project_root, _project_root + "/src"]:
 
 import streamlit as st  # noqa: E402
 
-from app.components.data_loader import REGIME_LABELS, run_query, run_query_df  # noqa: E402
+from app.components.data_loader import (  # noqa: E402
+    REGIME_LABELS, fmt_br, fmt_reais, run_query, run_query_df,
+)
 from app.styles.theme import (  # noqa: E402
     empty_state,
     hero_html,
@@ -360,21 +362,22 @@ COLUMN_LABELS = {
 
 display_df = df.rename(columns={k: v for k, v in COLUMN_LABELS.items() if k in df.columns})
 
-# Formatar valores
+# Formatar valores no padrão brasileiro
 if "CFEM Total (R$)" in display_df.columns:
-    display_df["CFEM Total (R$)"] = display_df["CFEM Total (R$)"].apply(
-        lambda x: f"R$ {x:,.2f}" if isinstance(x, (int, float)) and x == x else "—"
-    )
+    display_df["CFEM Total (R$)"] = display_df["CFEM Total (R$)"].apply(fmt_reais)
 if "Área (ha)" in display_df.columns:
     display_df["Área (ha)"] = display_df["Área (ha)"].apply(
-        lambda x: f"{x:,.1f}" if isinstance(x, (int, float)) and x == x else "—"
+        lambda x: fmt_br(x, 1) if isinstance(x, (int, float)) else "—"
     )
 if "Regime" in display_df.columns:
-    display_df["Regime"] = display_df["Regime"].map(REGIME_LABELS).fillna(display_df.get("Regime", ""))
+    display_df["Regime"] = (
+        display_df["Regime"].map(REGIME_LABELS)
+        .fillna(display_df.get("Regime", ""))
+    )
 
 event = st.dataframe(
     display_df,
-    width="stretch",
+    use_container_width=True,
     hide_index=True,
     height=500,
     on_select="rerun",

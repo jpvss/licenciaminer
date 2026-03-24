@@ -12,6 +12,8 @@ import plotly.graph_objects as go  # noqa: E402
 import streamlit as st  # noqa: E402
 
 from app.components.data_loader import (  # noqa: E402
+    fmt_br,
+    fmt_pct,
     get_source_info,
     load_metadata,
     run_query,
@@ -75,16 +77,16 @@ metadata = load_metadata()
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
-    st.metric("Decisões SEMAD", f"{semad_count:,}")
+    st.metric("Decisões SEMAD", fmt_br(semad_count))
     semad_date = metadata.get("mg_semad", {}).get("last_collected", "")[:10]
     st.markdown(source_attribution(f"SEMAD MG · {semad_date}"), unsafe_allow_html=True)
 
 with col2:
-    st.metric("Processos ANM (MG)", f"{anm_count:,}")
+    st.metric("Processos ANM (MG)", fmt_br(anm_count))
     st.markdown(source_attribution("ANM SIGMINE"), unsafe_allow_html=True)
 
 with col3:
-    st.metric("Infrações IBAMA (MG)", f"{inf_count:,}")
+    st.metric("Infrações IBAMA (MG)", fmt_br(inf_count))
     st.markdown(source_attribution("IBAMA Dados Abertos"), unsafe_allow_html=True)
 
 with col4:

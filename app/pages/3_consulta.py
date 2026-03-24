@@ -46,31 +46,35 @@ def _render_report_button(cnpj: str) -> None:
     )
 
     if st.button("Gerar Relatório PDF", type="primary", key=f"report_{cnpj}"):
-        with st.spinner("Coletando dados e gerando relatório..."):
-            try:
-                from app.components.report_data import collect_report_data
-                from app.components.report_generator import generate_report
+        try:
+            from app.components.report_data import collect_report_data
+            from app.components.report_generator import generate_report
 
+            with st.status("Gerando relatório...", expanded=True) as status:
+                st.write("Coletando dados de 10 fontes oficiais...")
                 report_data = collect_report_data(cnpj)
+
+                st.write("Renderizando PDF com 8 seções...")
                 pdf_bytes = generate_report(report_data)
 
                 empresa = report_data.razao_social or cnpj
                 filename = f"relatorio_{cnpj}_{report_data.generated_at:%Y%m%d}.pdf"
 
-                st.download_button(
-                    f"Baixar Relatório — {empresa[:40]}",
-                    pdf_bytes,
-                    file_name=filename,
-                    mime="application/pdf",
-                    type="primary",
+                status.update(
+                    label=f"Relatório pronto — Risco: {report_data.risk_level}",
+                    state="complete",
+                    expanded=False,
                 )
-                st.success(
-                    f"Relatório gerado com sucesso. "
-                    f"Risco: **{report_data.risk_level}** | "
-                    f"{len(report_data.decisoes)} decisões analisadas."
-                )
-            except Exception as e:
-                st.error(f"Erro ao gerar relatório: {e}")
+
+            st.download_button(
+                f"Baixar Relatório — {empresa[:40]}",
+                pdf_bytes,
+                file_name=filename,
+                mime="application/pdf",
+                type="primary",
+            )
+        except Exception as e:
+            st.error(f"Erro ao gerar relatório: {e}")
 
 
 def _render_company_profile(cnpj: str) -> None:

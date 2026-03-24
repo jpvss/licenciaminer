@@ -4,6 +4,15 @@ port = 8501
 
 [theme]
 base = "dark"
+primaryColor = "#D4A847"
+backgroundColor = "#0C0E12"
+secondaryBackgroundColor = "#12151B"
+textColor = "#E8E4DC"
+borderColor = "#2E3442"
+linkColor = "#7B9FD4"
+
+[theme.sidebar]
+backgroundColor = "#0A0C10"
 
 [browser]
 gatherUsageStats = false

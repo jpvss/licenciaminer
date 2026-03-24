@@ -38,6 +38,7 @@ with st.sidebar:
     if st.button("Atualizar dados", help="Limpar cache e recarregar dados dos parquets"):
         st.cache_data.clear()
         st.cache_resource.clear()
+        st.toast("Cache limpo. Recarregando...")
         st.rerun()
 
     # Data freshness
