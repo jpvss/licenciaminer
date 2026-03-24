@@ -75,26 +75,36 @@ def _download_csv(url: str) -> bytes:
 
 
 def _parse_csv(csv_bytes: bytes) -> pd.DataFrame:
-    """Parseia CSV do SCM, tentando encodings comuns."""
-    for encoding in ("utf-8", "latin-1", "cp1252"):
-        try:
-            return pd.read_csv(
-                io.BytesIO(csv_bytes),
-                sep=";",
-                encoding=encoding,
-                dtype=str,
-                na_values=["", "N/A"],
-            )
-        except UnicodeDecodeError:
-            continue
-    # Fallback com erros ignorados
+    """Parseia CSV do SCM, tentando separadores e encodings comuns.
+
+    Os CSVs do ANM usam vírgula como separador e aspas para campos
+    com vírgulas internas. Algumas linhas malformadas são descartadas.
+    """
+    for sep in (",", ";"):
+        for encoding in ("latin-1", "utf-8", "cp1252"):
+            try:
+                df = pd.read_csv(
+                    io.BytesIO(csv_bytes),
+                    sep=sep,
+                    encoding=encoding,
+                    dtype=str,
+                    na_values=["", "N/A"],
+                    quotechar='"',
+                    on_bad_lines="skip",
+                )
+                # Validar: se só tem 1 coluna, provavelmente o separador está errado
+                if len(df.columns) > 1:
+                    return df
+            except (UnicodeDecodeError, pd.errors.ParserError):
+                continue
+    # Fallback
     return pd.read_csv(
         io.BytesIO(csv_bytes),
-        sep=";",
-        encoding="utf-8",
-        errors="replace",
+        sep=",",
+        encoding="latin-1",
         dtype=str,
         na_values=["", "N/A"],
+        on_bad_lines="skip",
     )
 
 
