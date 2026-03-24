@@ -18,4 +18,6 @@ PARQUET_SOURCES: dict[str, str | list[str]] = {
     "v_spatial": "anm_spatial_overlaps.parquet",
     "v_copam": "copam_cmi_reunioes.parquet",
     "v_ral": "anm_ral.parquet",
+    "v_scm": "scm_concessoes.parquet",
+    "v_concessoes": "concessoes_mg.parquet",
 }

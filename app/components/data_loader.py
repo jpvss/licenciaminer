@@ -77,6 +77,8 @@ def get_source_info() -> list[dict]:
         "funai_tis": "https://geoserver.funai.gov.br/geoserver/Funai/ows",
         "ibge_biomas": "http://geoftp.ibge.gov.br/informacoes_ambientais/",
         "spatial_overlaps": "(computado a partir de ANM + UCs + TIs + biomas)",
+        "anm_scm": "https://app.anm.gov.br/dadosabertos/SCM/",
+        "concessoes_mg": "(consolidado: SCM + SIGMINE + CFEM)",
     }
 
     source_names = {
@@ -92,6 +94,8 @@ def get_source_info() -> list[dict]:
         "funai_tis": "FUNAI Terras Indígenas",
         "ibge_biomas": "IBGE Biomas",
         "spatial_overlaps": "Sobreposições Espaciais",
+        "anm_scm": "ANM SCM Concessões",
+        "concessoes_mg": "Concessões MG Consolidadas",
     }
 
     for source_key, display_name in source_names.items():

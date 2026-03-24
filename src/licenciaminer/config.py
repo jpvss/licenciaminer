@@ -31,6 +31,10 @@ ANM_FEATURESERVER_URL = os.getenv(
     "ANM_FEATURESERVER_URL",
     "https://geo.anm.gov.br/arcgis/rest/services/SIGMINE/dados_anm/FeatureServer/0/query",
 )
+SCM_BASE_URL = os.getenv(
+    "SCM_BASE_URL",
+    "https://app.anm.gov.br/dadosabertos/SCM",
+)
 
 # ANM
 ANM_PRIORITY_UFS: list[str] = ["MG", "PA", "GO", "BA", "MT", "MA"]

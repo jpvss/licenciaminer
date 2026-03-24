@@ -39,6 +39,18 @@ def normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def normalize_processo(processo: str) -> str:
+    """Normaliza número de processo ANM para formato NNNNNN/YYYY.
+
+    Trata: '005.370/1964', '5370/1964', '005370/1964', '830.836/1997'
+    """
+    clean = re.sub(r"[.\s]", "", str(processo).strip())
+    match = re.match(r"(\d+)/(\d{4})", clean)
+    if match:
+        return f"{int(match.group(1)):06d}/{match.group(2)}"
+    return clean
+
+
 def normalize_cnpj(value: str) -> str:
     """Remove pontuação de CNPJ/CPF, mantendo apenas dígitos.
 

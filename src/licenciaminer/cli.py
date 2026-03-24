@@ -237,6 +237,19 @@ def copam(ctx: click.Context, max_meetings: int | None) -> None:
     click.echo(f"COPAM CMI: dados salvos em {path}")
 
 
+@collect.command("scm")
+@click.option("--uf", default="MG", help="Filtrar por UF (padrão: MG, use ALL para todos).")
+@click.pass_context
+def scm(ctx: click.Context, uf: str) -> None:
+    """Coletar concessões minerárias do SCM/ANM (Portaria de Lavra, Licenciamento, PLG)."""
+    from licenciaminer.collectors.anm_scm import collect_scm
+
+    output_dir: Path = ctx.obj["data_dir"]
+    uf_filter = None if uf == "ALL" else uf
+    path = collect_scm(output_dir, uf_filter=uf_filter)
+    click.echo(f"SCM: dados salvos em {path}")
+
+
 @collect.command("spatial")
 @click.option(
     "--layer",
@@ -280,6 +293,7 @@ def collect_all(ctx: click.Context) -> None:
     """Coletar de todas as fontes disponíveis."""
     ctx.invoke(ibama)
     ctx.invoke(anm)
+    ctx.invoke(scm)
 
     from licenciaminer.config import MG_DEFAULT_FILE
 
@@ -290,6 +304,17 @@ def collect_all(ctx: click.Context) -> None:
             f"MG SEMAD: arquivo não encontrado em {MG_DEFAULT_FILE}. "
             "Faça o download manual e coloque o arquivo nesse caminho."
         )
+
+
+@cli.command("join-concessoes")
+@click.pass_context
+def join_concessoes(ctx: click.Context) -> None:
+    """Consolidar SCM + SIGMINE + CFEM em dataset unificado de concessões."""
+    from licenciaminer.processors.join_concessions import join_concessions
+
+    data_dir: Path = ctx.obj["data_dir"]
+    path = join_concessions(data_dir)
+    click.echo(f"Concessões consolidadas: {path}")
 
 
 @cli.command()

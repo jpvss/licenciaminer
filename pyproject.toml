@@ -23,6 +23,8 @@ dependencies = [
     "plotly>=6.6.0",
     "fpdf2>=2.8.7",
     "anthropic>=0.86.0",
+    "folium>=0.15",
+    "streamlit-folium>=0.22",
 ]
 
 [project.optional-dependencies]

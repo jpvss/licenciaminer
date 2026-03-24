@@ -1,0 +1,65 @@
+substancia,categoria,valor_relativo,estrategico
+MINERIO DE FERRO,Metálicos Ferrosos,alto,sim
+FERRO,Metálicos Ferrosos,alto,sim
+MANGANES,Metálicos Ferrosos,alto,sim
+MINERIO DE MANGANES,Metálicos Ferrosos,alto,sim
+OURO,Metálicos Preciosos,muito_alto,sim
+PRATA,Metálicos Preciosos,alto,sim
+PLATINA,Metálicos Preciosos,muito_alto,sim
+LITIO,Metálicos Estratégicos,muito_alto,sim
+NIOBIO,Metálicos Estratégicos,muito_alto,sim
+TERRAS RARAS,Metálicos Estratégicos,muito_alto,sim
+TÂNTALO,Metálicos Estratégicos,muito_alto,sim
+GRAFITA,Metálicos Estratégicos,alto,sim
+BAUXITA,Metálicos Não-Ferrosos,alto,sim
+MINERIO DE ALUMINIO,Metálicos Não-Ferrosos,alto,sim
+COBRE,Metálicos Não-Ferrosos,alto,sim
+ZINCO,Metálicos Não-Ferrosos,alto,sim
+CHUMBO,Metálicos Não-Ferrosos,medio,sim
+ESTANHO,Metálicos Não-Ferrosos,alto,sim
+NIQUEL,Metálicos Não-Ferrosos,alto,sim
+TITANIO,Metálicos Não-Ferrosos,alto,sim
+CROMO,Metálicos Não-Ferrosos,alto,sim
+DIAMANTE,Gemas e Pedras Preciosas,muito_alto,sim
+ESMERALDA,Gemas e Pedras Preciosas,muito_alto,sim
+ALEXANDRITA,Gemas e Pedras Preciosas,muito_alto,sim
+AGUA-MARINHA,Gemas e Pedras Preciosas,alto,nao
+TOPAZIO,Gemas e Pedras Preciosas,alto,nao
+TURMALINA,Gemas e Pedras Preciosas,medio,nao
+AMETISTA,Gemas e Pedras Preciosas,medio,nao
+QUARTZO,Industrial,baixo,nao
+QUARTZITO,Industrial,baixo,nao
+FELDSPATO,Industrial,baixo,nao
+CALCARIO,Industrial,medio,nao
+CALCARIO DOLOMITICO,Industrial,medio,nao
+DOLOMITO,Industrial,medio,nao
+CAULIM,Industrial,medio,nao
+TALCO,Industrial,medio,nao
+MICA,Industrial,medio,nao
+FOSFATO,Industrial,alto,sim
+APATITA,Industrial,alto,sim
+BARITA,Industrial,medio,nao
+FLUORITA,Industrial,medio,nao
+MAGNESITA,Industrial,medio,nao
+VERMICULITA,Industrial,medio,nao
+DIATOMITA,Industrial,medio,nao
+BENTONITA,Industrial,medio,nao
+AREIA,Construção Civil,baixo,nao
+AREIA INDUSTRIAL,Construção Civil,baixo,nao
+CASCALHO,Construção Civil,baixo,nao
+SAIBRO,Construção Civil,baixo,nao
+ARGILA,Construção Civil,baixo,nao
+BRITA,Construção Civil,baixo,nao
+GRANITO,Rochas Ornamentais,medio,nao
+MARMORE,Rochas Ornamentais,medio,nao
+ARDOSIA,Rochas Ornamentais,medio,nao
+GNAISSE,Rochas Ornamentais,medio,nao
+BASALTO,Rochas Ornamentais,baixo,nao
+SIENITO,Rochas Ornamentais,medio,nao
+AGUA MINERAL,Água Mineral,baixo,nao
+AGUA TERMAL,Água Mineral,baixo,nao
+CASSITERITA,Metálicos Não-Ferrosos,alto,sim
+SCHEELITA,Metálicos Não-Ferrosos,alto,sim
+ILMENITA,Metálicos Não-Ferrosos,medio,nao
+RUTILO,Metálicos Não-Ferrosos,medio,nao
+ZIRCONIO,Metálicos Não-Ferrosos,alto,sim
