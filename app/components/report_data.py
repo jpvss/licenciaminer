@@ -10,7 +10,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from app.components.data_loader import run_query
+from app.components.data_loader import fmt_reais, run_query
 from licenciaminer.database.queries import (
     QUERY_CNPJ_CFEM,
     QUERY_CNPJ_INFRACOES,
@@ -149,7 +149,7 @@ class ReportData:
         # CFEM
         if self.cfem_total_pago > 0:
             findings.append(
-                f"Pagamentos CFEM regulares: R$ {self.cfem_total_pago:,.2f} "
+                f"Pagamentos CFEM regulares: {fmt_reais(self.cfem_total_pago)} "
                 f"em {self.cfem_meses_pagamento} meses."
             )
         elif self.total_decisoes > 0:

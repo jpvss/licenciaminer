@@ -362,7 +362,7 @@ with tab_overview:
                     else COLORS["slate"]
                     for t in reg_df["taxa_indeferimento"]
                 ],
-                text=[f"{t:.0f}% (N={n:,})" for t, n
+                text=[f"{t:.0f}% (N={fmt_br(n)})" for t, n
                       in zip(reg_df["taxa_indeferimento"], reg_df["total"],
                              strict=False)],
                 textposition="outside",
@@ -624,7 +624,7 @@ with tab_risk:
                     else COLORS["slate"]
                     for t in top["taxa_arquivamento"]
                 ],
-                text=[f"{t:.0f}% (N={n:,})" for t, n
+                text=[f"{t:.0f}% (N={fmt_br(n)})" for t, n
                       in zip(top["taxa_arquivamento"], top["total"],
                              strict=False)],
                 textposition="outside",

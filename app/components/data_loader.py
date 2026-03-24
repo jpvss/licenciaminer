@@ -187,6 +187,19 @@ def get_source_info() -> list[dict]:
             else "—"
         )
 
+        # Fallback: infer date from parquet file modification time
+        if last_collected == "—" and source_key in _source_parquets:
+            pq_spec = _source_parquets[source_key]
+            pq_first = pq_spec[0] if isinstance(pq_spec, list) else pq_spec
+            pq_path = DATA_DIR / "processed" / pq_first
+            if pq_path.exists():
+                import os
+                from datetime import datetime, timezone
+                mtime = os.path.getmtime(pq_path)
+                last_collected = datetime.fromtimestamp(
+                    mtime, tz=timezone.utc
+                ).strftime("%Y-%m-%d")
+
         sources.append({
             "Fonte": display_name,
             "Registros": records,

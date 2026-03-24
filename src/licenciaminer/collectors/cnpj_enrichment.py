@@ -141,4 +141,8 @@ def collect_cnpj_data(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     atomic_parquet_write(df, output_path)
     logger.info("CNPJ: dados salvos em %s (%d registros)", output_path, len(df))
+
+    from licenciaminer.collectors.metadata import save_collection_metadata
+    save_collection_metadata(data_dir, "receita_federal_cnpj", len(df))
+
     return output_path

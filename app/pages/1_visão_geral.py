@@ -226,7 +226,7 @@ with chart_col:
                             config={"displayModeBar": False})
             st.markdown(
                 source_attribution(
-                    f"SEMAD MG · {mining_count:,} decisões · Apenas anos com N ≥ 10"
+                    f"SEMAD MG · {fmt_br(mining_count)} decisões · Apenas anos com N ≥ 10"
                 ),
                 unsafe_allow_html=True,
             )
@@ -282,7 +282,7 @@ with insights_col:
                 "Mineração vs Geral",
                 f"{mining_approval_rate}% vs {general_approval_rate}%",
                 f"Mineração tem taxa {'menor' if diff < 0 else 'maior'} "
-                f"({abs(diff):.0f}pp) · N={mining_count:,}",
+                f"({abs(diff):.0f}pp) · N={fmt_br(mining_count)}",
                 tone,
             ),
             unsafe_allow_html=True,
@@ -296,7 +296,7 @@ with insights_col:
                 insight_card(
                     "Classe Mais Difícil",
                     f"Classe {int(worst['classe'])}: {worst['taxa']}%",
-                    f"Menor taxa de aprovação · N={worst['n']:,}",
+                    f"Menor taxa de aprovação · N={fmt_br(worst['n'])}",
                     "negative",
                 ),
                 unsafe_allow_html=True,
@@ -309,7 +309,7 @@ with insights_col:
                 insight_card(
                     "Regional Mais Rigorosa",
                     f"{r['reg']}: {r['taxa']}%",
-                    f"Regional com menor taxa · N={r['n']:,}",
+                    f"Regional com menor taxa · N={fmt_br(r['n'])}",
                     "negative",
                 ),
                 unsafe_allow_html=True,
@@ -322,7 +322,7 @@ with insights_col:
                 insight_card(
                     "Empresas com 6+ Infrações",
                     f"{i['taxa']}% aprovação",
-                    f"Empresas maiores navegam melhor o sistema · N={i['n']:,}",
+                    f"Empresas maiores navegam melhor o sistema · N={fmt_br(i['n'])}",
                     "neutral",
                 ),
                 unsafe_allow_html=True,

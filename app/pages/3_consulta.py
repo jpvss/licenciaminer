@@ -574,7 +574,8 @@ with tab_projeto:
             with metrics_col:
                 m1, m2 = st.columns(2)
                 with m1:
-                    st.metric("Decisões Analisadas", f"{total:,}")
+                    from app.components.data_loader import fmt_br as _fmt_br
+                    st.metric("Decisões Analisadas", _fmt_br(total))
                 with m2:
                     st.metric("Deferidos / Indeferidos", f"{deferidos} / {indeferidos}")
 

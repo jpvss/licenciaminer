@@ -70,14 +70,21 @@ def collect_ibama_infracoes(data_dir: Path, uf_filter: str | None = "MG") -> Pat
         dfs: list[pd.DataFrame] = []
         for csv_name in csv_names:
             with zf.open(csv_name) as f:
-                chunk = pd.read_csv(
-                    f,
-                    sep=";",
-                    encoding="latin-1",
-                    dtype=str,
-                    low_memory=False,
-                )
-                dfs.append(chunk)
+                raw = f.read()
+            # Try UTF-8 first (proper encoding), fall back to latin-1
+            for enc in ("utf-8", "latin-1"):
+                try:
+                    chunk = pd.read_csv(
+                        io.BytesIO(raw),
+                        sep=";",
+                        encoding=enc,
+                        dtype=str,
+                        low_memory=False,
+                    )
+                    break
+                except UnicodeDecodeError:
+                    continue
+            dfs.append(chunk)
         df = pd.concat(dfs, ignore_index=True)
 
     logger.info("IBAMA Infrações: %d registros brutos", len(df))

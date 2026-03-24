@@ -7,22 +7,22 @@ Append as we go. Don't delete — cross out when done.
 
 ## Visão Geral
 
-- [ ] **5 sources missing `last_collected` date** — IBAMA Licenças, ANM Processos, IBAMA Infrações, ANM CFEM, Receita Federal CNPJ show red dot despite having data. Fix: save metadata during collection, or infer date from parquet file mtime.
+- [x] **5 sources missing `last_collected` date** — IBAMA Licenças, ANM Processos, IBAMA Infrações, ANM CFEM, Receita Federal CNPJ show red dot despite having data. Fix: save metadata during collection, or infer date from parquet file mtime.
 - [ ] **2016 trend data point has only N=28** — passes the N≥10 filter but barely reliable. Consider adding a visual indicator for low-N years.
 - [ ] **Source table `records:,` still uses US format in the HTML** — the `fmt_br` fix covers `int` values but edge cases with string-type records from metadata may slip through.
 
 ## Consulta
 
 - [x] **Filiais detection uses f-string SQL** — `cnpj_cpf LIKE '{cnpj_root}%'` should use parameterized query for consistency (low risk since cnpj_root is digits-only from validated input, but architecturally wrong).
-- [ ] **CFEM values in company profile use US format** — `R$ {total_pago:,.2f}` should use `fmt_reais`. One instance at line ~213 was fixed, check for others.
+- [x] **CFEM values in company profile use US format** — `R$ {total_pago:,.2f}` should use `fmt_reais`. One instance at line ~213 was fixed, check for others.
 - [ ] **ANM titles search by company name** — LIKE match on `NOME` may return false positives for common names. Consider adding CNPJ bridge via SCM.
-- [ ] **Infraction detail table** — `DES_AUTO_INFRACAO` has encoding issues (e.g. "ÃREA" instead of "ÁREA"). Data quality issue from source — could clean with `.encode('latin-1').decode('utf-8')` fallback.
+- [x] **Infraction detail table** — `DES_AUTO_INFRACAO` has encoding issues (e.g. "ÃREA" instead of "ÁREA"). Data quality issue from source — could clean with `.encode('latin-1').decode('utf-8')` fallback.
 
 ## Explorar Dados
 
 - [ ] **No custom filters for 9 of 11 datasets** — Only SEMAD and IBAMA Infrações have sidebar filters. CFEM could benefit from UF/Ano/Substância filters. ANM from UF/FASE. Low priority since text search works.
 - [ ] **No detail view for non-SEMAD datasets** — Only SEMAD has row-click detail panel. CFEM and ANM have simpler schemas where a detail panel adds less value.
-- [ ] **IBAMA Infrações column `DES_AUTO_INFRACAO` has encoding issues** — Shows "ÃREA" instead of "ÁREA". Source data quality issue from IBAMA's CSV export.
+- [x] **IBAMA Infrações column `DES_AUTO_INFRACAO` has encoding issues** — Shows "ÃREA" instead of "ÁREA". Source data quality issue from IBAMA's CSV export.
 
 ## Análise de Decisões
 
@@ -50,7 +50,7 @@ Append as we go. Don't delete — cross out when done.
 
 ## Cross-cutting
 
-- [ ] **Brazilian number formatting** — audit all pages for remaining `:,` format strings that should use `fmt_br`.
+- [x] **Brazilian number formatting** — audited all pages, fixed remaining `:,` in insight cards, metrics, chart labels. Plotly hover `%{customdata:,}` is a framework limitation (can't fix).
 - [ ] **`st.fragment`** — could add to Explorar Dados filters and Mapa to avoid full-page reruns. Skipped for now (restructuring risk > UX gain).
 - [ ] **`st.navigation` migration** — would give grouped sidebar sections. Skipped (high restructuring risk).
 - [ ] **PDF report not tested on Streamlit Cloud** — session_state fix should work but needs live validation.
