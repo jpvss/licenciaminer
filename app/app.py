@@ -66,7 +66,7 @@ st.markdown(
 
 # ── Stats for nav cards (lightweight cached queries) ──
 try:
-    from app.components.data_loader import safe_query
+    from app.components.data_loader import fmt_br, safe_query
 
     def _count(query: str, ctx: str) -> int:
         r = safe_query(query, context=ctx, fallback=[{"n": 0}])
@@ -79,6 +79,7 @@ try:
         "mineração",
     )
 except Exception:
+    from app.components.data_loader import fmt_br
     semad_n, anm_n, mining_n = 0, 0, 0
 
 # ── Navigation cards ──
@@ -90,7 +91,7 @@ with col1:
         <span class="nav-icon">📊</span>
         <p class="nav-title">Visão Geral</p>
         <p class="nav-desc">Resumo executivo do banco de dados, tendências de aprovação e insights chave</p>
-        <span class="nav-stat">{semad_n:,} decisões</span>
+        <span class="nav-stat">{fmt_br(semad_n)} decisões</span>
     </div>
     """, unsafe_allow_html=True)
     st.page_link("pages/1_visão_geral.py", label="Abrir Visão Geral →", icon=None)
@@ -101,7 +102,7 @@ with col2:
         <span class="nav-icon">🔍</span>
         <p class="nav-title">Explorar Dados</p>
         <p class="nav-desc">Navegue pelos datasets, filtre registros e verifique na fonte original</p>
-        <span class="nav-stat">{anm_n:,} processos ANM</span>
+        <span class="nav-stat">{fmt_br(anm_n)} processos ANM</span>
     </div>
     """, unsafe_allow_html=True)
     st.page_link("pages/2_explorar_dados.py", label="Abrir Explorador →", icon=None)
@@ -112,7 +113,7 @@ with col3:
         <span class="nav-icon">💡</span>
         <p class="nav-title">Consulta</p>
         <p class="nav-desc">Busque por projeto ou empresa para obter um briefing com estatísticas e casos similares</p>
-        <span class="nav-stat">{mining_n:,} decisões mineração</span>
+        <span class="nav-stat">{fmt_br(mining_n)} decisões mineração</span>
     </div>
     """, unsafe_allow_html=True)
     st.page_link("pages/3_consulta.py", label="Abrir Consulta →", icon=None)
@@ -123,7 +124,7 @@ with col4:
         <span class="nav-icon">📋</span>
         <p class="nav-title">Análise de Decisões</p>
         <p class="nav-desc">Padrões de deferimento/indeferimento, fatores de risco e dossiê por empresa</p>
-        <span class="nav-stat">{anm_n:,} títulos ANM</span>
+        <span class="nav-stat">{fmt_br(mining_n)} decisões analisadas</span>
     </div>
     """, unsafe_allow_html=True)
     st.page_link("pages/4_análise_decisões.py", label="Abrir Análise →", icon=None)
