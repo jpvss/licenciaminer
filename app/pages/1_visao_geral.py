@@ -193,7 +193,7 @@ with chart_col:
                     "font": {"family": "Instrument Sans", "size": 12},
                 },
             )
-            st.plotly_chart(fig, use_container_width=True,
+            st.plotly_chart(fig, width="stretch",
                             config={"displayModeBar": False})
             st.markdown(
                 source_attribution(

@@ -169,7 +169,7 @@ if df.empty:
 if view_name == "v_mg_semad" and "detail_id" in df.columns:
     event = st.dataframe(
         df,
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
         height=420,
         on_select="rerun",
@@ -295,7 +295,7 @@ if view_name == "v_mg_semad" and "detail_id" in df.columns:
         )
 
 else:
-    st.dataframe(df, use_container_width=True, hide_index=True, height=420)
+    st.dataframe(df, width="stretch", hide_index=True, height=420)
 
 # ── Export ──
 st.markdown("")

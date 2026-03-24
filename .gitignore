@@ -10,6 +10,9 @@ data/processed/mg_semad_licencas.parquet
 !data/processed/collection_metadata.json
 !data/reference/*.parquet
 
+# uv lock (Streamlit Cloud should use requirements.txt)
+uv.lock
+
 # DuckDB
 *.duckdb
 *.duckdb.wal

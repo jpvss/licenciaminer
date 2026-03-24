@@ -162,7 +162,7 @@ def _render_company_profile(cnpj: str) -> None:
             [cnpj],
         )
         if not decisions.empty:
-            st.dataframe(decisions, use_container_width=True, hide_index=True)
+            st.dataframe(decisions, width="stretch", hide_index=True)
     except Exception as e:
         st.warning(f"Erro ao carregar decisões: {e}")
     st.markdown(
