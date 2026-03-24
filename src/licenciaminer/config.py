@@ -8,8 +8,15 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Diretórios
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
-DATA_DIR = Path(os.getenv("DATA_DIR", str(BASE_DIR / "data")))
+# __file__ is src/licenciaminer/config.py → 3 levels up = repo root
+# On Streamlit Cloud the package is installed, so __file__ is in site-packages.
+# Fall back to CWD (which Streamlit Cloud sets to the repo root).
+_pkg_root = Path(__file__).resolve().parent.parent.parent
+_data_candidate = _pkg_root / "data"
+if not _data_candidate.exists():
+    _data_candidate = Path.cwd() / "data"
+BASE_DIR = _data_candidate.parent
+DATA_DIR = Path(os.getenv("DATA_DIR", str(_data_candidate)))
 RAW_DIR = DATA_DIR / "raw"
 PROCESSED_DIR = DATA_DIR / "processed"
 REFERENCE_DIR = DATA_DIR / "reference"
