@@ -109,7 +109,7 @@ for col, (page, icon, title, desc, stat, anim) in zip(cols, _nav_cards):
             <span class="nav-stat">{stat}</span>
         </div>
         """, unsafe_allow_html=True)
-        st.page_link(page, label=f"Abrir {title} →")
+        st.page_link(page, label="→")
 
 st.markdown("")
 
@@ -132,7 +132,7 @@ for col, (page, icon, title, desc, anim) in zip(cols2, _nav_cards_2):
             <p class="nav-desc">{desc}</p>
         </div>
         """, unsafe_allow_html=True)
-        st.page_link(page, label=f"Abrir {title} →")
+        st.page_link(page, label="→")
 
 # ── Trust strip ──
 # Count sources dynamically
