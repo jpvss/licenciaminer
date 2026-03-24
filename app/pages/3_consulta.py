@@ -312,7 +312,15 @@ with tab_projeto:
 
     search_clicked = st.button("Consultar", type="primary", key="proj_search")
 
+    # Persist search params so results survive reruns (e.g. report button click)
     if search_clicked and atividade:
+        st.session_state["proj_search_active"] = True
+        st.session_state["proj_atividade"] = atividade
+        st.session_state["proj_classe"] = classe
+        st.session_state["proj_regional"] = regional
+        st.session_state["proj_cnpj_clean"] = cnpj_clean
+
+    if st.session_state.get("proj_search_active") and atividade:
         st.divider()
 
         # ── 1. Contexto Estatístico ──
@@ -539,13 +547,18 @@ with tab_empresa:
 
     search_emp = st.button("Consultar", type="primary", key="emp_search")
 
+    # Persist searched CNPJ so profile survives reruns (e.g. report button click)
     if search_emp and cnpj_clean_emp and len(cnpj_clean_emp) == 14:
+        st.session_state["active_cnpj_emp"] = cnpj_clean_emp
+    elif search_emp:
+        st.warning("CNPJ deve ter 14 dígitos.")
+
+    active_cnpj = st.session_state.get("active_cnpj_emp")
+    if active_cnpj:
         st.divider()
         st.markdown(
             section_header("Perfil da Empresa"),
             unsafe_allow_html=True,
         )
-        _render_company_profile(cnpj_clean_emp)
-        _render_report_button(cnpj_clean_emp)
-    elif search_emp:
-        st.warning("CNPJ deve ter 14 dígitos.")
+        _render_company_profile(active_cnpj)
+        _render_report_button(active_cnpj)
