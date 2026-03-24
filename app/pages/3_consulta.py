@@ -396,6 +396,54 @@ def _render_company_profile(cnpj: str) -> None:
         unsafe_allow_html=True,
     )
 
+    # Other branches (filiais) of the same company
+    cnpj_root = cnpj[:8]
+    try:
+        filiais = run_query(f"""
+            SELECT cnpj_cpf, COUNT(*) AS n, MIN(empreendimento) AS emp
+            FROM v_mg_semad
+            WHERE cnpj_cpf LIKE '{cnpj_root}%'
+              AND cnpj_cpf != ?
+              AND LENGTH(cnpj_cpf) = 14
+            GROUP BY cnpj_cpf
+            ORDER BY n DESC
+        """, [cnpj])
+
+        if filiais:
+            total_other = sum(f["n"] for f in filiais)
+            st.markdown(
+                section_header("Outras Filiais"),
+                unsafe_allow_html=True,
+            )
+            st.caption(
+                f"Encontradas {len(filiais)} outra(s) filial(is) do mesmo grupo "
+                f"com {total_other} decisão(ões) adicional(is)."
+            )
+            for f in filiais:
+                f_cnpj = f["cnpj_cpf"]
+                f_formatted = (
+                    f"{f_cnpj[:2]}.{f_cnpj[2:5]}.{f_cnpj[5:8]}/"
+                    f"{f_cnpj[8:12]}-{f_cnpj[12:]}"
+                )
+                emp = str(f["emp"])[:60] if f.get("emp") else "—"
+                st.markdown(
+                    f'<div style="padding:0.5rem 0.8rem; margin-bottom:0.4rem; '
+                    f'background:var(--stratum-2); border-radius:var(--radius-sm); '
+                    f'border-left:3px solid var(--amber);">'
+                    f'<span style="font-family:var(--font-mono); font-size:0.85rem; '
+                    f'color:var(--quartz);">{f_formatted}</span>'
+                    f'<span style="color:var(--slate-dim); font-size:0.8rem;"> · '
+                    f'{f["n"]} decisão(ões) · {emp}</span>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+            st.caption(
+                "Para ver o dossiê completo de uma filial, "
+                "pesquise o CNPJ dela na aba 'Por Empresa'."
+            )
+    except Exception:
+        pass  # Filiais lookup is optional
+
 
 # ── Page Layout ──
 
