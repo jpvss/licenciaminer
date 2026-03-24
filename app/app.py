@@ -56,14 +56,13 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# ── Live stats for nav cards ──
+# ── Stats for nav cards (from metadata, no heavy queries at startup) ──
 try:
-    from app.components.data_loader import run_query
-    semad_n = run_query("SELECT COUNT(*) AS n FROM v_mg_semad")[0]["n"]
-    anm_n = run_query("SELECT COUNT(*) AS n FROM v_anm")[0]["n"]
-    mining_n = run_query(
-        "SELECT COUNT(*) AS n FROM v_mg_semad WHERE atividade LIKE 'A-0%'"
-    )[0]["n"]
+    from app.components.data_loader import load_metadata
+    _meta = load_metadata()
+    semad_n = int(_meta.get("mg_semad", {}).get("records", 0))
+    anm_n = int(_meta.get("anm_processos", {}).get("records", 0))
+    mining_n = 0  # Computed lazily on Visão Geral page
 except Exception:
     semad_n, anm_n, mining_n = 0, 0, 0
 
@@ -98,7 +97,7 @@ with col3:
         <span class="nav-icon">💡</span>
         <p class="nav-title">Consulta</p>
         <p class="nav-desc">Busque por projeto ou empresa para obter um briefing com estatísticas e casos similares</p>
-        <span class="nav-stat">{mining_n:,} decisões mineração</span>
+        <span class="nav-stat">{semad_n:,} decisões SEMAD</span>
     </div>
     """, unsafe_allow_html=True)
     st.page_link("pages/3_consulta.py", label="Abrir Consulta →", icon=None)

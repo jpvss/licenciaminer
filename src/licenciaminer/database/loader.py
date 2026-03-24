@@ -44,9 +44,7 @@ def create_views(
                 f"CREATE OR REPLACE VIEW {view_name} AS "
                 f"SELECT * FROM {read_expr}"
             )
-            count = con.execute(f"SELECT COUNT(*) FROM {view_name}").fetchone()
-            n = count[0] if count else 0
-            logger.info("View %s criada: %d registros", view_name, n)
+            logger.info("View %s criada (lazy): %s", view_name, display_name)
             loaded[view_name] = True
         else:
             logger.warning(

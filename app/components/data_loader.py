@@ -15,8 +15,17 @@ from licenciaminer.database.schema import PARQUET_SOURCES
 
 @st.cache_resource
 def get_connection() -> duckdb.DuckDBPyConnection:
-    """Retorna conexão DuckDB em memória com views sobre parquets."""
-    con = duckdb.connect(":memory:")
+    """Retorna conexão DuckDB com views sobre parquets.
+
+    Usa banco em arquivo temporário para reduzir uso de RAM
+    (DuckDB faz spill to disk quando necessário).
+    """
+    import tempfile
+    db_path = tempfile.mktemp(suffix=".duckdb")
+    con = duckdb.connect(db_path)
+    # Limit memory usage for Streamlit Cloud (1GB container)
+    con.execute("SET memory_limit = '512MB'")
+    con.execute("SET threads = 2")
     create_views(con, DATA_DIR)
     return con
 
@@ -111,7 +120,7 @@ def get_source_info() -> list[dict]:
 
 def get_dataset_options() -> dict[str, str]:
     """Retorna datasets disponíveis para exploração."""
-    con = get_connection()
+    get_connection()  # Ensure views exist
     processed = DATA_DIR / "processed"
     options = {}
     for view_name, parquet_spec in PARQUET_SOURCES.items():
@@ -122,13 +131,6 @@ def get_dataset_options() -> dict[str, str]:
             exists = (processed / parquet_spec).exists()
 
         if exists:
-            try:
-                count = con.execute(
-                    f"SELECT COUNT(*) FROM {view_name}"
-                ).fetchone()
-                n = count[0] if count else 0
-                display = view_name.replace("v_", "").replace("_", " ").title()
-                options[f"{display} ({n:,})"] = view_name
-            except Exception:
-                pass
+            display = view_name.replace("v_", "").replace("_", " ").title()
+            options[display] = view_name
     return options
