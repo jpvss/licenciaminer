@@ -188,9 +188,11 @@ if view_name == "v_mg_semad" and "detail_id" in df.columns:
             unsafe_allow_html=True,
         )
 
-        # Full record
+        # Full record (exclude heavy columns, fetch text separately)
+        detail_cols = [c for c in all_columns if c not in {"texto_documentos"}]
+        detail_select = ", ".join(detail_cols)
         detail = run_query_df(
-            f"SELECT * FROM {view_name} WHERE detail_id = ?",
+            f"SELECT {detail_select} FROM {view_name} WHERE detail_id = ?",
             [selected_id],
         )
 
@@ -274,17 +276,22 @@ if view_name == "v_mg_semad" and "detail_id" in df.columns:
                 unsafe_allow_html=True,
             )
 
-            # Parecer text
-            texto = str(full_row.get("texto_documentos", ""))
-            if texto and len(texto) > 10:
-                with st.expander(
-                    f"Texto do Parecer ({len(texto):,} caracteres)"
-                ):
-                    st.text(texto[:8000])
-                    if len(texto) > 8000:
-                        st.caption(
-                            f"Mostrando 8.000 de {len(texto):,} caracteres"
-                        )
+            # Parecer text — fetch lazily only when requested
+            if "texto_documentos" in all_columns:
+                with st.expander("Ver Texto do Parecer"):
+                    texto_rows = run_query(
+                        f"SELECT texto_documentos FROM {view_name} WHERE detail_id = ?",
+                        [selected_id],
+                    )
+                    texto = str(texto_rows[0].get("texto_documentos", "")) if texto_rows else ""
+                    if texto and len(texto) > 10:
+                        st.text(texto[:8000])
+                        if len(texto) > 8000:
+                            st.caption(
+                                f"Mostrando 8.000 de {len(texto):,} caracteres"
+                            )
+                    else:
+                        st.caption("Texto não disponível para este registro.")
     else:
         st.markdown(
             empty_state(
@@ -299,8 +306,11 @@ else:
 
 # ── Export ──
 st.markdown("")
-if total_count <= 50000:
-    export_query = f"SELECT * FROM {view_name} WHERE {where_sql}"
+if total_count <= 20000:
+    # Exclude heavy text columns from export to avoid OOM
+    export_cols = [c for c in all_columns if c not in exclude_cols]
+    export_select = ", ".join(export_cols)
+    export_query = f"SELECT {export_select} FROM {view_name} WHERE {where_sql}"
 
     @st.cache_data(ttl=60)
     def get_csv(q: str) -> bytes:
@@ -314,6 +324,6 @@ if total_count <= 50000:
     )
 else:
     st.caption(
-        f"Dataset muito grande ({total_count:,}). "
-        "Aplique filtros para exportar."
+        f"Dataset muito grande para exportar ({total_count:,} registros). "
+        "Aplique filtros para reduzir a menos de 20.000."
     )

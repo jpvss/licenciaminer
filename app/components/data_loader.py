@@ -21,16 +21,17 @@ def get_connection() -> duckdb.DuckDBPyConnection:
     (DuckDB faz spill to disk quando necessário).
     """
     import tempfile
-    db_path = tempfile.mktemp(suffix=".duckdb")
+    db_dir = tempfile.mkdtemp(prefix="licenciaminer_")
+    db_path = str(Path(db_dir) / "app.duckdb")
     con = duckdb.connect(db_path)
     # Limit memory usage for Streamlit Cloud (1GB container)
-    con.execute("SET memory_limit = '512MB'")
+    con.execute("SET memory_limit = '400MB'")
     con.execute("SET threads = 2")
     create_views(con, DATA_DIR)
     return con
 
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=300, max_entries=30)
 def run_query(query: str, params: list | None = None) -> list[dict]:
     """Executa query no DuckDB e retorna lista de dicts."""
     con = get_connection()
@@ -40,7 +41,7 @@ def run_query(query: str, params: list | None = None) -> list[dict]:
     return [dict(zip(columns, row, strict=False)) for row in rows]
 
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=120, max_entries=15)
 def run_query_df(query: str, params: list | None = None):
     """Executa query e retorna DataFrame pandas."""
     con = get_connection()
