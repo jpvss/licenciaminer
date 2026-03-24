@@ -415,3 +415,183 @@ GROUP BY ano
 HAVING COUNT(*) >= 10
 ORDER BY ano
 """
+
+# ============================================================
+# ANÁLISE DE DECISÕES — Queries para dashboard analítico
+# ============================================================
+
+# Distribuição de decisões por modalidade (mineração)
+QUERY_DECISAO_POR_MODALIDADE = """
+SELECT
+    CASE WHEN modalidade = '' OR modalidade IS NULL THEN '(sem registro)'
+         ELSE modalidade END AS modalidade,
+    decisao,
+    COUNT(*) AS n
+FROM v_mg_semad
+WHERE atividade LIKE 'A-0%'
+GROUP BY modalidade, decisao
+ORDER BY n DESC
+"""
+
+# Heatmap: taxa de aprovação por código de atividade x classe
+QUERY_APROVACAO_ATIVIDADE_CLASSE = """
+SELECT
+    SPLIT_PART(atividade, '-', 1) || '-' ||
+    SPLIT_PART(atividade, '-', 2) || '-' ||
+    SPLIT_PART(SPLIT_PART(atividade, '-', 3), ' ', 1) AS atividade_code,
+    MIN(SPLIT_PART(atividade, '-', 4) || ' - ' ||
+        CASE WHEN LENGTH(atividade) > 20
+             THEN SUBSTRING(atividade FROM POSITION('-' IN SUBSTRING(atividade FROM 7)) + 7)
+             ELSE atividade END) AS atividade_desc,
+    classe,
+    COUNT(*) AS total,
+    SUM(CASE WHEN decisao = 'deferido' THEN 1 ELSE 0 END) AS deferidos,
+    SUM(CASE WHEN decisao = 'indeferido' THEN 1 ELSE 0 END) AS indeferidos,
+    ROUND(
+        100.0 * SUM(CASE WHEN decisao = 'deferido' THEN 1 ELSE 0 END) / COUNT(*), 1
+    ) AS taxa_aprovacao
+FROM v_mg_semad
+WHERE atividade LIKE 'A-0%'
+GROUP BY 1, classe
+HAVING COUNT(*) >= 5
+ORDER BY taxa_aprovacao ASC
+"""
+
+# Tendência temporal de indeferimentos (por ano)
+QUERY_TENDENCIA_INDEFERIMENTO = """
+SELECT
+    ano,
+    COUNT(*) AS total,
+    SUM(CASE WHEN decisao = 'deferido' THEN 1 ELSE 0 END) AS deferidos,
+    SUM(CASE WHEN decisao = 'indeferido' THEN 1 ELSE 0 END) AS indeferidos,
+    SUM(CASE WHEN decisao = 'arquivamento' THEN 1 ELSE 0 END) AS arquivamentos,
+    ROUND(100.0 * SUM(CASE WHEN decisao = 'indeferido' THEN 1 ELSE 0 END)
+        / COUNT(*), 1) AS taxa_indeferimento,
+    ROUND(100.0 * SUM(CASE WHEN decisao = 'arquivamento' THEN 1 ELSE 0 END)
+        / COUNT(*), 1) AS taxa_arquivamento
+FROM v_mg_semad
+WHERE atividade LIKE 'A-0%'
+GROUP BY ano
+HAVING COUNT(*) >= 10
+ORDER BY ano
+"""
+
+# Ranking de regionais por rigor (taxa de indeferimento)
+QUERY_RIGOR_REGIONAL = """
+SELECT
+    REPLACE(regional, 'Unidade Regional de Regularização Ambiental ', '') AS regional,
+    COUNT(*) AS total,
+    SUM(CASE WHEN decisao = 'deferido' THEN 1 ELSE 0 END) AS deferidos,
+    SUM(CASE WHEN decisao = 'indeferido' THEN 1 ELSE 0 END) AS indeferidos,
+    ROUND(100.0 * SUM(CASE WHEN decisao = 'deferido' THEN 1 ELSE 0 END)
+        / COUNT(*), 1) AS taxa_aprovacao,
+    ROUND(100.0 * SUM(CASE WHEN decisao = 'indeferido' THEN 1 ELSE 0 END)
+        / COUNT(*), 1) AS taxa_indeferimento
+FROM v_mg_semad
+WHERE atividade LIKE 'A-0%'
+GROUP BY regional
+HAVING COUNT(*) >= 20
+ORDER BY taxa_indeferimento DESC
+"""
+
+# Correlação infrações IBAMA x decisão (por faixa)
+QUERY_INFRACOES_FAIXA_DECISAO = """
+WITH empresa_infracoes AS (
+    SELECT
+        REGEXP_REPLACE(CPF_CNPJ_INFRATOR, '[^0-9]', '', 'g') AS cnpj,
+        COUNT(*) AS n_infracoes
+    FROM v_ibama_infracoes
+    WHERE UF = 'MG'
+    GROUP BY REGEXP_REPLACE(CPF_CNPJ_INFRATOR, '[^0-9]', '', 'g')
+)
+SELECT
+    CASE WHEN ei.n_infracoes IS NULL THEN 'Sem infrações'
+         WHEN ei.n_infracoes <= 2 THEN '1-2 infrações'
+         WHEN ei.n_infracoes <= 5 THEN '3-5 infrações'
+         ELSE '6+ infrações' END AS faixa_infracoes,
+    COUNT(*) AS total,
+    SUM(CASE WHEN s.decisao = 'deferido' THEN 1 ELSE 0 END) AS deferidos,
+    SUM(CASE WHEN s.decisao = 'indeferido' THEN 1 ELSE 0 END) AS indeferidos,
+    ROUND(100.0 * SUM(CASE WHEN s.decisao = 'deferido' THEN 1 ELSE 0 END)
+        / COUNT(*), 1) AS taxa_aprovacao
+FROM v_mg_semad s
+LEFT JOIN empresa_infracoes ei ON s.cnpj_cpf = ei.cnpj
+WHERE s.atividade LIKE 'A-0%' AND LENGTH(s.cnpj_cpf) = 14
+GROUP BY 1
+ORDER BY taxa_aprovacao ASC
+"""
+
+# Reincidência: empresas com múltiplas decisões
+QUERY_REINCIDENCIA = """
+WITH empresa_historico AS (
+    SELECT
+        cnpj_cpf,
+        COUNT(*) AS total_decisoes,
+        SUM(CASE WHEN decisao = 'deferido' THEN 1 ELSE 0 END) AS deferidos
+    FROM v_mg_semad
+    WHERE atividade LIKE 'A-0%' AND cnpj_cpf IS NOT NULL AND cnpj_cpf != ''
+    GROUP BY cnpj_cpf
+    HAVING COUNT(*) >= 2
+)
+SELECT
+    CASE WHEN total_decisoes <= 3 THEN '2-3 decisões'
+         WHEN total_decisoes <= 10 THEN '4-10 decisões'
+         ELSE '10+ decisões' END AS faixa,
+    COUNT(*) AS empresas,
+    SUM(total_decisoes) AS total_decisoes_grupo,
+    ROUND(AVG(100.0 * deferidos / total_decisoes), 1) AS taxa_media_aprovacao
+FROM empresa_historico
+GROUP BY 1
+ORDER BY 1
+"""
+
+# Análise de arquivamentos por classe e grupo de atividade
+QUERY_ARQUIVAMENTO_ANALYSIS = """
+SELECT
+    classe,
+    SPLIT_PART(atividade, '-', 1) || '-' || SPLIT_PART(atividade, '-', 2) AS atividade_grupo,
+    COUNT(*) AS total,
+    SUM(CASE WHEN decisao = 'arquivamento' THEN 1 ELSE 0 END) AS arquivamentos,
+    ROUND(100.0 * SUM(CASE WHEN decisao = 'arquivamento' THEN 1 ELSE 0 END)
+        / COUNT(*), 1) AS taxa_arquivamento
+FROM v_mg_semad
+WHERE atividade LIKE 'A-0%'
+GROUP BY 1, 2
+HAVING COUNT(*) >= 10
+ORDER BY taxa_arquivamento DESC
+"""
+
+# Classe x Modalidade: interação entre complexidade e tipo de licença
+QUERY_CLASSE_MODALIDADE = """
+SELECT
+    classe,
+    CASE WHEN modalidade IN ('LAS RAS', 'LAS Cadastro') THEN modalidade
+         WHEN modalidade LIKE 'LAC 1%' THEN 'LAC 1'
+         WHEN modalidade LIKE 'LAC 2%' THEN 'LAC 2'
+         WHEN modalidade IN ('LO', 'LOC', 'REVLO') THEN modalidade
+         WHEN modalidade LIKE 'LP%' THEN 'LP/LI'
+         ELSE 'Outros' END AS modalidade_grupo,
+    COUNT(*) AS total,
+    SUM(CASE WHEN decisao = 'deferido' THEN 1 ELSE 0 END) AS deferidos,
+    SUM(CASE WHEN decisao = 'indeferido' THEN 1 ELSE 0 END) AS indeferidos,
+    ROUND(100.0 * SUM(CASE WHEN decisao = 'deferido' THEN 1 ELSE 0 END)
+        / COUNT(*), 1) AS taxa_aprovacao
+FROM v_mg_semad
+WHERE atividade LIKE 'A-0%'
+GROUP BY 1, 2
+HAVING COUNT(*) >= 5
+ORDER BY classe, taxa_aprovacao ASC
+"""
+
+# Caso detalhado: histórico de decisões por CNPJ
+QUERY_HISTORICO_CNPJ = """
+SELECT
+    detail_id, empreendimento, municipio,
+    atividade, classe, modalidade, regional,
+    decisao, ano, data_de_publicacao,
+    documentos_pdf
+FROM v_mg_semad
+WHERE cnpj_cpf = ?
+  AND atividade LIKE 'A-0%'
+ORDER BY ano DESC, data_de_publicacao DESC
+"""

@@ -67,7 +67,7 @@ except Exception:
     semad_n, anm_n, mining_n = 0, 0, 0
 
 # ── Navigation cards ──
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4 = st.columns(4)
 
 with col1:
     st.markdown(f"""
@@ -101,6 +101,17 @@ with col3:
     </div>
     """, unsafe_allow_html=True)
     st.page_link("pages/3_consulta.py", label="Abrir Consulta →", icon=None)
+
+with col4:
+    st.markdown(f"""
+    <div class="geo-nav-card animate-in-d4">
+        <span class="nav-icon">📋</span>
+        <p class="nav-title">Análise de Decisões</p>
+        <p class="nav-desc">Padrões de deferimento/indeferimento, fatores de risco e dossiê por empresa</p>
+        <span class="nav-stat">8.000+ decisões mineração</span>
+    </div>
+    """, unsafe_allow_html=True)
+    st.page_link("pages/4_analise_decisoes.py", label="Abrir Análise →", icon=None)
 
 # ── Trust strip ──
 st.markdown("")
