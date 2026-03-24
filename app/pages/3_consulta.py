@@ -181,6 +181,55 @@ def _render_company_profile(cnpj: str) -> None:
                 ),
                 unsafe_allow_html=True,
             )
+
+            # Detail table with actual infractions
+            try:
+                inf_detail = run_query_df(f"""
+                    SELECT
+                        DAT_HORA_AUTO_INFRACAO AS data,
+                        TIPO_INFRACAO AS tipo,
+                        MUNICIPIO AS municipio,
+                        VAL_AUTO_INFRACAO AS valor,
+                        DES_AUTO_INFRACAO AS descricao,
+                        DES_STATUS_FORMULARIO AS status,
+                        SIT_CANCELADO AS cancelado
+                    FROM v_ibama_infracoes
+                    WHERE REGEXP_REPLACE(CPF_CNPJ_INFRATOR, '[^0-9]', '', 'g') = ?
+                      AND UF = 'MG'
+                    ORDER BY DAT_HORA_AUTO_INFRACAO DESC
+                """, [cnpj])
+
+                if not inf_detail.empty:
+                    # Format for display
+                    inf_display = inf_detail.copy()
+                    if "descricao" in inf_display.columns:
+                        inf_display["descricao"] = inf_display["descricao"].apply(
+                            lambda x: str(x)[:80] + "..." if x and len(str(x)) > 80 else x
+                        )
+                    if "cancelado" in inf_display.columns:
+                        inf_display["status_display"] = inf_display.apply(
+                            lambda r: "Cancelado" if r.get("cancelado") == "S"
+                            else str(r.get("status", "—")),
+                            axis=1,
+                        )
+                    with st.expander(f"Ver {len(inf_detail)} infrações detalhadas"):
+                        st.dataframe(
+                            inf_display[["data", "tipo", "municipio", "valor",
+                                         "descricao", "status_display"]].rename(
+                                columns={
+                                    "data": "Data",
+                                    "tipo": "Tipo",
+                                    "municipio": "Município",
+                                    "valor": "Valor (R$)",
+                                    "descricao": "Descrição",
+                                    "status_display": "Status",
+                                }
+                            ),
+                            use_container_width=True,
+                            hide_index=True,
+                        )
+            except Exception:
+                pass  # Detail is optional enhancement
         else:
             st.markdown(
                 insight_card(
@@ -206,10 +255,11 @@ def _render_company_profile(cnpj: str) -> None:
             total_pago = cfem[0]["total_pago"]
             meses = cfem[0]["meses_pagamento"]
             if total_pago:
+                from app.components.data_loader import fmt_reais
                 st.markdown(
                     insight_card(
                         "Royalties Minerários",
-                        f"R$ {total_pago:,.2f}",
+                        fmt_reais(total_pago),
                         f"{meses} meses de pagamento (2022-2026)",
                         "neutral",
                     ),
@@ -225,6 +275,40 @@ def _render_company_profile(cnpj: str) -> None:
                     ),
                     unsafe_allow_html=True,
                 )
+
+            # CFEM yearly breakdown
+            try:
+                cfem_detail = run_query_df(f"""
+                    SELECT
+                        Ano AS ano,
+                        "Substância" AS substancia,
+                        COUNT(*) AS meses,
+                        SUM(TRY_CAST(
+                            REPLACE(REPLACE(ValorRecolhido, '.', ''), ',', '.') AS DOUBLE
+                        )) AS total
+                    FROM v_cfem
+                    WHERE CPF_CNPJ = ?
+                    GROUP BY Ano, "Substância"
+                    ORDER BY Ano DESC, total DESC
+                """, [cnpj])
+
+                if not cfem_detail.empty:
+                    from app.components.data_loader import fmt_reais as _fr
+                    cfem_display = cfem_detail.copy()
+                    cfem_display["total"] = cfem_display["total"].apply(_fr)
+                    with st.expander(f"Detalhamento por ano e substância"):
+                        st.dataframe(
+                            cfem_display.rename(columns={
+                                "ano": "Ano",
+                                "substancia": "Substância",
+                                "meses": "Meses",
+                                "total": "Total (R$)",
+                            }),
+                            use_container_width=True,
+                            hide_index=True,
+                        )
+            except Exception:
+                pass
         else:
             st.caption("Não encontrado nos registros CFEM (2022-2026)")
     except Exception:
@@ -234,18 +318,77 @@ def _render_company_profile(cnpj: str) -> None:
         unsafe_allow_html=True,
     )
 
+    # Títulos Minerários ANM
+    st.markdown(section_header("Títulos Minerários ANM"), unsafe_allow_html=True)
+    try:
+        from licenciaminer.database.queries import QUERY_CNPJ_ANM_TITULOS
+        # Search by company name (ANM doesn't have CNPJ, only NOME)
+        search_name = razao if razao and razao != cnpj else None
+        if search_name:
+            titulos = run_query_df(QUERY_CNPJ_ANM_TITULOS, [search_name])
+            if not titulos.empty:
+                st.markdown(
+                    insight_card(
+                        "Processos ANM",
+                        str(len(titulos)),
+                        f"títulos encontrados para {razao[:30]}",
+                        "neutral",
+                    ),
+                    unsafe_allow_html=True,
+                )
+                st.dataframe(
+                    titulos.rename(columns={
+                        "PROCESSO": "Processo",
+                        "FASE": "Fase",
+                        "SUBS": "Substância",
+                        "AREA_HA": "Área (ha)",
+                        "ANO": "Ano",
+                    }),
+                    use_container_width=True,
+                    hide_index=True,
+                )
+            else:
+                st.caption("Nenhum título ANM encontrado vinculado a esta empresa.")
+        else:
+            st.caption("Nome da empresa não disponível para busca de títulos ANM.")
+    except Exception:
+        st.caption("Dados ANM não disponíveis")
+    st.markdown(
+        source_attribution("ANM SIGMINE"),
+        unsafe_allow_html=True,
+    )
+
     # Decision history
     st.markdown(section_header("Histórico de Decisões"), unsafe_allow_html=True)
     try:
         decisions = run_query_df(
-            "SELECT ano, decisao, atividade, classe, modalidade, detail_id "
+            "SELECT ano, decisao, atividade, classe, modalidade, municipio, detail_id "
             "FROM v_mg_semad "
             "WHERE cnpj_cpf = ? AND atividade LIKE 'A-0%' "
             "ORDER BY data_de_publicacao DESC",
             [cnpj],
         )
         if not decisions.empty:
-            st.dataframe(decisions, width="stretch", hide_index=True)
+            # Add portal link column
+            decisions["portal"] = decisions["detail_id"].apply(
+                lambda x: (
+                    f"https://sistemas.meioambiente.mg.gov.br/"
+                    f"licenciamento/site/view-externo?id={x}"
+                )
+            )
+            st.dataframe(
+                decisions,
+                column_config={
+                    "detail_id": None,  # hide internal ID
+                    "ano": st.column_config.NumberColumn("Ano", format="%d"),
+                    "classe": st.column_config.NumberColumn("Classe", format="%d"),
+                    "portal": st.column_config.LinkColumn(
+                        "Verificar", display_text="Abrir"
+                    ),
+                },
+                use_container_width=True,
+                hide_index=True,
+            )
     except Exception as e:
         st.warning(f"Erro ao carregar decisões: {e}")
     st.markdown(
