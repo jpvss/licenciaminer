@@ -380,7 +380,7 @@ st.markdown("")
 with st.expander("Sobre / Metodologia"):
     st.markdown("""
 **LicenciaMiner** consolida dados públicos de licenciamento ambiental minerário
-em Minas Gerais, cruzando informações de 12 fontes oficiais.
+em Minas Gerais, cruzando informações de 14 fontes oficiais.
 
 **Incluído:** Decisões SEMAD/MG (desde 2016) · Pareceres técnicos (PDFs) ·
 Processos ANM · Infrações IBAMA · CFEM · CNPJ empresas · COPAM CMI ·

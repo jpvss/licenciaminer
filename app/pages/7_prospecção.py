@@ -244,7 +244,7 @@ if view_mode == "Top Oportunidades":
     st.download_button(
         f"Exportar Shortlist ({len(df)} oportunidades)",
         df.to_csv(index=False).encode("utf-8"),
-        file_name="prospeccao_oportunidades.csv",
+        file_name="prospecção_oportunidades.csv",
         mime="text/csv",
     )
 

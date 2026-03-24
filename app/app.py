@@ -83,7 +83,7 @@ with col1:
         <span class="nav-stat">{semad_n:,} decisões</span>
     </div>
     """, unsafe_allow_html=True)
-    st.page_link("pages/1_visao_geral.py", label="Abrir Visão Geral →", icon=None)
+    st.page_link("pages/1_visão_geral.py", label="Abrir Visão Geral →", icon=None)
 
 with col2:
     st.markdown(f"""
@@ -116,7 +116,7 @@ with col4:
         <span class="nav-stat">{semad_n:,} decisões SEMAD</span>
     </div>
     """, unsafe_allow_html=True)
-    st.page_link("pages/4_analise_decisoes.py", label="Abrir Análise →", icon=None)
+    st.page_link("pages/4_análise_decisões.py", label="Abrir Análise →", icon=None)
 
 # ── Additional nav cards (pages 5-7) ──
 col5, col6, col7 = st.columns(3)
@@ -129,7 +129,7 @@ with col5:
         <p class="nav-desc">Decretos de lavra e instrumentos similares com filtros avançados</p>
     </div>
     """, unsafe_allow_html=True)
-    st.page_link("pages/5_concessoes.py", label="Abrir Concessões →", icon=None)
+    st.page_link("pages/5_concessões.py", label="Abrir Concessões →", icon=None)
 
 with col6:
     st.markdown("""
@@ -139,7 +139,7 @@ with col6:
         <p class="nav-desc">Visualização geoespacial de polígonos de concessões minerárias</p>
     </div>
     """, unsafe_allow_html=True)
-    st.page_link("pages/6_mapa_concessoes.py", label="Abrir Mapa →", icon=None)
+    st.page_link("pages/6_mapa_concessões.py", label="Abrir Mapa →", icon=None)
 
 with col7:
     st.markdown("""
@@ -149,7 +149,7 @@ with col7:
         <p class="nav-desc">Identificar oportunidades de aquisição e investimento em concessões</p>
     </div>
     """, unsafe_allow_html=True)
-    st.page_link("pages/7_prospeccao.py", label="Abrir Prospecção →", icon=None)
+    st.page_link("pages/7_prospecção.py", label="Abrir Prospecção →", icon=None)
 
 # ── Trust strip ──
 # Count sources dynamically
