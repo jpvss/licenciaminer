@@ -64,18 +64,20 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# ── Stats for nav cards (from metadata, no heavy queries at startup) ──
+# ── Stats for nav cards (lightweight cached queries) ──
 try:
-    from app.components.data_loader import load_metadata, safe_query
-    _meta = load_metadata()
-    semad_n = int(_meta.get("mg_semad", {}).get("records", 0))
-    anm_n = int(_meta.get("anm_processos", {}).get("records", 0))
-    # Mining count from a lightweight query (cached)
-    _mining_r = safe_query(
+    from app.components.data_loader import safe_query
+
+    def _count(query: str, ctx: str) -> int:
+        r = safe_query(query, context=ctx, fallback=[{"n": 0}])
+        return r[0]["n"] if r else 0
+
+    semad_n = _count("SELECT COUNT(*) AS n FROM v_mg_semad", "SEMAD")
+    anm_n = _count("SELECT COUNT(*) AS n FROM v_anm", "ANM")
+    mining_n = _count(
         "SELECT COUNT(*) AS n FROM v_mg_semad WHERE atividade LIKE 'A-0%'",
-        context="mineração", fallback=[{"n": 0}],
+        "mineração",
     )
-    mining_n = _mining_r[0]["n"] if _mining_r else 0
 except Exception:
     semad_n, anm_n, mining_n = 0, 0, 0
 
