@@ -112,10 +112,16 @@ def get_source_info() -> list[dict]:
 def get_dataset_options() -> dict[str, str]:
     """Retorna datasets disponíveis para exploração."""
     con = get_connection()
+    processed = DATA_DIR / "processed"
     options = {}
-    for view_name, parquet_file in PARQUET_SOURCES.items():
-        parquet_path = DATA_DIR / "processed" / parquet_file
-        if parquet_path.exists():
+    for view_name, parquet_spec in PARQUET_SOURCES.items():
+        # Check existence for single file or list of parts
+        if isinstance(parquet_spec, list):
+            exists = all((processed / f).exists() for f in parquet_spec)
+        else:
+            exists = (processed / parquet_spec).exists()
+
+        if exists:
             try:
                 count = con.execute(
                     f"SELECT COUNT(*) FROM {view_name}"

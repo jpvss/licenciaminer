@@ -1,6 +1,9 @@
 # Data (downloaded/processed)
 data/raw/*
 data/processed/*.csv
+# Original unsplit parquets (>100MB, use *_part*.parquet instead)
+data/processed/ibama_infracoes.parquet
+data/processed/mg_semad_licencas.parquet
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/processed/*.parquet

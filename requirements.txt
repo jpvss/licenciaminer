@@ -1,0 +1,8 @@
+# Runtime dependencies for Streamlit app only
+# (collectors have heavier deps in pyproject.toml)
+streamlit>=1.55.0
+duckdb>=1.2
+pandas>=2.2
+plotly>=6.6.0
+pyarrow>=18.0
+python-dotenv>=1.0

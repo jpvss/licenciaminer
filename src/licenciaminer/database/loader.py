@@ -25,12 +25,24 @@ def create_views(
     processed_dir = data_dir / "processed"
     loaded: dict[str, bool] = {}
 
-    for view_name, parquet_file in PARQUET_SOURCES.items():
-        parquet_path = processed_dir / parquet_file
-        if parquet_path.exists():
+    for view_name, parquet_spec in PARQUET_SOURCES.items():
+        # Support single file or list of parts
+        if isinstance(parquet_spec, list):
+            paths = [processed_dir / f for f in parquet_spec]
+            all_exist = all(p.exists() for p in paths)
+            path_list = ", ".join(f"'{p}'" for p in paths)
+            read_expr = f"read_parquet([{path_list}])"
+            display_name = ", ".join(parquet_spec)
+        else:
+            parquet_path = processed_dir / parquet_spec
+            all_exist = parquet_path.exists()
+            read_expr = f"read_parquet('{parquet_path}')"
+            display_name = parquet_spec
+
+        if all_exist:
             con.execute(
                 f"CREATE OR REPLACE VIEW {view_name} AS "
-                f"SELECT * FROM read_parquet('{parquet_path}')"
+                f"SELECT * FROM {read_expr}"
             )
             count = con.execute(f"SELECT COUNT(*) FROM {view_name}").fetchone()
             n = count[0] if count else 0
@@ -39,7 +51,7 @@ def create_views(
         else:
             logger.warning(
                 "Arquivo não encontrado: %s — view %s não criada",
-                parquet_path,
+                display_name,
                 view_name,
             )
             loaded[view_name] = False

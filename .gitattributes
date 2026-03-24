@@ -1,2 +1,0 @@
-data/processed/ibama_infracoes.parquet filter=lfs diff=lfs merge=lfs -text
-data/processed/mg_semad_licencas.parquet filter=lfs diff=lfs merge=lfs -text
