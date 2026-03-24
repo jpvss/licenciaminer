@@ -143,10 +143,14 @@ def get_source_info() -> list[dict]:
     }
 
     # Map source keys to parquet filenames for fallback row counting
-    _source_parquets = {
+    # For split files, list all parts to sum rows
+    _source_parquets: dict[str, str | list[str]] = {
         "ibama_licencas": "ibama_licencas.parquet",
         "anm_processos": "anm_processos.parquet",
-        "ibama_infracoes": "ibama_infracoes_part1.parquet",
+        "ibama_infracoes": [
+            "ibama_infracoes_part1.parquet",
+            "ibama_infracoes_part2.parquet",
+        ],
         "anm_cfem": "anm_cfem.parquet",
         "receita_federal_cnpj": "cnpj_empresas.parquet",
     }
@@ -162,13 +166,19 @@ def get_source_info() -> list[dict]:
 
         # Fallback: count parquet rows if metadata missing
         if records == "—" and source_key in _source_parquets:
-            pq_path = DATA_DIR / "processed" / _source_parquets[source_key]
-            if pq_path.exists():
-                try:
-                    import pyarrow.parquet as pq
-                    records = pq.read_metadata(pq_path).num_rows
-                except Exception:
-                    pass
+            pq_spec = _source_parquets[source_key]
+            pq_files = pq_spec if isinstance(pq_spec, list) else [pq_spec]
+            try:
+                import pyarrow.parquet as pq
+                total_rows = 0
+                for pq_name in pq_files:
+                    pq_path = DATA_DIR / "processed" / pq_name
+                    if pq_path.exists():
+                        total_rows += pq.read_metadata(pq_path).num_rows
+                if total_rows > 0:
+                    records = total_rows
+            except Exception:
+                pass
 
         last_collected = meta.get("last_collected", "—")
         last_collected = (
