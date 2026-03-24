@@ -31,6 +31,10 @@ st.markdown(
     ),
     unsafe_allow_html=True,
 )
+st.caption(
+    "Use os filtros na barra lateral para buscar por titular, substância ou município. "
+    "Clique em uma linha para ver o detalhamento completo da concessão."
+)
 
 # ── Verificar se dataset existe ──
 try:

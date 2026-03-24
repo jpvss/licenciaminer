@@ -28,6 +28,11 @@ st.markdown(
     ),
     unsafe_allow_html=True,
 )
+st.caption(
+    "Filtre por regime, substância ou categoria na barra lateral. "
+    "Ative as camadas de Unidades de Conservação e Terras Indígenas para ver sobreposições. "
+    "Clique em um polígono para ver detalhes do processo ANM."
+)
 
 # ── Imports pesados (lazy) ──
 try:

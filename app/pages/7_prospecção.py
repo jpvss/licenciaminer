@@ -29,6 +29,12 @@ st.markdown(
     ),
     unsafe_allow_html=True,
 )
+st.caption(
+    "Concessões ranqueadas por score de oportunidade: inativas (sem CFEM), "
+    "minerais estratégicos, áreas grandes e categorias de alto valor. "
+    "Use 'Análise por Empresa' para ver portfolios e 'Substâncias por Município' "
+    "para concentração regional."
+)
 
 # ── Verificar dataset ──
 try:

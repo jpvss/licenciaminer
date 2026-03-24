@@ -68,6 +68,15 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+with st.expander("Como interpretar esta análise", expanded=False):
+    st.markdown("""
+- **Deferido** = licença aprovada · **Indeferido** = licença negada · **Arquivamento** = processo encerrado sem decisão
+- **Classe** = impacto ambiental (1 = menor, 6 = maior) conforme DN COPAM 217/2017
+- **Modalidade** = tipo de licença: LAS (simplificada), LAC (corretiva), LP/LI/LO (convencional)
+- **Taxa de aprovação** = deferidos / total (inclui arquivamentos no denominador)
+- **Infrações IBAMA** correlacionadas com decisões SEMAD via CNPJ da empresa
+""")
+
 # ── Tabs ──
 tab_overview, tab_risk, tab_detail = st.tabs([
     "Visão Geral das Decisões",

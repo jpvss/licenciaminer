@@ -45,6 +45,9 @@ def _render_report_button(cnpj: str) -> None:
         "infrações, títulos minerários e aviso legal completo."
     )
 
+    # Use session_state to persist PDF across reruns
+    state_key = f"report_pdf_{cnpj}"
+
     if st.button("Gerar Relatório PDF", type="primary", key=f"report_{cnpj}"):
         try:
             from app.components.report_data import collect_report_data
@@ -66,15 +69,31 @@ def _render_report_button(cnpj: str) -> None:
                     expanded=False,
                 )
 
-            st.download_button(
-                f"Baixar Relatório — {empresa[:40]}",
-                pdf_bytes,
-                file_name=filename,
-                mime="application/pdf",
-                type="primary",
-            )
+            # Persist in session state so download survives reruns
+            st.session_state[state_key] = {
+                "pdf": pdf_bytes,
+                "filename": filename,
+                "empresa": empresa,
+                "risk": report_data.risk_level,
+                "n_decisoes": len(report_data.decisoes),
+            }
         except Exception as e:
             st.error(f"Erro ao gerar relatório: {e}")
+
+    # Show download button if PDF was generated (persists across reruns)
+    if state_key in st.session_state:
+        r = st.session_state[state_key]
+        st.download_button(
+            f"Baixar Relatório — {r['empresa'][:40]}",
+            r["pdf"],
+            file_name=r["filename"],
+            mime="application/pdf",
+            type="primary",
+        )
+        st.success(
+            f"Risco: **{r['risk']}** · "
+            f"{r['n_decisoes']} decisões analisadas"
+        )
 
 
 def _render_company_profile(cnpj: str) -> None:
@@ -230,6 +249,10 @@ st.markdown(
 tab_projeto, tab_empresa = st.tabs(["Por Projeto", "Por Empresa (CNPJ)"])
 
 with tab_projeto:
+    st.caption(
+        "Selecione atividade, classe e regional para ver estatísticas de aprovação "
+        "e casos similares. Ideal para avaliar viabilidade de um novo projeto."
+    )
     col1, col2, col3 = st.columns(3)
 
     with col1:
@@ -244,12 +267,18 @@ with tab_projeto:
         except Exception:
             ativ_options = []
 
-        atividade = st.selectbox("Código de Atividade", ativ_options, index=0)
+        atividade = st.selectbox(
+            "Código de Atividade", ativ_options, index=0,
+            help="A-01: Pesquisa mineral · A-02: Lavra · A-03: Beneficiamento · "
+                 "A-04: Pilha de estéril · A-05: Barragem · A-06: Transporte · A-07: Infraestrutura",
+        )
 
     with col2:
         classe = st.selectbox(
             "Classe", [None, 1, 2, 3, 4, 5, 6], index=0,
             format_func=lambda x: "Todas" if x is None else str(x),
+            help="Classificação de impacto ambiental conforme DN COPAM 217/2017. "
+                 "Classe 1 = menor impacto, Classe 6 = maior impacto.",
         )
 
     with col3:
@@ -269,6 +298,8 @@ with tab_projeto:
             format_func=lambda x: "Todas" if x is None else x.replace(
                 "Unidade Regional de Regularização Ambiental ", ""
             ),
+            help="Regional da SEMAD responsável pela análise. "
+                 "Cada regional tem taxas de aprovação diferentes.",
         )
 
     cnpj_input = st.text_input(
@@ -485,6 +516,18 @@ with tab_projeto:
             _render_report_button(cnpj_clean)
 
 with tab_empresa:
+    st.caption(
+        "Digite o CNPJ de uma empresa para ver o dossiê completo: "
+        "infrações IBAMA, pagamentos CFEM, decisões de licenciamento e relatório PDF."
+    )
+    st.markdown(
+        '<span style="font-size:0.78rem; color:var(--slate-dim);">'
+        'Exemplos: <code>08.902.291/0001-15</code> (CSN Mineração) · '
+        '<code>16.628.281/0003-23</code> (Samarco) · '
+        '<code>19.095.249/0001-56</code> (Caldense)'
+        '</span>',
+        unsafe_allow_html=True,
+    )
     cnpj_input_emp = st.text_input(
         "CNPJ", placeholder="00.000.000/0000-00", key="emp_cnpj"
     )

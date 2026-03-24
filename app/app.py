@@ -64,6 +64,26 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+with st.expander("Como usar o LicenciaMiner", expanded=False):
+    st.markdown("""
+**Comece por aqui:**
+
+1. **Visão Geral** — Veja o panorama: quantas decisões, taxa de aprovação, insights
+2. **Consulta** — Pesquise por CNPJ de uma empresa para gerar um dossiê completo
+3. **Análise de Decisões** — Entenda padrões: quais atividades aprovam mais? Qual regional é mais rigorosa?
+
+**CNPJs para testar:**
+- `17.170.150/0001-46` — Vallourec (siderurgia/mineração)
+- `16.628.281/0003-23` — Samarco Mineração (caso com infrações IBAMA)
+- `08.902.291/0001-15` — CSN Mineração
+
+**O que é cada dado:**
+- **SEMAD** = Secretaria de Meio Ambiente de MG (quem decide sobre licenças)
+- **ANM** = Agência Nacional de Mineração (quem concede títulos de lavra)
+- **IBAMA** = Infrações ambientais federais
+- **CFEM** = Royalties pagos pela empresa à ANM
+""")
+
 # ── Stats for nav cards (lightweight cached queries) ──
 try:
     from app.components.data_loader import fmt_br, safe_query

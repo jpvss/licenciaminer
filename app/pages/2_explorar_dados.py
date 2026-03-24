@@ -32,6 +32,11 @@ st.markdown(
 )
 
 # ── Dataset Selector ──
+st.caption(
+    "Selecione um dataset abaixo, use os filtros na barra lateral e clique em uma linha "
+    "para ver os detalhes completos. Dados exportáveis em CSV."
+)
+
 datasets = get_dataset_options()
 if not datasets:
     st.markdown(
@@ -40,7 +45,11 @@ if not datasets:
     )
     st.stop()
 
-selected_label = st.selectbox("Dataset", list(datasets.keys()), label_visibility="collapsed")
+selected_label = st.selectbox(
+    "Dataset", list(datasets.keys()), label_visibility="collapsed",
+    help="Mg Semad = decisões de licenciamento MG · Anm = processos minerários · "
+         "Ibama Infracoes = infrações ambientais · Cfem = royalties pagos",
+)
 view_name = datasets[selected_label]
 
 # ── Get columns ──
