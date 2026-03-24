@@ -13,7 +13,7 @@ Append as we go. Don't delete — cross out when done.
 
 ## Consulta
 
-- [ ] **Filiais detection uses f-string SQL** — `cnpj_cpf LIKE '{cnpj_root}%'` should use parameterized query for consistency (low risk since cnpj_root is digits-only from validated input, but architecturally wrong).
+- [x] **Filiais detection uses f-string SQL** — `cnpj_cpf LIKE '{cnpj_root}%'` should use parameterized query for consistency (low risk since cnpj_root is digits-only from validated input, but architecturally wrong).
 - [ ] **CFEM values in company profile use US format** — `R$ {total_pago:,.2f}` should use `fmt_reais`. One instance at line ~213 was fixed, check for others.
 - [ ] **ANM titles search by company name** — LIKE match on `NOME` may return false positives for common names. Consider adding CNPJ bridge via SCM.
 - [ ] **Infraction detail table** — `DES_AUTO_INFRACAO` has encoding issues (e.g. "ÃREA" instead of "ÁREA"). Data quality issue from source — could clean with `.encode('latin-1').decode('utf-8')` fallback.
@@ -26,7 +26,7 @@ Append as we go. Don't delete — cross out when done.
 
 ## Análise de Decisões
 
-- [ ] **Caso Detalhado dropdown shows duplicate companies** — JENEVE appears twice because query groups by `cnpj_cpf, empreendimento` and the name varies slightly. Fix: use `MIN(empreendimento)` and group only by `cnpj_cpf`.
+- [x] **Caso Detalhado dropdown shows duplicate companies** — JENEVE appears twice because query groups by `cnpj_cpf, empreendimento` and the name varies slightly. Fix: use `MIN(empreendimento)` and group only by `cnpj_cpf`.
 - [ ] **Caso Detalhado overlaps with Consulta tab** — Both have company dossier by CNPJ. Caso Detalhado is simpler (no infraction detail, no CFEM breakdown, no ANM titles, no PDF report). Consider merging or adding "Ver dossiê completo" link to Consulta.
 - [ ] **Chart text labels use hardcoded `{n:,}` in some hover templates** — Plotly hovertemplate uses `%{customdata:,}` which always renders US format. Can't easily use fmt_br in Plotly hover. Low priority since hover is secondary.
 
@@ -38,13 +38,13 @@ Append as we go. Don't delete — cross out when done.
 ## Mapa
 
 - [ ] **Polygon click doesn't navigate to Concessões detail** — User clicks a polygon and sees popup, but can't drill into the full concessão record. Could add a link in the popup.
-- [ ] **`_color` column visible in popup** — The batch GeoJSON approach exposes the internal `_color` property in GeoJsonPopup. Should be excluded from popup_fields.
+- [x] **`_color` column visible in popup** — verified: NOT a bug, GeoJsonPopup only shows explicit `fields` — The batch GeoJSON approach exposes the internal `_color` property in GeoJsonPopup. Should be excluded from popup_fields.
 - [ ] **Restriction layers (UCs/TIs) load slowly** — Large GeoJSON for all MG UCs. Could pre-simplify more aggressively or use vector tiles.
 
 ## Prospecção
 
 - [ ] **Opportunity → Consulta link** — From the ranked list, user can't click through to see full company dossier. Could add CNPJ lookup from titular name.
-- [ ] **Empresa detail table has raw column names** — When expanding a company's concessions, column names like `AREA_HA`, `ativo_cfem` not renamed. Should apply same column labels as main table.
+- [x] **Empresa detail table has raw column names** — When expanding a company's concessions, column names like `AREA_HA`, `ativo_cfem` not renamed. Should apply same column labels as main table.
 
 ---
 

@@ -371,7 +371,24 @@ elif view_mode == "Análise por Empresa":
 
         try:
             empresa_df = run_query_df(detalhe_query, [empresa_nome])
-            st.dataframe(empresa_df, use_container_width=True, hide_index=True, height=300)
+            _emp_labels = {
+                "processo_norm": "Processo", "regime": "Regime",
+                "substancia_principal": "Substância",
+                "municipio_principal": "Município",
+                "categoria": "Categoria", "AREA_HA": "Área (ha)",
+                "ativo_cfem": "CFEM Ativo", "cfem_total": "CFEM Total",
+            }
+            emp_display = empresa_df.rename(
+                columns={k: v for k, v in _emp_labels.items() if k in empresa_df.columns}
+            )
+            if "CFEM Total" in emp_display.columns:
+                emp_display["CFEM Total"] = emp_display["CFEM Total"].apply(fmt_reais)
+            if "Regime" in emp_display.columns:
+                emp_display["Regime"] = (
+                    emp_display["Regime"].map(REGIME_LABELS)
+                    .fillna(emp_display.get("Regime", ""))
+                )
+            st.dataframe(emp_display, use_container_width=True, hide_index=True, height=300)
         except Exception as e:
             st.error(f"Erro: {e}")
 

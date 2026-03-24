@@ -673,11 +673,11 @@ with tab_detail:
     # Get list of companies with most decisions for autocomplete
     try:
         top_empresas = run_query("""
-            SELECT cnpj_cpf, empreendimento, COUNT(*) AS n
+            SELECT cnpj_cpf, MIN(empreendimento) AS empreendimento, COUNT(*) AS n
             FROM v_mg_semad
             WHERE atividade LIKE 'A-0%'
               AND cnpj_cpf IS NOT NULL AND cnpj_cpf != '' AND LENGTH(cnpj_cpf) = 14
-            GROUP BY cnpj_cpf, empreendimento
+            GROUP BY cnpj_cpf
             HAVING COUNT(*) >= 3
             ORDER BY n DESC
             LIMIT 50

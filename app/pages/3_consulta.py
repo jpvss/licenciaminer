@@ -399,15 +399,15 @@ def _render_company_profile(cnpj: str) -> None:
     # Other branches (filiais) of the same company
     cnpj_root = cnpj[:8]
     try:
-        filiais = run_query(f"""
+        filiais = run_query("""
             SELECT cnpj_cpf, COUNT(*) AS n, MIN(empreendimento) AS emp
             FROM v_mg_semad
-            WHERE cnpj_cpf LIKE '{cnpj_root}%'
+            WHERE cnpj_cpf LIKE ?
               AND cnpj_cpf != ?
               AND LENGTH(cnpj_cpf) = 14
             GROUP BY cnpj_cpf
             ORDER BY n DESC
-        """, [cnpj])
+        """, [f"{cnpj_root}%", cnpj])
 
         if filiais:
             total_other = sum(f["n"] for f in filiais)
