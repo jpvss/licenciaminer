@@ -27,6 +27,7 @@ Append as we go. Don't delete — cross out when done.
 ## Análise de Decisões
 
 - [x] **Caso Detalhado dropdown shows duplicate companies** — JENEVE appears twice because query groups by `cnpj_cpf, empreendimento` and the name varies slightly. Fix: use `MIN(empreendimento)` and group only by `cnpj_cpf`.
+- [ ] **COPAM date sorting is lexicographic** — DD/MM/YYYY strings don't sort chronologically. Pre-sorted in scraper but ORDER BY DESC in SQL won't be correct. Low impact since we show "latest first" which works.
 - [ ] **Caso Detalhado overlaps with Consulta tab** — Both have company dossier by CNPJ. Caso Detalhado is simpler (no infraction detail, no CFEM breakdown, no ANM titles, no PDF report). Consider merging or adding "Ver dossiê completo" link to Consulta.
 - [ ] **Chart text labels use hardcoded `{n:,}` in some hover templates** — Plotly hovertemplate uses `%{customdata:,}` which always renders US format. Can't easily use fmt_br in Plotly hover. Low priority since hover is secondary.
 
@@ -43,6 +44,7 @@ Append as we go. Don't delete — cross out when done.
 
 ## Prospecção
 
+- [ ] **RAL data is aggregated by UF, not per company** — Can't show "this company produces X tons." Would need per-processo RAL data which ANM doesn't provide in the open data.
 - [ ] **Opportunity → Consulta link** — From the ranked list, user can't click through to see full company dossier. Could add CNPJ lookup from titular name.
 - [x] **Empresa detail table has raw column names** — When expanding a company's concessions, column names like `AREA_HA`, `ativo_cfem` not renamed. Should apply same column labels as main table.
 

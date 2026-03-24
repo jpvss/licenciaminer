@@ -495,3 +495,45 @@ elif view_mode == "Substâncias por Município":
         source_attribution("Fontes: SCM/ANM + CFEM · Agrupamento por município e substância"),
         unsafe_allow_html=True,
     )
+
+# ── RAL: Contexto de Produção Mineral (all views) ──
+st.markdown("")
+st.divider()
+st.markdown(section_header("Contexto de Produção Mineral — MG"), unsafe_allow_html=True)
+st.caption(
+    "Dados de produção mineral do Relatório Anual de Lavra (RAL/ANM). "
+    "Mostra o volume de produção por substância em Minas Gerais — "
+    "útil para dimensionar o mercado de cada mineral."
+)
+
+try:
+    ral_df = run_query_df("""
+        SELECT
+            "Substância Mineral" AS substancia,
+            MAX("Ano base") AS ultimo_ano,
+            COUNT(DISTINCT "Ano base") AS anos_dados
+        FROM v_ral
+        WHERE UF = 'MG'
+        GROUP BY "Substância Mineral"
+        ORDER BY anos_dados DESC, substancia
+    """)
+
+    if not ral_df.empty:
+        st.dataframe(
+            ral_df.rename(columns={
+                "substancia": "Substância",
+                "ultimo_ano": "Último Ano",
+                "anos_dados": "Anos com Dados",
+            }),
+            use_container_width=True,
+            hide_index=True,
+            height=300,
+        )
+        st.markdown(
+            source_attribution(
+                f"ANM RAL · {fmt_br(len(ral_df))} substâncias · UF = MG"
+            ),
+            unsafe_allow_html=True,
+        )
+except Exception:
+    st.caption("Dados RAL não disponíveis.")

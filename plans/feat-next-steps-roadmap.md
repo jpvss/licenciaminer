@@ -7,10 +7,10 @@
 ## Revised Execution Order (decided 2026-03-24)
 
 ```
-#1 PDF Reports        → validate revenue, tangible deliverable
-#2 UI/UX Polish       → credibility for demos
-#3 COPAM/RAL exposure → quick win, completes data
-#4 Parecer Extraction → builds the moat (conditions + rejection reasons)
+#1 PDF Reports        → DONE (2026-03-24)
+#2 UI/UX Polish       → DONE (2026-03-24, all 8 tabs reviewed)
+#3 COPAM/RAL exposure → DONE (2026-03-24)
+#4 Parecer Extraction → NEXT — builds the moat (conditions + rejection reasons)
 #5 LLM Chat           → AFTER #4, when it has real intelligence to offer
 ```
 

@@ -78,10 +78,11 @@ with st.expander("Como interpretar esta análise", expanded=False):
 """)
 
 # ── Tabs ──
-tab_overview, tab_risk, tab_detail = st.tabs([
+tab_overview, tab_risk, tab_detail, tab_copam = st.tabs([
     "Visão Geral das Decisões",
     "Fatores de Risco",
     "Caso Detalhado",
+    "Deliberações CMI",
 ])
 
 
@@ -867,3 +868,96 @@ with tab_detail:
             st.error(f"Erro ao carregar dossiê: {e}")
     elif cnpj:
         st.warning("CNPJ deve ter exatamente 14 dígitos.")
+
+
+# ════════════════════════════════════════════════════════════════
+# TAB 4: DELIBERAÇÕES CMI (COPAM)
+# ════════════════════════════════════════════════════════════════
+with tab_copam:
+    st.markdown(
+        section_header("Câmara de Atividades Minerárias — CMI"),
+        unsafe_allow_html=True,
+    )
+    st.caption(
+        "Reuniões da CMI (COPAM) onde projetos de mineração são deliberados. "
+        "Cada reunião contém pareceres técnicos e atas com decisões do colegiado."
+    )
+
+    try:
+        copam_df = run_query_df("""
+            SELECT
+                data AS "Data",
+                titulo AS "Reunião",
+                total_documents AS "Documentos",
+                documents_str
+            FROM v_copam
+            ORDER BY data DESC
+        """)
+
+        if not copam_df.empty:
+            # KPIs
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                st.markdown(
+                    insight_card(
+                        "Reuniões CMI",
+                        fmt_br(len(copam_df)),
+                        "registradas",
+                    ),
+                    unsafe_allow_html=True,
+                )
+            with c2:
+                total_docs = copam_df["Documentos"].sum()
+                st.markdown(
+                    insight_card(
+                        "Documentos",
+                        fmt_br(int(total_docs)),
+                        "pareceres e atas",
+                    ),
+                    unsafe_allow_html=True,
+                )
+            with c3:
+                latest = str(copam_df["Data"].iloc[0])[:10] if len(copam_df) > 0 else "—"
+                st.markdown(
+                    insight_card("Última Reunião", latest, "CMI/COPAM"),
+                    unsafe_allow_html=True,
+                )
+
+            # Table
+            display_copam = copam_df[["Data", "Reunião", "Documentos"]].copy()
+            st.dataframe(
+                display_copam,
+                use_container_width=True,
+                hide_index=True,
+                height=400,
+            )
+
+            # Expandable document links
+            with st.expander("Ver links de documentos"):
+                for _, row in copam_df.head(20).iterrows():
+                    docs_str = row.get("documents_str", "")
+                    if docs_str:
+                        titulo = str(row.get("Reunião", ""))[:50]
+                        data = str(row.get("Data", ""))[:10]
+                        st.markdown(f"**{data} — {titulo}**")
+                        # Parse document links (pipe-separated format)
+                        for doc in str(docs_str).split("|"):
+                            doc = doc.strip()
+                            if doc.startswith("http"):
+                                name = doc.split("/")[-1][:40]
+                                st.markdown(
+                                    f'<a href="{doc}" target="_blank" '
+                                    f'style="color:var(--link); font-size:0.8rem;">'
+                                    f'📄 {name}</a>',
+                                    unsafe_allow_html=True,
+                                )
+                        st.markdown("")
+
+            st.markdown(
+                source_attribution("COPAM CMI · sistemas.meioambiente.mg.gov.br"),
+                unsafe_allow_html=True,
+            )
+        else:
+            st.info("Dados COPAM não disponíveis.")
+    except Exception as e:
+        st.warning(f"Dados COPAM não carregados: {e}")
