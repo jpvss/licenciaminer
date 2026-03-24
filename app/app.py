@@ -101,15 +101,11 @@ _nav_cards = [
 cols = st.columns(4)
 for col, (page, icon, title, desc, stat, anim) in zip(cols, _nav_cards):
     with col:
-        st.markdown(f"""
-        <div class="geo-nav-card animate-in-{anim}">
-            <span class="nav-icon">{icon}</span>
-            <p class="nav-title">{title}</p>
-            <p class="nav-desc">{desc}</p>
-            <span class="nav-stat">{stat}</span>
-        </div>
-        """, unsafe_allow_html=True)
-        st.page_link(page, label="→")
+        st.page_link(
+            page,
+            label=f"{icon} **{title}**  \n{desc}  \n`{stat}`",
+            use_container_width=True,
+        )
 
 st.markdown("")
 
@@ -125,14 +121,11 @@ _nav_cards_2 = [
 cols2 = st.columns(3)
 for col, (page, icon, title, desc, anim) in zip(cols2, _nav_cards_2):
     with col:
-        st.markdown(f"""
-        <div class="geo-nav-card animate-in-{anim}">
-            <span class="nav-icon">{icon}</span>
-            <p class="nav-title">{title}</p>
-            <p class="nav-desc">{desc}</p>
-        </div>
-        """, unsafe_allow_html=True)
-        st.page_link(page, label="→")
+        st.page_link(
+            page,
+            label=f"{icon} **{title}**  \n{desc}",
+            use_container_width=True,
+        )
 
 # ── Trust strip ──
 # Count sources dynamically
