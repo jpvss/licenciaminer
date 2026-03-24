@@ -4,6 +4,7 @@ Wrapper sobre licenciaminer.database com caching Streamlit.
 """
 
 import json
+from pathlib import Path
 
 import duckdb
 import streamlit as st
