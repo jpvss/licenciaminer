@@ -32,6 +32,47 @@ from licenciaminer.database.queries import (  # noqa: E402
 inject_theme(st)
 
 
+def _render_report_button(cnpj: str) -> None:
+    """Botão para gerar relatório PDF de inteligência ambiental."""
+    st.markdown("")
+    st.divider()
+    st.markdown(
+        section_header("Relatório de Inteligência Ambiental"),
+        unsafe_allow_html=True,
+    )
+    st.caption(
+        "Gere um relatório profissional em PDF com análise comparativa, "
+        "infrações, títulos minerários e aviso legal completo."
+    )
+
+    if st.button("Gerar Relatório PDF", type="primary", key=f"report_{cnpj}"):
+        with st.spinner("Coletando dados e gerando relatório..."):
+            try:
+                from app.components.report_data import collect_report_data
+                from app.components.report_generator import generate_report
+
+                report_data = collect_report_data(cnpj)
+                pdf_bytes = generate_report(report_data)
+
+                empresa = report_data.razao_social or cnpj
+                filename = f"relatorio_{cnpj}_{report_data.generated_at:%Y%m%d}.pdf"
+
+                st.download_button(
+                    f"Baixar Relatório — {empresa[:40]}",
+                    pdf_bytes,
+                    file_name=filename,
+                    mime="application/pdf",
+                    type="primary",
+                )
+                st.success(
+                    f"Relatório gerado com sucesso. "
+                    f"Risco: **{report_data.risk_level}** | "
+                    f"{len(report_data.decisoes)} decisões analisadas."
+                )
+            except Exception as e:
+                st.error(f"Erro ao gerar relatório: {e}")
+
+
 def _render_company_profile(cnpj: str) -> None:
     """Renderiza perfil completo de uma empresa por CNPJ como dossier."""
     try:
@@ -437,6 +478,7 @@ with tab_projeto:
                 unsafe_allow_html=True,
             )
             _render_company_profile(cnpj_clean)
+            _render_report_button(cnpj_clean)
 
 with tab_empresa:
     cnpj_input_emp = st.text_input(
@@ -457,5 +499,6 @@ with tab_empresa:
             unsafe_allow_html=True,
         )
         _render_company_profile(cnpj_clean_emp)
+        _render_report_button(cnpj_clean_emp)
     elif search_emp:
         st.warning("CNPJ deve ter 14 dígitos.")
