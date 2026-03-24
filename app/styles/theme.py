@@ -536,8 +536,11 @@ def get_theme_css() -> str:
         transform: translateY(-3px);
     }
 
-    /* Style page_link elements as nav cards */
-    [data-testid="stPageLink-nav"] a {
+    /* Style page_link elements as nav cards.
+       Use multiple selectors to match across Streamlit versions. */
+    [data-testid="stPageLink-nav"] a,
+    [data-testid="stPageLink"] a,
+    .stPageLink a {
         background: var(--stratum-2) !important;
         border: 1px solid var(--stratum-3) !important;
         border-radius: var(--radius-lg) !important;
@@ -550,26 +553,35 @@ def get_theme_css() -> str:
         text-decoration: none !important;
         white-space: normal !important;
     }
-    [data-testid="stPageLink-nav"] a:hover {
+    [data-testid="stPageLink-nav"] a:hover,
+    [data-testid="stPageLink"] a:hover,
+    .stPageLink a:hover {
         border-color: var(--amber) !important;
         box-shadow: var(--shadow-lg), var(--shadow-glow) !important;
         transform: translateY(-3px);
     }
-    [data-testid="stPageLink-nav"] a p {
+    [data-testid="stPageLink-nav"] a p,
+    [data-testid="stPageLink"] a p,
+    .stPageLink a p {
         font-family: var(--font-body);
         font-size: 0.85rem;
         color: var(--slate);
         line-height: 1.45;
         margin: 0;
+        white-space: normal !important;
     }
-    [data-testid="stPageLink-nav"] a p strong {
+    [data-testid="stPageLink-nav"] a p strong,
+    [data-testid="stPageLink"] a p strong,
+    .stPageLink a p strong {
         font-family: var(--font-display);
         font-size: 1.1rem;
         color: var(--quartz);
         display: block;
         margin-bottom: 0.4rem;
     }
-    [data-testid="stPageLink-nav"] a p code {
+    [data-testid="stPageLink-nav"] a p code,
+    [data-testid="stPageLink"] a p code,
+    .stPageLink a p code {
         font-family: var(--font-mono);
         font-size: 0.75rem;
         color: var(--amber);
