@@ -142,6 +142,15 @@ def get_source_info() -> list[dict]:
         "concessoes_mg": "Concessões MG Consolidadas",
     }
 
+    # Map source keys to parquet filenames for fallback row counting
+    _source_parquets = {
+        "ibama_licencas": "ibama_licencas.parquet",
+        "anm_processos": "anm_processos.parquet",
+        "ibama_infracoes": "ibama_infracoes_part1.parquet",
+        "anm_cfem": "anm_cfem.parquet",
+        "receita_federal_cnpj": "cnpj_empresas.parquet",
+    }
+
     for source_key, display_name in source_names.items():
         meta = metadata.get(source_key, {})
         records_raw = meta.get("records", "—")
@@ -150,6 +159,16 @@ def get_source_info() -> list[dict]:
             records = int(records_raw) if records_raw != "—" else "—"
         except (ValueError, TypeError):
             records = records_raw
+
+        # Fallback: count parquet rows if metadata missing
+        if records == "—" and source_key in _source_parquets:
+            pq_path = DATA_DIR / "processed" / _source_parquets[source_key]
+            if pq_path.exists():
+                try:
+                    import pyarrow.parquet as pq
+                    records = pq.read_metadata(pq_path).num_rows
+                except Exception:
+                    pass
 
         last_collected = meta.get("last_collected", "—")
         last_collected = (

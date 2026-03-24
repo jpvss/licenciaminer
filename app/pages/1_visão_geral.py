@@ -99,12 +99,26 @@ with col3:
     st.markdown(source_attribution("IBAMA Dados Abertos"), unsafe_allow_html=True)
 
 with col4:
-    st.metric("Aprovação Mineração", f"{mining_approval_rate}%",
+    st.metric("Aprovação Mineração", fmt_pct(mining_approval_rate),
               help="Deferidos / total (inclui arquivamentos no denominador)")
     st.markdown(
-        source_attribution(f"N = {mining_count:,} decisões"),
+        source_attribution(f"N = {fmt_br(mining_count)} decisões"),
         unsafe_allow_html=True,
     )
+
+# Decision distribution summary
+_dist = safe_query(
+    "SELECT decisao, COUNT(*) AS n FROM v_mg_semad "
+    "WHERE atividade LIKE 'A-0%' GROUP BY decisao ORDER BY n DESC",
+    context="distribuição", fallback=[],
+)
+if _dist:
+    _parts = []
+    for d in _dist:
+        dec = d.get("decisao", "?")
+        n = d.get("n", 0)
+        _parts.append(f"{fmt_br(n)} {dec}s")
+    st.caption(f"Mineração: {' · '.join(_parts)}")
 
 st.markdown("")
 
@@ -353,11 +367,11 @@ for s in sources:
     dot_color = "var(--malachite)" if is_fresh else "var(--oxide)"
     date_display = date if is_fresh else "—"
 
-    # Records
+    # Records (Brazilian formatting)
     if isinstance(records, int):
         rec_display = (
             f'<span style="color:var(--amber); font-family:var(--font-mono);'
-            f' font-weight:500; font-size:0.8rem;">{records:,}</span>'
+            f' font-weight:500; font-size:0.8rem;">{fmt_br(records)}</span>'
         )
     elif records and records != "—":
         rec_display = (
