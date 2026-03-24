@@ -11,7 +11,7 @@ for p in [_project_root, _project_root + "/src"]:
 import plotly.graph_objects as go  # noqa: E402
 import streamlit as st  # noqa: E402
 
-from app.components.data_loader import run_query, run_query_df  # noqa: E402
+from app.components.data_loader import fmt_br, fmt_pct, fmt_reais, run_query, run_query_df  # noqa: E402
 from app.styles.theme import (  # noqa: E402
     decision_badge,
     hero_html,
@@ -121,13 +121,13 @@ with tab_overview:
 
         c1, c2, c3, c4 = st.columns(4)
         with c1:
-            st.metric("Taxa de Deferimento", f"{summary['taxa_aprovacao']}%")
+            st.metric("Taxa de Deferimento", fmt_pct(summary['taxa_aprovacao']))
             st.markdown(
-                source_attribution(f"N = {summary['total']:,} decisões mineração"),
+                source_attribution(f"N = {fmt_br(summary['total'])} decisões mineração"),
                 unsafe_allow_html=True,
             )
         with c2:
-            st.metric("Indeferimentos (último ano)", f"{last_year_rej:,}")
+            st.metric("Indeferimentos (último ano)", fmt_br(last_year_rej))
             st.markdown(
                 source_attribution("SEMAD MG"),
                 unsafe_allow_html=True,
@@ -136,9 +136,9 @@ with tab_overview:
             arq_pct = round(
                 100 * summary["arquivamentos"] / summary["total"], 1
             )
-            st.metric("Arquivamentos", f"{arq_pct}%")
+            st.metric("Arquivamentos", fmt_pct(arq_pct))
             st.markdown(
-                source_attribution(f"{summary['arquivamentos']:,} processos"),
+                source_attribution(f"{fmt_br(summary['arquivamentos'])} processos"),
                 unsafe_allow_html=True,
             )
         with c4:
@@ -494,8 +494,8 @@ with tab_risk:
                         insight_card(
                             row["perfil_empresa"],
                             f"{pct}% aprovação",
-                            f"{row['total_decisoes']:,} decisões · "
-                            f"{row['deferidos']:,} deferidos",
+                            f"{fmt_br(row['total_decisoes'])} decisões · "
+                            f"{fmt_br(row['deferidos'])} deferidos",
                             tone,
                         ),
                         unsafe_allow_html=True,
@@ -585,8 +585,8 @@ with tab_risk:
                         insight_card(
                             row["faixa"],
                             f"{pct}% aprovação média",
-                            f"{row['empresas']:,} empresas · "
-                            f"{row['total_decisoes_grupo']:,} decisões",
+                            f"{fmt_br(row['empresas'])} empresas · "
+                            f"{fmt_br(row['total_decisoes_grupo'])} decisões",
                             tone,
                         ),
                         unsafe_allow_html=True,
@@ -664,6 +664,11 @@ with tab_detail:
         section_header("Buscar Caso por CNPJ"),
         unsafe_allow_html=True,
     )
+    st.caption(
+        "Selecione uma empresa do ranking ou digite um CNPJ para ver o dossiê "
+        "com infrações, CFEM e histórico de decisões. "
+        "Para o dossiê completo com relatório PDF, use a aba **Consulta**."
+    )
 
     # Get list of companies with most decisions for autocomplete
     try:
@@ -721,19 +726,34 @@ with tab_detail:
 
             if company_info:
                 ci = company_info[0]
+                _porte_labels = {
+                    "MEI": "MEI", "ME": "Microempresa",
+                    "EPP": "Pequeno Porte", "DEMAIS": "Médio/Grande Porte",
+                }
+                _porte = _porte_labels.get(
+                    str(ci.get("porte", "")).strip().upper(),
+                    ci.get("porte", "N/A"),
+                )
+                _abertura = str(ci.get("data_abertura", ""))[:10]
+                if len(_abertura) >= 10 and "-" in _abertura:
+                    try:
+                        _p = _abertura.split("-")
+                        _abertura = f"{_p[2]}/{_p[1]}/{_p[0]}"
+                    except (IndexError, ValueError):
+                        pass
                 st.markdown(f"""
                 <div class="geo-dossier">
                     <div class="dossier-header">
-                        <p class="dossier-name">🏢 {ci.get('razao_social', 'N/A')}</p>
+                        <p class="dossier-name">{ci.get('razao_social', 'N/A')}</p>
                         <span class="dossier-cnae">{ci.get('cnae_descricao', '')}</span>
                     </div>
                     <div class="geo-kpi-row">
                         <div class="geo-kpi">
-                            <p class="kpi-value">{ci.get('porte', 'N/A')}</p>
+                            <p class="kpi-value">{_porte}</p>
                             <p class="kpi-label">Porte</p>
                         </div>
                         <div class="geo-kpi">
-                            <p class="kpi-value">{str(ci.get('data_abertura', ''))[:10]}</p>
+                            <p class="kpi-value">{_abertura}</p>
                             <p class="kpi-label">Abertura</p>
                         </div>
                         <div class="geo-kpi">
@@ -775,7 +795,7 @@ with tab_detail:
                     st.markdown(
                         insight_card(
                             "CFEM (Royalties)",
-                            f"R$ {total:,.2f}" if total else "Sem pagamentos",
+                            fmt_reais(total) if total else "Sem pagamentos",
                             f"{meses} mês(es) de pagamento registrados",
                             tone,
                         ),
