@@ -364,7 +364,7 @@ def _render_company_profile(cnpj: str) -> None:
         decisions = run_query_df(
             "SELECT ano, decisao, atividade, classe, modalidade, municipio, detail_id "
             "FROM v_mg_semad "
-            "WHERE cnpj_cpf = ? AND atividade LIKE 'A-0%' "
+            "WHERE cnpj_cpf = ? "
             "ORDER BY data_de_publicacao DESC",
             [cnpj],
         )
