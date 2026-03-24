@@ -190,15 +190,25 @@ with st.sidebar:
 
     # Layers de restrição
     st.markdown(section_header("Camadas"), unsafe_allow_html=True)
-    show_ucs = st.toggle("Unidades de Conservação", value=False)
-    show_tis = st.toggle("Terras Indígenas", value=False)
+    show_ucs = st.toggle(
+        "Unidades de Conservação", value=False,
+        help="Áreas protegidas ICMBio (parques, reservas, APAs). "
+             "Sobreposição com concessão pode restringir ou inviabilizar a lavra.",
+    )
+    show_tis = st.toggle(
+        "Terras Indígenas", value=False,
+        help="Terras demarcadas pela FUNAI. "
+             "Mineração em TI é vedada pela Constituição (art. 231).",
+    )
 
 # ── Limitar polígonos ──
 total_filtered = len(filtered)
+from app.components.data_loader import fmt_br as _fmt_br
+
 if total_filtered > MAX_POLYGONS:
     st.warning(
-        f"Filtro retornou {total_filtered:,} polígonos. "
-        f"Mostrando os primeiros {MAX_POLYGONS:,}. Aplique filtros para refinar."
+        f"Filtro retornou {_fmt_br(total_filtered)} polígonos. "
+        f"Mostrando os primeiros {_fmt_br(MAX_POLYGONS)}. Aplique filtros para refinar."
     )
     filtered = filtered.head(MAX_POLYGONS)
 
@@ -206,19 +216,19 @@ if total_filtered > MAX_POLYGONS:
 cols_kpi = st.columns(4)
 with cols_kpi[0]:
     st.markdown(
-        insight_card("Polígonos", f"{len(filtered):,}", f"de {len(gdf):,} total"),
+        insight_card("Polígonos", _fmt_br(len(filtered)), f"de {_fmt_br(len(gdf))} total"),
         unsafe_allow_html=True,
     )
 with cols_kpi[1]:
     if has_enrichment and "regime" in filtered.columns:
         matched = filtered["regime"].notna().sum()
         st.markdown(
-            insight_card("Enriquecidos", f"{matched:,}", "com dados SCM"),
+            insight_card("Enriquecidos", _fmt_br(matched), "com dados SCM"),
             unsafe_allow_html=True,
         )
     else:
         st.markdown(
-            insight_card("Processos", f"{len(filtered):,}", "geometrias"),
+            insight_card("Processos", _fmt_br(len(filtered)), "geometrias"),
             unsafe_allow_html=True,
         )
 with cols_kpi[2]:
@@ -236,7 +246,7 @@ with cols_kpi[2]:
 with cols_kpi[3]:
     area_total = filtered["AREA_HA"].sum() if "AREA_HA" in filtered.columns else 0
     st.markdown(
-        insight_card("Área Total", f"{area_total:,.0f}", "hectares"),
+        insight_card("Área Total", _fmt_br(area_total), "hectares"),
         unsafe_allow_html=True,
     )
 
@@ -299,7 +309,7 @@ st.markdown(section_header("Mapa"), unsafe_allow_html=True)
 m = folium.Map(
     location=[-19.9, -43.9],
     zoom_start=7,
-    tiles="CartoDB positron",
+    tiles="CartoDB dark_matter",
 )
 
 # Adicionar polígonos de concessões — batch rendering para performance
@@ -413,7 +423,7 @@ st.markdown(f'<div style="margin-top:8px;">{legend_items}</div>', unsafe_allow_h
 
 st.markdown(
     source_attribution(
-        f"{len(filtered):,} polígonos · SIGMINE/ANM"
+        f"{_fmt_br(len(filtered))} polígonos · SIGMINE/ANM"
         + (f" + {conc_source}" if conc_source else "")
     ),
     unsafe_allow_html=True,

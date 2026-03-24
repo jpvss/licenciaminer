@@ -37,7 +37,9 @@ Append as we go. Don't delete — cross out when done.
 
 ## Mapa
 
-_(pending review)_
+- [ ] **Polygon click doesn't navigate to Concessões detail** — User clicks a polygon and sees popup, but can't drill into the full concessão record. Could add a link in the popup.
+- [ ] **`_color` column visible in popup** — The batch GeoJSON approach exposes the internal `_color` property in GeoJsonPopup. Should be excluded from popup_fields.
+- [ ] **Restriction layers (UCs/TIs) load slowly** — Large GeoJSON for all MG UCs. Could pre-simplify more aggressively or use vector tiles.
 
 ## Prospecção
 
