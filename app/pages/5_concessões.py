@@ -184,6 +184,8 @@ with st.sidebar:
             "Status CFEM",
             ["Todos", "Ativo (CFEM recente)", "Inativo (sem CFEM)"],
             index=0,
+            help="Ativo = pagou royalty CFEM nos últimos 2 anos. "
+                 "Inativo = sem pagamentos recentes (possível oportunidade de aquisição).",
         )
         if cfem_filter == "Ativo (CFEM recente)":
             where_clauses.append("ativo_cfem = true")
@@ -192,7 +194,11 @@ with st.sidebar:
 
     # Estratégico
     if VIEW == "v_concessoes":
-        only_strategic = st.toggle("Apenas minerais estratégicos", value=False)
+        only_strategic = st.toggle(
+            "Apenas minerais estratégicos", value=False,
+            help="Lítio, nióbio, cobalto, terras raras, grafita, etc. "
+                 "Minerais críticos para transição energética.",
+        )
         if only_strategic:
             where_clauses.append("estrategico = 'sim'")
 
@@ -249,7 +255,7 @@ kpis = _get_kpis(where_sql)
 cols_kpi = st.columns(4)
 with cols_kpi[0]:
     st.markdown(
-        insight_card("Total", f"{kpis['total']:,}", "concessões"),
+        insight_card("Total", fmt_br(kpis['total']), "concessões"),
         unsafe_allow_html=True,
     )
 with cols_kpi[1]:
@@ -257,7 +263,7 @@ with cols_kpi[1]:
         st.markdown(
             insight_card(
                 "Ativas CFEM",
-                f"{kpis.get('ativos', 0):,}",
+                fmt_br(kpis.get('ativos', 0)),
                 "pagando royalties",
             ),
             unsafe_allow_html=True,
@@ -280,7 +286,7 @@ with cols_kpi[3]:
 
 # ── Tabela ──
 st.markdown(
-    section_header(f"{kpis['total']:,} registros"),
+    section_header(f"{fmt_br(kpis['total'])} registros"),
     unsafe_allow_html=True,
 )
 
@@ -314,20 +320,23 @@ select_sql = ", ".join(available_cols) if available_cols else "*"
 page_size = 100
 total_pages = max(1, (kpis["total"] + page_size - 1) // page_size)
 
-col_page, col_info = st.columns([1, 3])
-with col_page:
-    page = st.number_input(
-        "Página",
-        min_value=1,
-        max_value=total_pages,
-        value=1,
-        label_visibility="collapsed",
-    )
-with col_info:
-    st.markdown(
-        source_attribution(f"Página {page} de {total_pages} · {page_size} por página"),
-        unsafe_allow_html=True,
-    )
+if total_pages > 1:
+    col_page, col_info = st.columns([1, 3])
+    with col_page:
+        page = st.number_input(
+            "Página",
+            min_value=1,
+            max_value=total_pages,
+            value=1,
+            label_visibility="collapsed",
+        )
+    with col_info:
+        st.markdown(
+            source_attribution(f"Página {page} de {total_pages} · {page_size} por página"),
+            unsafe_allow_html=True,
+        )
+else:
+    page = 1
 
 offset = (page - 1) * page_size
 
@@ -414,10 +423,10 @@ if selected_rows:
         municipio = str(full.get("municipio_principal", "—"))
         regime_val = REGIME_LABELS.get(str(full.get("regime", "")), str(full.get("regime", "—")))
         area = full.get("AREA_HA", None)
-        area_str = f"{area:,.1f} ha" if isinstance(area, (int, float)) and area == area else "—"
+        area_str = f"{fmt_br(area, 1)} ha" if isinstance(area, (int, float)) and area == area else "—"
         cnpj = str(full.get("cpf_cnpj_do_titular", "—"))
         cfem = full.get("cfem_total", None)
-        cfem_str = f"R$ {cfem:,.2f}" if isinstance(cfem, (int, float)) and cfem == cfem else "—"
+        cfem_str = fmt_reais(cfem) if isinstance(cfem, (int, float)) and cfem == cfem else "—"
         ativo = full.get("ativo_cfem", None)
         status_str = "Ativo" if ativo else ("Inativo" if ativo is not None and not ativo else "—")
         categoria = str(full.get("categoria", "—"))
@@ -485,13 +494,13 @@ if kpis["total"] <= 20000:
         return run_query_df(q).to_csv(index=False).encode("utf-8")
 
     st.download_button(
-        f"Exportar CSV ({kpis['total']:,} registros)",
+        f"Exportar CSV ({fmt_br(kpis['total'])} registros)",
         _get_csv(export_query),
         file_name="concessoes_mg.csv",
         mime="text/csv",
     )
 else:
     st.caption(
-        f"Dataset grande ({kpis['total']:,} registros). "
+        f"Dataset grande ({fmt_br(kpis['total'])} registros). "
         "Aplique filtros para exportar."
     )

@@ -32,7 +32,8 @@ Append as we go. Don't delete — cross out when done.
 
 ## Concessões
 
-_(pending review)_
+- [ ] **CNPJ in detail panel not linked to Consulta** — User sees cpf_cnpj_do_titular but can't click to see company dossier. Could add a "Ver perfil no Consulta" link.
+- [ ] **SCM portal link is generic** — Links to SCM search page, not the specific processo. SCM doesn't support direct deep-links easily.
 
 ## Mapa
 
