@@ -82,49 +82,57 @@ except Exception:
     from app.components.data_loader import fmt_br
     semad_n, anm_n, mining_n = 0, 0, 0
 
-# ── Navigation cards (clickable via page_link) ──
+# ── Navigation cards ──
 _nav_cards = [
     ("pages/1_visão_geral.py", "📊", "Visão Geral",
      "Resumo executivo, tendências de aprovação e insights chave",
-     f"{fmt_br(semad_n)} decisões"),
+     f"{fmt_br(semad_n)} decisões", "d1"),
     ("pages/2_explorar_dados.py", "🔍", "Explorar Dados",
      "Navegue pelos datasets, filtre e verifique na fonte original",
-     f"{fmt_br(anm_n)} processos ANM"),
+     f"{fmt_br(anm_n)} processos ANM", "d2"),
     ("pages/3_consulta.py", "💡", "Consulta",
      "Briefing com estatísticas e casos similares por projeto ou empresa",
-     f"{fmt_br(mining_n)} decisões mineração"),
+     f"{fmt_br(mining_n)} decisões mineração", "d3"),
     ("pages/4_análise_decisões.py", "📋", "Análise de Decisões",
      "Padrões de deferimento, fatores de risco e dossiê por empresa",
-     f"{fmt_br(mining_n)} decisões analisadas"),
+     f"{fmt_br(mining_n)} decisões analisadas", "d4"),
 ]
 
 cols = st.columns(4)
-for col, (page, icon, title, desc, stat) in zip(cols, _nav_cards):
+for col, (page, icon, title, desc, stat, anim) in zip(cols, _nav_cards):
     with col:
-        st.page_link(page, label=f"{icon} **{title}**", use_container_width=True)
-        st.caption(desc)
-        if stat:
-            st.markdown(
-                f'<span class="nav-stat">{stat}</span>',
-                unsafe_allow_html=True,
-            )
+        st.markdown(f"""
+        <div class="geo-nav-card animate-in-{anim}">
+            <span class="nav-icon">{icon}</span>
+            <p class="nav-title">{title}</p>
+            <p class="nav-desc">{desc}</p>
+            <span class="nav-stat">{stat}</span>
+        </div>
+        """, unsafe_allow_html=True)
+        st.page_link(page, label=f"Abrir {title} →")
 
 st.markdown("")
 
 _nav_cards_2 = [
     ("pages/5_concessões.py", "🏗️", "Concessões",
-     "Decretos de lavra e instrumentos similares com filtros avançados"),
+     "Decretos de lavra e instrumentos similares com filtros avançados", "d1"),
     ("pages/6_mapa_concessões.py", "🗺️", "Mapa",
-     "Visualização geoespacial de polígonos de concessões minerárias"),
+     "Visualização geoespacial de polígonos de concessões minerárias", "d2"),
     ("pages/7_prospecção.py", "🎯", "Prospecção",
-     "Identificar oportunidades de aquisição e investimento em concessões"),
+     "Identificar oportunidades de aquisição e investimento em concessões", "d3"),
 ]
 
 cols2 = st.columns(3)
-for col, (page, icon, title, desc) in zip(cols2, _nav_cards_2):
+for col, (page, icon, title, desc, anim) in zip(cols2, _nav_cards_2):
     with col:
-        st.page_link(page, label=f"{icon} **{title}**", use_container_width=True)
-        st.caption(desc)
+        st.markdown(f"""
+        <div class="geo-nav-card animate-in-{anim}">
+            <span class="nav-icon">{icon}</span>
+            <p class="nav-title">{title}</p>
+            <p class="nav-desc">{desc}</p>
+        </div>
+        """, unsafe_allow_html=True)
+        st.page_link(page, label=f"Abrir {title} →")
 
 # ── Trust strip ──
 # Count sources dynamically
