@@ -933,6 +933,8 @@ with tab_copam:
             )
 
             # Expandable document links
+            # Format: "name1.pdf|url1;name2.pdf|url2;..."
+            # Delimiter: ; between documents, | between name and URL
             with st.expander("Ver links de documentos"):
                 for _, row in copam_df.head(20).iterrows():
                     docs_str = row.get("documents_str", "")
@@ -940,17 +942,17 @@ with tab_copam:
                         titulo = str(row.get("Reunião", ""))[:50]
                         data = str(row.get("Data", ""))[:10]
                         st.markdown(f"**{data} — {titulo}**")
-                        # Parse document links (pipe-separated format)
-                        for doc in str(docs_str).split("|"):
-                            doc = doc.strip()
-                            if doc.startswith("http"):
-                                name = doc.split("/")[-1][:40]
-                                st.markdown(
-                                    f'<a href="{doc}" target="_blank" '
-                                    f'style="color:var(--link); font-size:0.8rem;">'
-                                    f'📄 {name}</a>',
-                                    unsafe_allow_html=True,
-                                )
+                        for doc_entry in str(docs_str).split(";"):
+                            parts = doc_entry.strip().split("|", 1)
+                            if len(parts) == 2:
+                                name, url = parts[0].strip(), parts[1].strip()
+                                if url.startswith("http"):
+                                    st.markdown(
+                                        f'<a href="{url}" target="_blank" '
+                                        f'style="color:var(--link); font-size:0.8rem;">'
+                                        f'📄 {name}</a>',
+                                        unsafe_allow_html=True,
+                                    )
                         st.markdown("")
 
             st.markdown(
