@@ -28,32 +28,39 @@ st.set_page_config(
 # Páginas com dados reais usam os arquivos existentes.
 # Páginas em desenvolvimento usam stubs com "Em Construção".
 
+_pages_dir = Path(__file__).resolve().parent / "pages"
+
+
+def _page(filename: str, **kwargs) -> st.Page:
+    return st.Page(str(_pages_dir / filename), **kwargs)
+
+
 pages = {
     "Início": [
-        st.Page("app/pages/home.py", title="Painel Principal", icon="🏠", default=True),
+        _page("home.py", title="Painel Principal", icon="🏠", default=True),
     ],
     "Summo Ambiental": [
-        st.Page("app/pages/1_visao_geral.py", title="Base de Dados", icon="🗃️"),
-        st.Page("app/pages/2_explorar_dados.py", title="Explorar Licenças", icon="🔍"),
-        st.Page("app/pages/3_consulta.py", title="Consulta por Empresa", icon="🏢"),
-        st.Page("app/pages/4_analise_decisoes.py", title="Análise de Risco", icon="⚖️"),
-        st.Page("app/pages/due_diligence.py", title="Due Diligence Ambiental", icon="📑"),
+        _page("1_visao_geral.py", title="Base de Dados", icon="🗃️"),
+        _page("2_explorar_dados.py", title="Explorar Licenças", icon="🔍"),
+        _page("3_consulta.py", title="Consulta por Empresa", icon="🏢"),
+        _page("4_analise_decisoes.py", title="Análise de Risco", icon="⚖️"),
+        _page("due_diligence.py", title="Due Diligence Ambiental", icon="📑"),
     ],
     "Direitos e Concessões": [
-        st.Page("app/pages/5_concessoes.py", title="Base de Concessões", icon="🗃️"),
-        st.Page("app/pages/6_mapa_concessoes.py", title="Mapa de Concessões", icon="🗺️"),
-        st.Page("app/pages/viabilidade.py", title="Análise de Viabilidade", icon="📐"),
-        st.Page("app/pages/7_prospeccao.py", title="Prospecção de Oportunidades", icon="🎯"),
+        _page("5_concessoes.py", title="Base de Concessões", icon="🗃️"),
+        _page("6_mapa_concessoes.py", title="Mapa de Concessões", icon="🗺️"),
+        _page("viabilidade.py", title="Análise de Viabilidade", icon="📐"),
+        _page("7_prospeccao.py", title="Prospecção de Oportunidades", icon="🎯"),
     ],
     "Mineral Intelligence": [
-        st.Page("app/pages/inteligencia_comercial.py", title="Inteligência Comercial", icon="📈"),
-        st.Page("app/pages/monitoramento.py", title="Monitoramento de Indicadores", icon="📡"),
+        _page("inteligencia_comercial.py", title="Inteligência Comercial", icon="📈"),
+        _page("monitoramento.py", title="Monitoramento de Indicadores", icon="📡"),
     ],
     "SQ Solutions": [
-        st.Page("app/pages/mineradora_modelo.py", title="Mineradora Modelo (IA)", icon="⚙️"),
+        _page("mineradora_modelo.py", title="Mineradora Modelo (IA)", icon="⚙️"),
     ],
     "Gestão Interna": [
-        st.Page("app/pages/gestao_interna.py", title="Gestão Interna SQ", icon="🏢"),
+        _page("gestao_interna.py", title="Gestão Interna SQ", icon="🏢"),
     ],
 }
 
