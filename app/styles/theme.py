@@ -19,16 +19,37 @@ def get_theme_css() -> str:
     """Retorna o CSS completo do tema Consultoria Estratégica."""
     return """
     <style>
-    /* ── Hide Streamlit chrome (keep header functional for mobile nav) ── */
+    /* ── Hide Streamlit chrome (keep sidebar toggle functional) ── */
     .stDeployButton, #MainMenu,
     [data-testid="stStatusWidget"] {display: none !important;}
-    /* Make header transparent but keep it interactive (hamburger menu) */
+    /* Make header transparent but keep it interactive */
     header[data-testid="stHeader"] {
         background: transparent !important;
         border: none !important;
     }
-    /* Hide header decorative children but keep the sidebar toggle button */
     header[data-testid="stHeader"] [data-testid="stDecoration"] {display: none !important;}
+    /* Ensure sidebar collapse/expand button is always visible */
+    [data-testid="stSidebarCollapsedControl"],
+    [data-testid="stSidebarNavCollapseButton"],
+    [data-testid="collapsedControl"] {
+        visibility: visible !important;
+        display: flex !important;
+        z-index: 999 !important;
+    }
+    [data-testid="stSidebarCollapsedControl"] button,
+    [data-testid="collapsedControl"] button {
+        background: var(--surface) !important;
+        border: 1px solid var(--border) !important;
+        border-radius: var(--radius-sm) !important;
+        box-shadow: var(--shadow-sm) !important;
+        color: var(--navy) !important;
+        opacity: 1 !important;
+    }
+    [data-testid="stSidebarCollapsedControl"] button:hover,
+    [data-testid="collapsedControl"] button:hover {
+        background: var(--surface-hover) !important;
+        box-shadow: var(--shadow-md) !important;
+    }
     /* Hide Streamlit Cloud footer elements */
     footer, [data-testid="manage-app-button"],
     div:has(> [data-testid="manage-app-button"]) {display: none !important;}
