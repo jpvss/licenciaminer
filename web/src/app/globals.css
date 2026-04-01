@@ -1,0 +1,212 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-heading: var(--font-heading);
+
+  /* shadcn semantic tokens */
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Chart colors */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* Sidebar */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Brand-specific tokens */
+  --color-brand-orange: var(--brand-orange);
+  --color-brand-orange-dim: var(--brand-orange-dim);
+  --color-brand-teal: var(--brand-teal);
+  --color-brand-gold: var(--brand-gold);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+
+  /* Risk levels */
+  --color-risk-low: var(--risk-low);
+  --color-risk-moderate: var(--risk-moderate);
+  --color-risk-high: var(--risk-high);
+
+  /* Radius */
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+}
+
+/* ══════════════════════════════════════════════════════
+   Summo Quartile — "Consultoria Estratégica" Design System
+   Source: Apresentação Produto Ambiental (PPTX brand deck)
+
+   Palette: navy institutional + orange accent
+   Typography: Inter (body), Montserrat (display), JetBrains Mono (data)
+   ══════════════════════════════════════════════════════ */
+
+:root {
+  /* Core brand — from PPTX */
+  --brand-orange: #FF5F00;
+  --brand-orange-dim: rgba(255, 95, 0, 0.08);
+  --brand-teal: #156082;
+  --brand-gold: #FFC000;
+
+  /* Semantic */
+  --success: #27AE60;
+  --warning: #F39C12;
+  --danger: #E74C3C;
+
+  /* Risk levels */
+  --risk-low: #27AE60;
+  --risk-moderate: #F39C12;
+  --risk-high: #E74C3C;
+
+  /* ── Light theme ── */
+  --background: #F8F9FB;
+  --foreground: #1A2C42;
+
+  --card: #FFFFFF;
+  --card-foreground: #1A2C42;
+  --popover: #FFFFFF;
+  --popover-foreground: #1A2C42;
+
+  --primary: #1A2C42;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F0F2F6;
+  --secondary-foreground: #2C3E50;
+  --muted: #F0F2F6;
+  --muted-foreground: #64748B;
+  --accent: #FF5F00;
+  --accent-foreground: #FFFFFF;
+  --destructive: #E74C3C;
+
+  --border: #E2E6ED;
+  --input: #E2E6ED;
+  --ring: #156082;
+
+  /* Charts — brand-derived */
+  --chart-1: #156082;
+  --chart-2: #2980B9;
+  --chart-3: #FF5F00;
+  --chart-4: #27AE60;
+  --chart-5: #FFC000;
+
+  --radius: 0.5rem;
+
+  /* Sidebar */
+  --sidebar: #0A2540;
+  --sidebar-foreground: #E2E6ED;
+  --sidebar-primary: #FF5F00;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #1A2C42;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: #156082;
+}
+
+.dark {
+  --background: #0A1628;
+  --foreground: #E8EDF4;
+
+  --card: #111D2E;
+  --card-foreground: #E8EDF4;
+  --popover: #111D2E;
+  --popover-foreground: #E8EDF4;
+
+  --primary: #E8EDF4;
+  --primary-foreground: #0A1628;
+  --secondary: #1A2C42;
+  --secondary-foreground: #CBD5E1;
+  --muted: #1A2C42;
+  --muted-foreground: #8896A6;
+  --accent: #FF7A2E;
+  --accent-foreground: #FFFFFF;
+  --destructive: #EF5350;
+
+  --border: #1E3148;
+  --input: #1E3148;
+  --ring: #2980B9;
+
+  --chart-1: #2980B9;
+  --chart-2: #3498DB;
+  --chart-3: #FF7A2E;
+  --chart-4: #2ECC71;
+  --chart-5: #FFC000;
+
+  --sidebar: #060F1D;
+  --sidebar-foreground: #CBD5E1;
+  --sidebar-primary: #FF7A2E;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #111D2E;
+  --sidebar-accent-foreground: #E8EDF4;
+  --sidebar-border: rgba(255, 255, 255, 0.06);
+  --sidebar-ring: #2980B9;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+/* Tabular numbers for financial/statistical data */
+.font-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Subtle noise grain for premium surfaces */
+.surface-grain {
+  position: relative;
+}
+.surface-grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.02;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px;
+}
+
+/* Risk level badge accents */
+.risk-low { border-left: 3px solid var(--risk-low); }
+.risk-moderate { border-left: 3px solid var(--risk-moderate); }
+.risk-high { border-left: 3px solid var(--risk-high); }
