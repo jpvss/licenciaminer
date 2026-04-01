@@ -26,24 +26,24 @@ pages = {
         st.Page("app/pages/home.py", title="Painel Principal", icon="🏠", default=True),
     ],
     "Summo Ambiental": [
-        st.Page("app/pages/1_visão_geral.py", title="Visão Geral", icon="📊"),
-        st.Page("app/pages/2_explorar_dados.py", title="Explorar Dados", icon="🔍"),
-        st.Page("app/pages/3_consulta.py", title="Consulta Inteligente", icon="💡"),
-        st.Page("app/pages/4_análise_decisões.py", title="Análise de Decisões", icon="📋"),
+        st.Page("app/pages/1_visão_geral.py", title="Base de Dados", icon="🗃️"),
+        st.Page("app/pages/2_explorar_dados.py", title="Explorar Licenças", icon="🔍"),
+        st.Page("app/pages/3_consulta.py", title="Consulta por Empresa", icon="🏢"),
+        st.Page("app/pages/4_análise_decisões.py", title="Análise de Risco", icon="⚖️"),
         st.Page("app/pages/due_diligence.py", title="Due Diligence Ambiental", icon="📑"),
     ],
     "Direitos e Concessões": [
-        st.Page("app/pages/5_concessões.py", title="Base de Concessões", icon="🏗️"),
-        st.Page("app/pages/6_mapa_concessões.py", title="Mapa Geoespacial", icon="🗺️"),
-        st.Page("app/pages/7_prospecção.py", title="Prospecção", icon="🎯"),
+        st.Page("app/pages/5_concessões.py", title="Base de Concessões", icon="🗃️"),
+        st.Page("app/pages/6_mapa_concessões.py", title="Mapa de Concessões", icon="🗺️"),
         st.Page("app/pages/viabilidade.py", title="Análise de Viabilidade", icon="📐"),
+        st.Page("app/pages/7_prospecção.py", title="Prospecção de Oportunidades", icon="🎯"),
     ],
     "Mineral Intelligence": [
         st.Page("app/pages/inteligencia_comercial.py", title="Inteligência Comercial", icon="📈"),
         st.Page("app/pages/monitoramento.py", title="Monitoramento de Indicadores", icon="📡"),
     ],
     "SQ Solutions": [
-        st.Page("app/pages/mineradora_modelo.py", title="IA na Mineração", icon="⚙️"),
+        st.Page("app/pages/mineradora_modelo.py", title="Mineradora Modelo (IA)", icon="⚙️"),
     ],
     "Gestão Interna": [
         st.Page("app/pages/gestao_interna.py", title="Gestão Interna SQ", icon="🏢"),

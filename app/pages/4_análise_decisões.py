@@ -1,4 +1,4 @@
-"""Tab 4: Análise de Decisões — Dashboard analítico de licenciamento."""
+"""Tab 4: Análise de Risco — Dashboard analítico de licenciamento."""
 
 import sys
 from pathlib import Path
@@ -62,7 +62,7 @@ COLORS = {
 # ── Hero ──
 st.markdown(
     hero_html(
-        "Análise de Decisões",
+        "Análise de Risco",
         "Padrões, fatores de risco e detalhamento de casos — licenciamento minerário MG",
     ),
     unsafe_allow_html=True,

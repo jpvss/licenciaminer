@@ -1,4 +1,4 @@
-"""IA na Mineração — SQ Solutions.
+"""Mineradora Modelo (IA) — SQ Solutions.
 
 Objetivo: Dashboard operacional modelo de uma mineradora de ferro
           (5.0 MTPA, disposição de rejeitos em pilhas filtrados).
@@ -34,7 +34,7 @@ from app.styles.theme import (  # noqa: E402
 inject_theme(st)
 
 st.markdown(
-    hero_html("IA na Mineração", "SQ Solutions — Summo Quartile"),
+    hero_html("Mineradora Modelo (IA)", "SQ Solutions — Summo Quartile"),
     unsafe_allow_html=True,
 )
 

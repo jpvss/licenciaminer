@@ -1,4 +1,4 @@
-"""Tab 2: Explorar Dados — Data laboratory with filters, detail view, export."""
+"""Tab 2: Explorar Licenças — Data laboratory with filters, detail view, export."""
 
 import sys
 from pathlib import Path
@@ -28,7 +28,7 @@ from app.styles.theme import (  # noqa: E402
 inject_theme(st)
 
 st.markdown(
-    hero_html("Explorar Dados", "Navegue pelos datasets, filtre e verifique na fonte original"),
+    hero_html("Explorar Licenças", "Navegue pelos datasets, filtre e verifique na fonte original"),
     unsafe_allow_html=True,
 )
 

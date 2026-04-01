@@ -70,13 +70,13 @@ st.caption("Soluções em licenciamento ambiental")
 
 cols = st.columns(5)
 _ambiental = [
-    ("pages/1_visão_geral.py", "📊", "Visão Geral",
+    ("pages/1_visão_geral.py", "🗃️", "Base de Dados",
      "Resumo executivo e tendências", f"{fmt_br(semad_n)} decisões"),
-    ("pages/2_explorar_dados.py", "🔍", "Explorar Dados",
+    ("pages/2_explorar_dados.py", "🔍", "Explorar Licenças",
      "Navegue pelos datasets", f"{fmt_br(anm_n)} processos ANM"),
-    ("pages/3_consulta.py", "💡", "Consulta Inteligente",
+    ("pages/3_consulta.py", "🏢", "Consulta por Empresa",
      "Dossiê por CNPJ ou projeto", f"{fmt_br(mining_n)} decisões mineração"),
-    ("pages/4_análise_decisões.py", "📋", "Análise de Decisões",
+    ("pages/4_análise_decisões.py", "⚖️", "Análise de Risco",
      "Padrões e fatores de risco", f"{fmt_br(infracoes_n)} infrações"),
     ("pages/due_diligence.py", "📑", "Due Diligence",
      "Verificação de conformidade", "Novo"),
@@ -94,14 +94,14 @@ st.caption("Novos negócios e análise de oportunidades")
 
 cols2 = st.columns(4)
 _concessoes = [
-    ("pages/5_concessões.py", "🏗️", "Concessões",
+    ("pages/5_concessões.py", "🗃️", "Base de Concessões",
      "Decretos de lavra e instrumentos"),
-    ("pages/6_mapa_concessões.py", "🗺️", "Mapa Geoespacial",
+    ("pages/6_mapa_concessões.py", "🗺️", "Mapa de Concessões",
      "Polígonos de concessões minerárias"),
-    ("pages/7_prospecção.py", "🎯", "Prospecção",
-     "Oportunidades de aquisição"),
     ("pages/viabilidade.py", "📐", "Análise de Viabilidade",
      "🚧 Em construção"),
+    ("pages/7_prospecção.py", "🎯", "Prospecção de Oportunidades",
+     "Oportunidades de aquisição"),
 ]
 for col, (page, icon, title, desc) in zip(cols2, _concessoes, strict=False):
     with col:
@@ -136,7 +136,7 @@ cols4 = st.columns(2)
 with cols4[0]:
     st.page_link(
         "pages/mineradora_modelo.py", icon="⚙️",
-        label="**IA na Mineração**\n\nDashboard operacional modelo (POC)",
+        label="**Mineradora Modelo (IA)**\n\nDashboard operacional modelo (POC)",
         use_container_width=True,
     )
 with cols4[1]:

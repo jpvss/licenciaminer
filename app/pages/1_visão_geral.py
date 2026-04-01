@@ -1,4 +1,4 @@
-"""Tab 1: Visão Geral — Executive intelligence briefing."""
+"""Tab 1: Base de Dados — Executive intelligence briefing."""
 
 import sys
 from pathlib import Path
@@ -37,7 +37,7 @@ inject_theme(st)
 
 # ── Hero ──
 st.markdown(
-    hero_html("Visão Geral", "Resumo executivo — dados, tendências e insights"),
+    hero_html("Base de Dados", "Resumo executivo — dados, tendências e insights"),
     unsafe_allow_html=True,
 )
 
