@@ -102,17 +102,6 @@ def gerar_serie_kpi(kpi: KPI, rng: np.random.Generator) -> pd.DataFrame:
     })
 
 
-def gerar_dados_setor(setor: str) -> dict[str, pd.DataFrame]:
-    """Gera dados simulados para todos os KPIs de um setor.
-
-    Returns:
-        Dict {nome_kpi: DataFrame com colunas [data, valor, target, min, max]}.
-    """
-    rng = np.random.default_rng(SEED)
-    kpis = SETORES.get(setor, [])
-    return {kpi.nome: gerar_serie_kpi(kpi, rng) for kpi in kpis}
-
-
 def gerar_todos_os_dados() -> dict[str, dict[str, pd.DataFrame]]:
     """Gera dados simulados para todos os setores.
 

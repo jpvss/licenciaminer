@@ -148,23 +148,6 @@ def calcular_conformidade(
     return result
 
 
-def calcular_conformidade_por_documento(
-    avaliacoes_por_doc: dict[str, dict[str, str]],
-) -> dict[str, ResultadoConformidade]:
-    """Calcula conformidade agrupada por documento.
-
-    Args:
-        avaliacoes_por_doc: Dict {documento: {requisito_id: avaliação}}.
-
-    Returns:
-        Dict {documento: ResultadoConformidade}.
-    """
-    return {
-        doc: calcular_conformidade(avals)
-        for doc, avals in avaliacoes_por_doc.items()
-    }
-
-
 def gerar_recomendacoes(
     avaliacoes: dict[str, str],
     requisitos: list[dict[str, str]],

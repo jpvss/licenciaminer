@@ -113,12 +113,3 @@ def filtrar_requisitos(
         req for req in requisitos
         if req.get("documento", "").strip().upper().replace(" ", "_").replace("-", "_") == doc_norm
     ]
-
-
-def get_documentos_por_licenca() -> dict[str, int]:
-    """Retorna contagem de documentos por tipo de licença."""
-    inventario = load_inventario()
-    result: dict[str, int] = {}
-    for tipo in LICENCA_TIPOS:
-        result[tipo] = len(filtrar_documentos(tipo, inventario))
-    return result

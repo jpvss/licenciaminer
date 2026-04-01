@@ -15,7 +15,6 @@ from tenacity import (
 
 from licenciaminer.config import (
     HTTP_TIMEOUT,
-    REFERENCE_DIR,
     RETRY_ATTEMPTS,
     RETRY_MAX_WAIT,
     RETRY_MIN_WAIT,
@@ -28,18 +27,6 @@ COMEX_API_URL = "https://api-comexstat.mdic.gov.br/general"
 
 # NCMs minerais: capítulo 26 (minérios, escórias, cinzas)
 MINERAL_NCM_CHAPTER = "26"
-
-
-def _load_ncm_codes() -> list[str]:
-    """Carrega códigos NCM de mineração do CSV de referência."""
-    csv_path = REFERENCE_DIR / "comex_ncm_mineracao.csv"
-    if csv_path.exists():
-        import csv
-
-        with open(csv_path, encoding="utf-8") as f:
-            return [row["ncm"] for row in csv.DictReader(f)]
-    # Fallback: NCMs do capítulo 26 (minérios)
-    return [f"26{i:02d}" for i in range(1, 18)]
 
 
 @retry(
