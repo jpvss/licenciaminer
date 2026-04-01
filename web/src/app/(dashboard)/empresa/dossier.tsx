@@ -37,15 +37,18 @@ import { StatCard } from "@/components/stat-card";
 import { RiskBadge } from "@/components/risk-badge";
 import {
   fetchReportData,
+  fetchEmpresa,
   fetchEmpresaANM,
   downloadReportPDF,
   type ReportData,
   type ANMTitulo,
+  type EmpresaProfile,
 } from "@/lib/api";
 import { fmtBR, fmtPct, fmtReais, fmtDate, fmtCNPJ, fmtHa } from "@/lib/format";
 
 export function EmpresaDossier({ cnpj }: { cnpj: string }) {
   const [data, setData] = useState<ReportData | null>(null);
+  const [profile, setProfile] = useState<EmpresaProfile | null>(null);
   const [anmTitulos, setAnmTitulos] = useState<ANMTitulo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,13 +59,16 @@ export function EmpresaDossier({ cnpj }: { cnpj: string }) {
     setLoading(true);
     setError(null);
     setAnmTitulos([]);
+    setProfile(null);
 
     Promise.all([
       fetchReportData(cnpj),
+      fetchEmpresa(cnpj).catch(() => null),
       fetchEmpresaANM(cnpj).catch(() => ({ titular: "", total: 0, titulos: [] })),
     ])
-      .then(([reportData, anmData]) => {
+      .then(([reportData, empresaData, anmData]) => {
         setData(reportData);
+        if (empresaData) setProfile(empresaData);
         if (anmData && Array.isArray(anmData.titulos)) {
           setAnmTitulos(anmData.titulos);
         } else if (Array.isArray(anmData)) {
@@ -114,6 +120,19 @@ export function EmpresaDossier({ cnpj }: { cnpj: string }) {
               <p className="mt-1 text-sm font-mono text-muted-foreground">
                 CNPJ: {fmtCNPJ(cnpj)}
               </p>
+              {profile?.profile && (
+                <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                  {profile.profile.cnae_fiscal && (
+                    <span>CNAE: {profile.profile.cnae_fiscal} — {profile.profile.cnae_descricao}</span>
+                  )}
+                  {profile.profile.porte && (
+                    <span>Porte: {profile.profile.porte}</span>
+                  )}
+                  {profile.profile.data_abertura && (
+                    <span>Abertura: {fmtDate(profile.profile.data_abertura)}</span>
+                  )}
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-3">
               <Button

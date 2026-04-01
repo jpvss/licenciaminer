@@ -120,16 +120,16 @@ export function DataTable<TData>({
         </div>
       </div>
 
-      {/* Table */}
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
+      {/* Table — contained scroll */}
+      <div className="rounded-md border overflow-x-auto max-h-[520px] overflow-y-auto">
+        <Table className="min-w-[800px]">
+          <TableHeader className="sticky top-0 z-10">
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} className="bg-muted/50">
+              <TableRow key={headerGroup.id} className="bg-muted/80 backdrop-blur-sm">
                 {headerGroup.headers.map((header) => (
                   <TableHead
                     key={header.id}
-                    className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                    className="text-xs font-medium uppercase tracking-wide text-muted-foreground whitespace-nowrap"
                   >
                     {header.isPlaceholder ? null : (
                       <button
@@ -153,11 +153,11 @@ export function DataTable<TData>({
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  className={onRowClick ? "cursor-pointer" : undefined}
+                  className={onRowClick ? "cursor-pointer hover:bg-muted/50" : undefined}
                   onClick={() => onRowClick?.(row.original)}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="tabular-nums">
+                    <TableCell key={cell.id} className="tabular-nums whitespace-nowrap max-w-[300px] truncate">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}

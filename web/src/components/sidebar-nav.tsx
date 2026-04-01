@@ -5,8 +5,11 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   Building2,
+  Construction,
   Database,
+  Factory,
   FileSearch,
+  Globe,
   LayoutDashboard,
   Map,
   Search,
@@ -15,23 +18,54 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const NAV_SECTIONS = [
+interface NavItem {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  disabled?: boolean;
+}
+
+const NAV_SECTIONS: { label: string; color?: string; items: NavItem[] }[] = [
   {
     label: "Summo Ambiental",
+    color: "text-brand-orange",
     items: [
       { href: "/", label: "Painel Principal", icon: LayoutDashboard },
       { href: "/explorar", label: "Explorar Dados", icon: Database },
       { href: "/empresa", label: "Consulta Empresa", icon: Building2 },
-      { href: "/decisoes", label: "An\u00e1lise Decis\u00f5es", icon: BarChart3 },
+      { href: "/decisoes", label: "Análise Decisões", icon: BarChart3 },
       { href: "/due-diligence", label: "Due Diligence", icon: ShieldCheck },
     ],
   },
   {
-    label: "Direitos e Concess\u00f5es",
+    label: "Direitos e Concessões",
+    color: "text-brand-teal",
     items: [
-      { href: "/concessoes", label: "Base de Concess\u00f5es", icon: FileSearch },
+      { href: "/concessoes", label: "Base de Concessões", icon: FileSearch },
       { href: "/mapa", label: "Mapa Geoespacial", icon: Map },
-      { href: "/prospeccao", label: "Prospec\u00e7\u00e3o", icon: TrendingUp },
+      { href: "/prospeccao", label: "Prospecção", icon: TrendingUp },
+    ],
+  },
+  {
+    label: "Mineral Intelligence",
+    color: "text-brand-gold",
+    items: [
+      { href: "/inteligencia-comercial", label: "Inteligência Comercial", icon: Globe },
+      { href: "/monitoramento", label: "Monitoramento", icon: Search, disabled: true },
+    ],
+  },
+  {
+    label: "SQ Solutions",
+    color: "text-brand-teal",
+    items: [
+      { href: "/mineradora-modelo", label: "Mineradora Modelo", icon: Factory },
+    ],
+  },
+  {
+    label: "Gestão Interna",
+    color: "text-sidebar-foreground/40",
+    items: [
+      { href: "/gestao-interna", label: "Gestão Interna", icon: Construction, disabled: true },
     ],
   },
 ];
@@ -60,7 +94,10 @@ export function SidebarNav() {
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
         {NAV_SECTIONS.map((section) => (
           <div key={section.label}>
-            <p className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40">
+            <p className={cn(
+              "px-3 mb-2 text-[10px] font-semibold uppercase tracking-widest",
+              section.color ?? "text-sidebar-foreground/40"
+            )}>
               {section.label}
             </p>
             <ul className="space-y-0.5">
@@ -69,15 +106,20 @@ export function SidebarNav() {
                   item.href === "/"
                     ? pathname === "/"
                     : pathname.startsWith(item.href);
+                const disabled = item.disabled;
                 return (
                   <li key={item.href}>
                     <Link
-                      href={item.href}
+                      href={disabled ? "#" : item.href}
+                      aria-disabled={disabled || undefined}
+                      tabIndex={disabled ? -1 : undefined}
                       className={cn(
                         "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                        isActive
-                          ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                        disabled
+                          ? "pointer-events-none text-sidebar-foreground/30"
+                          : isActive
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
                       )}
                     >
                       <item.icon className="h-4 w-4 shrink-0" />

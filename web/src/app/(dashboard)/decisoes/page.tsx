@@ -124,6 +124,9 @@ export default function DecisoesPage() {
         <p className="mt-1 text-sm text-muted-foreground">
           Taxas de aprovação, tendências e análise comparativa por regional e modalidade
         </p>
+        <p className="mt-0.5 text-xs text-muted-foreground/60">
+          Deferido = aprovado · Indeferido = negado · Arquivamento = processo encerrado sem decisão de mérito · Classes 1-6 por impacto ambiental
+        </p>
       </div>
 
       {error && (
@@ -186,9 +189,10 @@ export default function DecisoesPage() {
           <TabsTrigger value="risco">Fatores de Risco</TabsTrigger>
         </TabsList>
 
-        {/* Tab 1: Rejection trend */}
+        {/* Tab 1: Rejection trend + insights */}
         <TabsContent value="trend">
-          <Card>
+          <div className="grid gap-4 lg:grid-cols-3">
+          <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 font-heading">
                 <TrendingDown className="h-4 w-4 text-danger" />
@@ -222,6 +226,40 @@ export default function DecisoesPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Insights sidebar */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="font-heading text-base">Insights</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {latestYear && (
+                <>
+                  <InsightItem
+                    tone={latestYear.taxa_indeferimento > 20 ? "negative" : "positive"}
+                    text={`Indeferimento ${latestYear.ano}: ${fmtPct(latestYear.taxa_indeferimento)}`}
+                  />
+                  <InsightItem
+                    tone="neutral"
+                    text={`Arquivamentos: ${fmtPct(latestYear.taxa_arquivamento)} (${fmtNumber(latestYear.arquivamentos)} processos)`}
+                  />
+                </>
+              )}
+              {regionalRigor && regionalRigor.length > 0 && (
+                <InsightItem
+                  tone="negative"
+                  text={`Regional mais rigorosa: ${regionalRigor.reduce((a, b) => a.taxa_indeferimento > b.taxa_indeferimento ? a : b).regional.replace("Unidade Regional de Regularização Ambiental ", "")}`}
+                />
+              )}
+              {infractionBands && infractionBands.length > 0 && (
+                <InsightItem
+                  tone="neutral"
+                  text={`${infractionBands.filter(b => b.faixa_infracoes.includes("6+")).reduce((a, b) => a + b.total, 0)} empresas com 6+ infrações`}
+                />
+              )}
+            </CardContent>
+          </Card>
+          </div>
         </TabsContent>
 
         {/* Tab 2: Regional rigor */}
@@ -499,5 +537,18 @@ function KPICard({
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function InsightItem({ tone, text }: { tone: "positive" | "neutral" | "negative"; text: string }) {
+  const toneClasses = {
+    positive: "border-l-success bg-success/5",
+    neutral: "border-l-muted-foreground bg-muted/30",
+    negative: "border-l-danger bg-danger/5",
+  };
+  return (
+    <div className={`rounded-r-md border-l-2 px-3 py-2 text-xs ${toneClasses[tone]}`}>
+      {text}
+    </div>
   );
 }

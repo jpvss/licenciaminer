@@ -6,11 +6,15 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   Building2,
+  Construction,
   Database,
+  Factory,
   FileSearch,
+  Globe,
   LayoutDashboard,
   Map,
   Menu,
+  Search,
   ShieldCheck,
   TrendingUp,
 } from "lucide-react";
@@ -18,15 +22,37 @@ import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 
-const MOBILE_NAV = [
-  { href: "/", label: "Painel Principal", icon: LayoutDashboard },
-  { href: "/explorar", label: "Explorar Dados", icon: Database },
-  { href: "/empresa", label: "Consulta Empresa", icon: Building2 },
-  { href: "/decisoes", label: "An\u00e1lise Decis\u00f5es", icon: BarChart3 },
-  { href: "/due-diligence", label: "Due Diligence", icon: ShieldCheck },
-  { href: "/concessoes", label: "Base de Concess\u00f5es", icon: FileSearch },
-  { href: "/mapa", label: "Mapa Geoespacial", icon: Map },
-  { href: "/prospeccao", label: "Prospec\u00e7\u00e3o", icon: TrendingUp },
+const MOBILE_NAV_SECTIONS = [
+  {
+    label: "Summo Ambiental",
+    items: [
+      { href: "/", label: "Painel Principal", icon: LayoutDashboard },
+      { href: "/explorar", label: "Explorar Dados", icon: Database },
+      { href: "/empresa", label: "Consulta Empresa", icon: Building2 },
+      { href: "/decisoes", label: "Análise Decisões", icon: BarChart3 },
+      { href: "/due-diligence", label: "Due Diligence", icon: ShieldCheck },
+    ],
+  },
+  {
+    label: "Direitos e Concessões",
+    items: [
+      { href: "/concessoes", label: "Base de Concessões", icon: FileSearch },
+      { href: "/mapa", label: "Mapa Geoespacial", icon: Map },
+      { href: "/prospeccao", label: "Prospecção", icon: TrendingUp },
+    ],
+  },
+  {
+    label: "Mineral Intelligence",
+    items: [
+      { href: "/inteligencia-comercial", label: "Inteligência Comercial", icon: Globe },
+    ],
+  },
+  {
+    label: "SQ Solutions",
+    items: [
+      { href: "/mineradora-modelo", label: "Mineradora Modelo", icon: Factory },
+    ],
+  },
 ];
 
 export function Header() {
@@ -51,29 +77,36 @@ export function Header() {
               Summo Quartile
             </span>
           </div>
-          <nav className="px-3 py-4 space-y-1">
-            {MOBILE_NAV.map((item) => {
-              const isActive =
-                item.href === "/"
-                  ? pathname === "/"
-                  : pathname.startsWith(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setOpen(false)}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
-                    isActive
-                      ? "bg-sidebar-accent text-white font-medium"
-                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-white"
-                  )}
-                >
-                  <item.icon className="h-4 w-4" />
-                  {item.label}
-                </Link>
-              );
-            })}
+          <nav className="px-3 py-4 space-y-4">
+            {MOBILE_NAV_SECTIONS.map((section) => (
+              <div key={section.label}>
+                <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40">
+                  {section.label}
+                </p>
+                {section.items.map((item) => {
+                  const isActive =
+                    item.href === "/"
+                      ? pathname === "/"
+                      : pathname.startsWith(item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setOpen(false)}
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
+                        isActive
+                          ? "bg-sidebar-accent text-white font-medium"
+                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-white"
+                      )}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
           </nav>
         </SheetContent>
       </Sheet>

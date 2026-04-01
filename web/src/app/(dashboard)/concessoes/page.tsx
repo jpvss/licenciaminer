@@ -187,7 +187,10 @@ export default function ConcessoesPage() {
 
   const handleRowClick = (row: Record<string, unknown>) => {
     const processo = row.processo_norm ?? row.processo;
-    if (processo) setSelectedProcesso(String(processo));
+    if (!processo) return;
+    const key = String(processo);
+    // Toggle: clicking the same row again closes the detail panel
+    setSelectedProcesso((prev) => (prev === key ? null : key));
   };
 
   const regimeLabels = data?.regime_labels ?? filterOptions?.regime_labels ?? {};
@@ -200,6 +203,9 @@ export default function ConcessoesPage() {
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Concessões minerárias ANM — decretos de lavra, licenciamentos e garimpeira
+        </p>
+        <p className="mt-0.5 text-xs text-muted-foreground/60">
+          Clique em uma linha para ver detalhes · Filtros combinam com AND · Dados: ANM SIGMINE + CFEM
         </p>
       </div>
 

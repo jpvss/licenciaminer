@@ -3,11 +3,19 @@
 import { useEffect, useState } from "react";
 import {
   BarChart3,
+  Database,
   FileWarning,
+  Info,
   Landmark,
   TrendingUp,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatCard } from "@/components/stat-card";
 import {
@@ -40,6 +48,9 @@ export default function DashboardPage() {
         <p className="mt-1 text-sm text-muted-foreground">
           Panorama consolidado do licenciamento ambiental minerário em Minas Gerais
         </p>
+        <p className="mt-0.5 text-xs text-muted-foreground/60">
+          Fontes: SEMAD/MG, IBAMA, ANM/SIGMINE, CFEM, COPAM
+        </p>
       </div>
 
       {/* Error state */}
@@ -58,7 +69,7 @@ export default function DashboardPage() {
           <StatCard
             label="Total Decisões"
             value={fmtNumber(stats.total_decisoes)}
-            subtitle="processos analisados"
+            subtitle="processos analisados · Fonte: SEMAD MG"
             icon={BarChart3}
           />
           <StatCard
@@ -71,14 +82,14 @@ export default function DashboardPage() {
           <StatCard
             label="Licenças IBAMA"
             value={fmtNumber(stats.total_infracoes)}
-            subtitle="licenças emitidas"
+            subtitle="licenças emitidas · Fonte: IBAMA SISLIC"
             icon={FileWarning}
             accentClass="bg-brand-orange"
           />
           <StatCard
             label="Processos ANM"
             value={fmtNumber(stats.total_processos_anm)}
-            subtitle="títulos minerários"
+            subtitle="títulos minerários · Fonte: ANM SIGMINE"
             icon={Landmark}
           />
         </div>
@@ -86,29 +97,158 @@ export default function DashboardPage() {
         <KPISkeleton />
       ) : null}
 
-      {/* Trend chart */}
-      {trend ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 font-heading">
-              <TrendingUp className="h-4 w-4 text-brand-teal" />
-              Tendência Anual de Decisões
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <TrendChart data={trend} />
-          </CardContent>
-        </Card>
-      ) : !error ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Tendência Anual</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-64 w-full" />
-          </CardContent>
-        </Card>
-      ) : null}
+      {/* Insights panel alongside trend chart */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Trend chart (2 cols) */}
+        <div className="lg:col-span-2">
+          {trend ? (
+            <Card className="h-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 font-heading">
+                  <TrendingUp className="h-4 w-4 text-brand-teal" />
+                  Tendência Anual de Decisões
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <TrendChart data={trend} />
+              </CardContent>
+            </Card>
+          ) : !error ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Tendência Anual</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-64 w-full" />
+              </CardContent>
+            </Card>
+          ) : null}
+        </div>
+
+        {/* Insights sidebar (1 col) */}
+        {stats && (
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 font-heading text-base">
+                <Info className="h-4 w-4 text-brand-orange" />
+                Principais Indicadores
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <InsightCard
+                tone={stats.taxa_aprovacao_mineracao >= 70 ? "positive" : stats.taxa_aprovacao_mineracao >= 50 ? "neutral" : "negative"}
+                text={`Taxa de aprovação minerária: ${fmtPct(stats.taxa_aprovacao_mineracao)}`}
+              />
+              <InsightCard
+                tone="neutral"
+                text={`${fmtNumber(stats.total_decisoes_mineracao)} decisões de mineração no banco`}
+              />
+              <InsightCard
+                tone={stats.total_infracoes > 0 ? "positive" : "neutral"}
+                text={`${fmtNumber(stats.total_infracoes)} licenças IBAMA emitidas para MG`}
+              />
+              <InsightCard
+                tone="neutral"
+                text={`${fmtNumber(stats.total_processos_anm)} processos minerários ANM ativos`}
+              />
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Data sources + methodology */}
+      <Accordion type="multiple" className="space-y-3">
+        <AccordionItem value="sources" className="rounded-xl border bg-card shadow-sm">
+          <AccordionTrigger className="px-6 py-4 hover:no-underline">
+            <div className="flex items-center gap-2 font-heading text-base">
+              <Database className="h-4 w-4 text-brand-teal" />
+              Fontes de Dados
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-6 pb-4">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b text-left text-muted-foreground">
+                    <th className="pb-2 pr-4 font-medium">Fonte</th>
+                    <th className="pb-2 pr-4 font-medium">Tipo</th>
+                    <th className="pb-2 font-medium">Cobertura</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {DATA_SOURCES.map((src) => (
+                    <tr key={src.name}>
+                      <td className="py-2 pr-4 font-medium">{src.name}</td>
+                      <td className="py-2 pr-4 text-muted-foreground">{src.type}</td>
+                      <td className="py-2 text-muted-foreground">{src.coverage}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        <AccordionItem value="methodology" className="rounded-xl border bg-card shadow-sm">
+          <AccordionTrigger className="px-6 py-4 hover:no-underline">
+            <div className="flex items-center gap-2 font-heading text-base">
+              <Info className="h-4 w-4 text-brand-orange" />
+              Sobre / Metodologia
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-6 pb-4">
+            <div className="space-y-2 text-sm text-muted-foreground leading-relaxed">
+              <p>
+                O Sistema Integrado Summo Quartile consolida dados de múltiplas fontes públicas
+                oficiais para oferecer inteligência ambiental, mineral e operacional.
+              </p>
+              <p>
+                <strong>Decisões SEMAD:</strong> Extraídas do portal de licenciamento ambiental do
+                estado de Minas Gerais. Incluem decisões de deferimento, indeferimento e arquivamento
+                classificadas por atividade (DN COPAM 217/2017), classe de impacto (1-6) e regional.
+              </p>
+              <p>
+                <strong>ANM/SIGMINE:</strong> Dados de títulos minerários via ArcGIS REST API. Inclui
+                processos de concessão de lavra, licenciamento, pesquisa e lavra garimpeira.
+              </p>
+              <p>
+                <strong>CFEM:</strong> Compensação Financeira pela Exploração de Recursos Minerais,
+                com dados de pagamentos por município e substância mineral.
+              </p>
+              <p>
+                <strong>Auditabilidade:</strong> Todo registro no sistema é rastreável à URL da fonte
+                original. Dados processados em formato Parquet e consultados via DuckDB.
+              </p>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+    </div>
+  );
+}
+
+const DATA_SOURCES = [
+  { name: "SEMAD MG", type: "Web scraper / Excel", coverage: "Decisões de licenciamento MG" },
+  { name: "IBAMA SISLIC", type: "JSON API", coverage: "Licenças federais emitidas" },
+  { name: "ANM SIGMINE", type: "ArcGIS REST", coverage: "Títulos minerários nacional" },
+  { name: "CFEM", type: "CSV / ANM", coverage: "Arrecadação compensação mineral" },
+  { name: "COPAM CMI", type: "Web scraper", coverage: "Deliberações conselho ambiental" },
+  { name: "RAL", type: "CSV / ANM", coverage: "Relatório Anual de Lavra" },
+  { name: "BCB PTAX", type: "OData API", coverage: "Câmbio USD/BRL" },
+  { name: "Comex Stat", type: "REST API", coverage: "Comércio exterior mineral" },
+  { name: "CNPJ (Receita)", type: "REST API", coverage: "Dados cadastrais de empresas" },
+];
+
+function InsightCard({ tone, text }: { tone: "positive" | "neutral" | "negative"; text: string }) {
+  const toneClasses = {
+    positive: "border-l-success bg-success/5",
+    neutral: "border-l-muted-foreground bg-muted/30",
+    negative: "border-l-danger bg-danger/5",
+  };
+
+  return (
+    <div className={`rounded-r-md border-l-2 px-3 py-2 text-xs ${toneClasses[tone]}`}>
+      {text}
     </div>
   );
 }
