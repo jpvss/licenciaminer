@@ -19,9 +19,11 @@ def get_theme_css() -> str:
     """Retorna o CSS completo do tema Consultoria Estratégica."""
     return """
     <style>
-    /* ── Hide Streamlit chrome (keep header for sidebar toggle) ── */
-    .stDeployButton, footer, #MainMenu {visibility: hidden;}
-    header[data-testid="stHeader"] {background: transparent;}
+    /* ── Hide Streamlit chrome ── */
+    .stDeployButton, footer, #MainMenu,
+    [data-testid="stStatusWidget"],
+    [data-testid="manage-app-button"] {display: none !important;}
+    header[data-testid="stHeader"] {visibility: hidden; height: 0; min-height: 0; padding: 0;}
 
     /* ══════════════════════════════════════════════
        DESIGN TOKENS — Consultoria Estratégica
