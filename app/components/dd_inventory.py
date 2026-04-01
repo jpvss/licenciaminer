@@ -6,7 +6,6 @@ documentos e requisitos aplicáveis por tipo de licença e classe.
 
 import csv
 from pathlib import Path
-from typing import Any
 
 _REF_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "reference"
 
@@ -28,14 +27,6 @@ def load_inventario() -> list[dict[str, str]]:
 def load_requisitos() -> list[dict[str, str]]:
     """Carrega requisitos de teste completos (1934 testes)."""
     return _load_csv("dd_requisitos_testes.csv")
-
-
-def load_ponderacao() -> list[dict[str, Any]]:
-    """Carrega tabela de ponderação de risco."""
-    rows = _load_csv("dd_ponderacao.csv")
-    for r in rows:
-        r["peso"] = float(r["peso"])
-    return rows
 
 
 # ── Mapeamento de licenças para filtro ──

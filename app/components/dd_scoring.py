@@ -76,7 +76,11 @@ class ResultadoConformidade:
 
 
 def classificar_conformidade(score: float) -> dict[str, str]:
-    """Classifica um score de conformidade na escala definida."""
+    """Classifica um score de conformidade na escala definida.
+
+    Boundaries: score >= min and score <= max, with higher bands checked first.
+    E.g., score=0.90 → "Alta aderência" (first match wins).
+    """
     for faixa in CONFORMIDADE_ESCALA:
         if faixa["min"] <= score <= faixa["max"]:
             return {"label": faixa["label"], "cor": faixa["cor"], "descricao": faixa["descricao"]}

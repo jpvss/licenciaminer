@@ -480,7 +480,7 @@ elif st.session_state.dd_step == 4:
 
             # Taxa de aprovação para atividade/classe similar
             stats = safe_query(
-                f"""
+                """
                 SELECT
                     COUNT(*) AS total,
                     SUM(CASE WHEN decisao = 'Deferido' THEN 1 ELSE 0 END) AS deferidos,
@@ -488,9 +488,10 @@ elif st.session_state.dd_step == 4:
                         SUM(CASE WHEN decisao = 'Deferido' THEN 1.0 ELSE 0 END) / COUNT(*) * 100, 1
                     ) AS taxa_aprovacao
                 FROM v_mg_semad
-                WHERE atividade LIKE '{atividade}%'
-                  AND classe = '{classe}'
+                WHERE atividade LIKE ? || '%'
+                  AND classe = ?
                 """,
+                params=[atividade, str(classe)],
                 context="contexto DD",
                 fallback=[],
             )
@@ -508,12 +509,10 @@ elif st.session_state.dd_step == 4:
                 cnpj_clean = cnpj.replace(".", "").replace("/", "").replace("-", "")
                 st.markdown(f"**Dados da empresa:** CNPJ {cnpj}")
 
-                q = (
-                    "SELECT COUNT(*) AS n FROM v_ibama_infracoes"
-                    f" WHERE cpf_cnpj_infrator = '{cnpj_clean}'"
-                )
                 infracoes = safe_query(
-                    q,
+                    "SELECT COUNT(*) AS n FROM v_ibama_infracoes"
+                    " WHERE cpf_cnpj_infrator = ?",
+                    params=[cnpj_clean],
                     context="infrações DD",
                     fallback=[{"n": 0}],
                 )

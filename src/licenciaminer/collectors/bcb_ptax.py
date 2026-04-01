@@ -80,9 +80,13 @@ def collect_bcb_ptax(
 
     records = _fetch_ptax(date_start, date_end)
 
+    output = data_dir / "processed" / "bcb_cotacoes.parquet"
+
     if not records:
         logger.warning("BCB PTAX: nenhum registro retornado")
-        return data_dir / "processed" / "bcb_cotacoes.parquet"
+        df = pd.DataFrame(columns=["data", "cotacao_compra", "cotacao_venda"])
+        atomic_parquet_write(df, output)
+        return output
 
     df = pd.DataFrame(records)
 
@@ -107,7 +111,6 @@ def collect_bcb_ptax(
     df["cotacao_compra"] = df["cotacao_compra"].astype(float)
     df["cotacao_venda"] = df["cotacao_venda"].astype(float)
 
-    output = data_dir / "processed" / "bcb_cotacoes.parquet"
     atomic_parquet_write(df, output)
     add_metadata(output, "bcb_ptax", len(df))
 
