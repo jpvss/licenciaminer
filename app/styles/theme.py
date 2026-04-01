@@ -19,9 +19,8 @@ def get_theme_css() -> str:
     """Retorna o CSS completo do tema Consultoria Estratégica."""
     return """
     <style>
-    /* ── Hide Streamlit chrome ── */
-    .stDeployButton, [data-testid="stToolbar"],
-    footer, #MainMenu {visibility: hidden;}
+    /* ── Hide Streamlit chrome (keep header for sidebar toggle) ── */
+    .stDeployButton, footer, #MainMenu {visibility: hidden;}
     header[data-testid="stHeader"] {background: transparent;}
 
     /* ══════════════════════════════════════════════

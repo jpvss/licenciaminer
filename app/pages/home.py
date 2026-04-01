@@ -17,6 +17,12 @@ import streamlit as st  # noqa: E402
 
 from app.styles.theme import hero_html, section_header  # noqa: E402
 
+_pages_dir = Path(__file__).resolve().parent
+
+
+def _page_path(filename: str) -> str:
+    return str(_pages_dir / filename)
+
 # ── Hero ──
 st.markdown(
     hero_html(
@@ -70,15 +76,15 @@ st.caption("Soluções em licenciamento ambiental")
 
 cols = st.columns(5)
 _ambiental = [
-    ("pages/1_visao_geral.py", "**Base de Dados**",
+    (_page_path("1_visao_geral.py"), "**Base de Dados**",
      "Resumo executivo e tendências", f"{fmt_br(semad_n)} decisões"),
-    ("pages/2_explorar_dados.py", "**Explorar Licenças**",
+    (_page_path("2_explorar_dados.py"), "**Explorar Licenças**",
      "Navegue pelos datasets", f"{fmt_br(anm_n)} processos ANM"),
-    ("pages/3_consulta.py", "**Consulta por Empresa**",
+    (_page_path("3_consulta.py"), "**Consulta por Empresa**",
      "Dossiê por CNPJ ou projeto", f"{fmt_br(mining_n)} decisões mineração"),
-    ("pages/4_analise_decisoes.py", "**Análise de Risco**",
+    (_page_path("4_analise_decisoes.py"), "**Análise de Risco**",
      "Padrões e fatores de risco", f"{fmt_br(infracoes_n)} infrações"),
-    ("pages/due_diligence.py", "**Due Diligence**",
+    (_page_path("due_diligence.py"), "**Due Diligence**",
      "Verificação de conformidade", "Novo"),
 ]
 for col, (page, title, desc, stat) in zip(cols, _ambiental, strict=False):
@@ -94,13 +100,13 @@ st.caption("Novos negócios e análise de oportunidades")
 
 cols2 = st.columns(4)
 _concessoes = [
-    ("pages/5_concessoes.py", "**Base de Concessões**",
+    (_page_path("5_concessoes.py"), "**Base de Concessões**",
      "Decretos de lavra e instrumentos"),
-    ("pages/6_mapa_concessoes.py", "**Mapa de Concessões**",
+    (_page_path("6_mapa_concessoes.py"), "**Mapa de Concessões**",
      "Polígonos de concessões minerárias"),
-    ("pages/viabilidade.py", "**Análise de Viabilidade**",
+    (_page_path("viabilidade.py"), "**Análise de Viabilidade**",
      "Em construção"),
-    ("pages/7_prospeccao.py", "**Prospecção de Oportunidades**",
+    (_page_path("7_prospeccao.py"), "**Prospecção de Oportunidades**",
      "Oportunidades de aquisição"),
 ]
 for col, (page, title, desc) in zip(cols2, _concessoes, strict=False):
@@ -116,9 +122,9 @@ st.caption("Consultoria e geração de dados relevantes para o setor")
 
 cols3 = st.columns(2)
 _mi = [
-    ("pages/inteligencia_comercial.py", "**Inteligência Comercial**",
+    (_page_path("inteligencia_comercial.py"), "**Inteligência Comercial**",
      "Indicadores de mercado da mineração"),
-    ("pages/monitoramento.py", "**Monitoramento**",
+    (_page_path("monitoramento.py"), "**Monitoramento**",
      "Em construção"),
 ]
 for col, (page, title, desc) in zip(cols3, _mi, strict=False):
@@ -135,13 +141,13 @@ st.caption("Soluções em Tecnologia e IA")
 cols4 = st.columns(2)
 with cols4[0]:
     st.page_link(
-        "pages/mineradora_modelo.py",
+        _page_path("mineradora_modelo.py"),
         label="**Mineradora Modelo (IA)**\n\nDashboard operacional modelo (POC)",
         use_container_width=True,
     )
 with cols4[1]:
     st.page_link(
-        "pages/gestao_interna.py",
+        _page_path("gestao_interna.py"),
         label="**Gestão Interna SQ**\n\nEm construção",
         use_container_width=True,
     )
