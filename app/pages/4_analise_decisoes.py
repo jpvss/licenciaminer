@@ -13,7 +13,9 @@ import streamlit as st  # noqa: E402
 
 from app.components.data_loader import fmt_br, fmt_pct, fmt_reais, run_query, run_query_df  # noqa: E402
 from app.styles.theme import (  # noqa: E402
+    CHART_COLORS,
     decision_badge,
+    get_plotly_layout,
     hero_html,
     inject_theme,
     insight_card,
@@ -37,26 +39,16 @@ from licenciaminer.database.queries import (  # noqa: E402
 inject_theme(st)
 
 # ── Plotly layout defaults ──
-PLOTLY_LAYOUT = {
-    "plot_bgcolor": "rgba(0,0,0,0)",
-    "paper_bgcolor": "rgba(0,0,0,0)",
-    "font": {"color": "#8B9BB4", "family": "Instrument Sans"},
-    "margin": {"t": 10, "b": 35, "l": 45, "r": 20},
-    "hoverlabel": {
-        "bgcolor": "#1A1E28",
-        "bordercolor": "#2E3442",
-        "font": {"family": "Instrument Sans", "size": 12},
-    },
-}
+PLOTLY_LAYOUT = get_plotly_layout()
 COLORS = {
-    "deferido": "#5BA77D",
-    "indeferido": "#C45B52",
-    "arquivamento": "#8B9BB4",
-    "outro": "#5E6B80",
-    "amber": "#D4A847",
-    "copper": "#C17F59",
-    "quartz": "#E8E4DC",
-    "slate": "#8B9BB4",
+    "deferido": CHART_COLORS["success"],
+    "indeferido": CHART_COLORS["danger"],
+    "arquivamento": CHART_COLORS["neutral"],
+    "outro": "#6B7C93",
+    "amber": CHART_COLORS["accent"],
+    "copper": CHART_COLORS["secondary"],
+    "quartz": "#1A2C42",
+    "slate": CHART_COLORS["neutral"],
 }
 
 # ── Hero ──
@@ -239,9 +231,9 @@ with tab_overview:
                     x=[f"Classe {int(c)}" for c in heat_pivot.columns],
                     y=heat_pivot.index,
                     colorscale=[
-                        [0.0, "#C45B52"],   # oxide (low approval)
-                        [0.5, "#D4A847"],   # amber (mid)
-                        [1.0, "#5BA77D"],   # malachite (high approval)
+                        [0.0, "#E74C3C"],   # danger (low approval)
+                        [0.5, "#F39C12"],   # warning (mid)
+                        [1.0, "#27AE60"],   # success (high approval)
                     ],
                     zmin=0, zmax=100,
                     text=heat_pivot.values,
@@ -302,10 +294,10 @@ with tab_overview:
                     mode="lines+markers+text",
                     text=[f"{v:.0f}%" for v in trend_df["taxa_indeferimento"]],
                     textposition="top center",
-                    textfont={"size": 10, "color": "#8B9BB4"},
+                    textfont={"size": 10, "color": "#4A5568"},
                     line={"color": COLORS["indeferido"], "width": 2.5},
                     marker={"size": 6, "color": COLORS["indeferido"],
-                            "line": {"width": 2, "color": "#0C0E12"}},
+                            "line": {"width": 2, "color": "#FFFFFF"}},
                     name="Indeferimento",
                     hovertemplate="%{x}: %{y:.1f}%<extra></extra>",
                 ))
@@ -367,7 +359,7 @@ with tab_overview:
                       in zip(reg_df["taxa_indeferimento"], reg_df["total"],
                              strict=False)],
                 textposition="outside",
-                textfont={"size": 10, "color": "#8B9BB4"},
+                textfont={"size": 10, "color": "#4A5568"},
                 hovertemplate=(
                     "%{y}<br>Indeferimento: %{x:.1f}%<br>"
                     "Total: %{customdata:,}<extra></extra>"
@@ -419,7 +411,7 @@ with tab_risk:
                     ],
                     text=[f"{t:.0f}%" for t in inf_df["taxa_aprovacao"]],
                     textposition="outside",
-                    textfont={"size": 11, "color": "#8B9BB4"},
+                    textfont={"size": 11, "color": "#4A5568"},
                     hovertemplate=(
                         "%{x}<br>Aprovação: %{y:.1f}%<br>"
                         "N = %{customdata:,}<extra></extra>"
@@ -532,9 +524,9 @@ with tab_risk:
                 x=[f"Classe {int(c)}" for c in pivot.columns],
                 y=pivot.index,
                 colorscale=[
-                    [0.0, "#C45B52"],
-                    [0.5, "#D4A847"],
-                    [1.0, "#5BA77D"],
+                    [0.0, "#E74C3C"],
+                    [0.5, "#F39C12"],
+                    [1.0, "#27AE60"],
                 ],
                 zmin=0, zmax=100,
                 text=pivot.values,
@@ -629,7 +621,7 @@ with tab_risk:
                       in zip(top["taxa_arquivamento"], top["total"],
                              strict=False)],
                 textposition="outside",
-                textfont={"size": 10, "color": "#8B9BB4"},
+                textfont={"size": 10, "color": "#4A5568"},
                 hovertemplate=(
                     "%{y}<br>Arquivamento: %{x:.1f}%<br>"
                     "Total: %{customdata:,}<extra></extra>"

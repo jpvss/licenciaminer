@@ -428,11 +428,11 @@ def _render_company_profile(cnpj: str) -> None:
                 emp = str(f["emp"])[:60] if f.get("emp") else "—"
                 st.markdown(
                     f'<div style="padding:0.5rem 0.8rem; margin-bottom:0.4rem; '
-                    f'background:var(--stratum-2); border-radius:var(--radius-sm); '
-                    f'border-left:3px solid var(--amber);">'
+                    f'background:var(--surface-muted); border-radius:var(--radius-sm); '
+                    f'border-left:3px solid var(--teal);">'
                     f'<span style="font-family:var(--font-mono); font-size:0.85rem; '
-                    f'color:var(--quartz);">{f_formatted}</span>'
-                    f'<span style="color:var(--slate-dim); font-size:0.8rem;"> · '
+                    f'color:var(--text-primary);">{f_formatted}</span>'
+                    f'<span style="color:var(--text-tertiary); font-size:0.8rem;"> · '
                     f'{f["n"]} decisão(ões) · {emp}</span>'
                     f'</div>',
                     unsafe_allow_html=True,
@@ -555,9 +555,9 @@ with tab_projeto:
             with donut_col:
                 # Donut color based on rate
                 donut_color = (
-                    "var(--malachite)" if taxa >= 70
-                    else "var(--amber)" if taxa >= 50
-                    else "var(--oxide)"
+                    "var(--success)" if taxa >= 70
+                    else "var(--warning)" if taxa >= 50
+                    else "var(--danger)"
                 )
                 st.markdown(
                     donut_svg(taxa, size=110, stroke=10, color=donut_color),
@@ -565,7 +565,7 @@ with tab_projeto:
                 )
                 st.markdown(
                     '<p style="text-align:center; font-family:var(--font-body); '
-                    'font-size:0.75rem; color:var(--slate-dim); '
+                    'font-size:0.75rem; color:var(--text-tertiary); '
                     'text-transform:uppercase; letter-spacing:0.08em;">'
                     "Taxa de Aprovação</p>",
                     unsafe_allow_html=True,
@@ -589,15 +589,15 @@ with tab_projeto:
 
                     # Visual comparison bar
                     bar_color = (
-                        "var(--malachite)" if diff > 0
-                        else "var(--oxide)"
+                        "var(--success)" if diff > 0
+                        else "var(--danger)"
                     )
                     marker_pos = min(avg, 100)
 
                     st.markdown(f"""
                     <div style="margin-top: 0.5rem;">
                         <div style="display:flex; justify-content:space-between;
-                                    font-size:0.7rem; color:var(--slate-dim);
+                                    font-size:0.7rem; color:var(--text-tertiary);
                                     font-family:var(--font-mono); margin-bottom:4px;">
                             <span>0%</span>
                             <span>{abs(diff):.1f}pp {direction} da média ({avg:.0f}%)</span>
@@ -740,7 +740,7 @@ with tab_empresa:
         "infrações IBAMA, pagamentos CFEM, decisões de licenciamento e relatório PDF."
     )
     st.markdown(
-        '<span style="font-size:0.78rem; color:var(--slate-dim);">'
+        '<span style="font-size:0.78rem; color:var(--text-tertiary);">'
         'Exemplos: <code>08.902.291/0001-15</code> (CSN Mineração) · '
         '<code>16.628.281/0003-23</code> (Samarco) · '
         '<code>19.095.249/0001-56</code> (Caldense)'

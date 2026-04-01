@@ -125,7 +125,7 @@ for tab, setor in zip(tabs, setor_names, strict=False):
                 x=df["data"], y=df["target"],
                 mode="lines",
                 name="Target",
-                line={"color": "#D4A847", "width": 1, "dash": "dash"},
+                line={"color": "#F39C12", "width": 1, "dash": "dash"},
             ))
 
             # Valor real
@@ -133,7 +133,7 @@ for tab, setor in zip(tabs, setor_names, strict=False):
                 x=df["data"], y=df["valor"],
                 mode="lines+markers",
                 name="Realizado",
-                line={"color": "#5BA77D", "width": 2},
+                line={"color": "#27AE60", "width": 2},
                 marker={"size": 4},
             ))
 
@@ -162,7 +162,7 @@ for tab, setor in zip(tabs, setor_names, strict=False):
                 ),
                 xaxis_title="Mês",
                 yaxis_title=kpi.unidade or "Valor",
-                template="plotly_dark",
+                template="plotly_white",
                 height=350,
                 legend={"orientation": "h", "y": -0.15},
             )

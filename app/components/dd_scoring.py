@@ -12,23 +12,23 @@ from typing import Any
 CONFORMIDADE_ESCALA = [
     {
         "min": 0.90, "max": 1.00, "label": "Alta aderência",
-        "cor": "#5BA77D", "descricao": "Processo em conformidade com a legislação",
+        "cor": "#27AE60", "descricao": "Processo em conformidade com a legislação",
     },
     {
         "min": 0.80, "max": 0.90, "label": "Sob controle",
-        "cor": "#8BB85C", "descricao": "Processo pode melhorar em pontos específicos",
+        "cor": "#2ECC71", "descricao": "Processo pode melhorar em pontos específicos",
     },
     {
         "min": 0.65, "max": 0.80, "label": "Melhorias pontuais",
-        "cor": "#D4A847", "descricao": "Requer ajustes em áreas identificadas",
+        "cor": "#F39C12", "descricao": "Requer ajustes em áreas identificadas",
     },
     {
         "min": 0.50, "max": 0.65, "label": "Melhorias significativas",
-        "cor": "#C17F59", "descricao": "Requer atenção imediata em múltiplas áreas",
+        "cor": "#FF5F00", "descricao": "Requer atenção imediata em múltiplas áreas",
     },
     {
         "min": 0.00, "max": 0.50, "label": "Não conforme",
-        "cor": "#C45B52", "descricao": "Ações imediatas necessárias para regularização",
+        "cor": "#E74C3C", "descricao": "Ações imediatas necessárias para regularização",
     },
 ]
 

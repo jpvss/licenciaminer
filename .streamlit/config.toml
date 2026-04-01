@@ -6,11 +6,12 @@ port = 8501
 toolbarMode = "minimal"
 
 [theme]
-base = "dark"
-primaryColor = "#D4A847"
-backgroundColor = "#0C0E12"
-secondaryBackgroundColor = "#12151B"
-textColor = "#E8E4DC"
+base = "light"
+primaryColor = "#FF5F00"
+backgroundColor = "#F8F9FB"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#1A2C42"
+font = "sans serif"
 
 [browser]
 gatherUsageStats = false

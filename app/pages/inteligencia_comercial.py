@@ -28,6 +28,8 @@ from app.components.data_loader import (  # noqa: E402
     safe_query,
 )
 from app.styles.theme import (  # noqa: E402
+    CHART_COLORS,
+    get_plotly_layout,
     hero_html,
     inject_theme,
     section_header,
@@ -76,15 +78,14 @@ with tab_mercado:
             x=dates, y=rates,
             mode="lines",
             name="USD/BRL (venda)",
-            line={"color": "#D4A847", "width": 2},
+            line={"color": CHART_COLORS["primary"], "width": 2},
         ))
-        fig.update_layout(
-            title="Cotação USD/BRL — BCB PTAX",
-            xaxis_title="Data",
-            yaxis_title="R$/USD",
-            template="plotly_dark",
+        layout = get_plotly_layout(
             height=400,
         )
+        layout["xaxis"]["title"] = "Data"
+        layout["yaxis"]["title"] = "R$/USD"
+        fig.update_layout(**layout)
         st.plotly_chart(fig, use_container_width=True)
 
         latest = ptax_data[-1]
@@ -201,10 +202,10 @@ with tab_comex:
                         "valor_bi": "US$ bilhões",
                         "fluxo": "Fluxo",
                     },
-                    template="plotly_dark",
+                    template="plotly_white",
                     color_discrete_map={
-                        "Exportação": "#5BA77D",
-                        "Importação": "#C45B52",
+                        "Exportação": CHART_COLORS["success"],
+                        "Importação": CHART_COLORS["danger"],
                     },
                 )
                 st.plotly_chart(fig, use_container_width=True)
@@ -225,8 +226,8 @@ with tab_comex:
                     exp_uf, x="uf", y="valor_mi",
                     title="Top 10 UFs — Exportação Mineral (US$ mi)",
                     labels={"uf": "UF", "valor_mi": "US$ milhões"},
-                    template="plotly_dark",
-                    color_discrete_sequence=["#D4A847"],
+                    template="plotly_white",
+                    color_discrete_sequence=[CHART_COLORS["primary"]],
                 )
                 st.plotly_chart(fig_uf, use_container_width=True)
         else:
@@ -284,8 +285,8 @@ with tab_producao:
                 df_muni, x="municipio", y="total_mi",
                 title="Top 15 Municípios — Arrecadação CFEM (R$ mi)",
                 labels={"municipio": "Município", "total_mi": "R$ milhões"},
-                template="plotly_dark",
-                color_discrete_sequence=["#D4A847"],
+                template="plotly_white",
+                color_discrete_sequence=[CHART_COLORS["primary"]],
             )
             fig.update_xaxes(tickangle=45)
             st.plotly_chart(fig, use_container_width=True)
@@ -315,8 +316,8 @@ with tab_producao:
                 df_sub, x="substancia", y="total_mi",
                 title="Top 10 Substâncias — Arrecadação CFEM (R$ mi)",
                 labels={"substancia": "Substância", "total_mi": "R$ milhões"},
-                template="plotly_dark",
-                color_discrete_sequence=["#8BB85C"],
+                template="plotly_white",
+                color_discrete_sequence=[CHART_COLORS["success"]],
             )
             st.plotly_chart(fig_sub, use_container_width=True)
     else:
@@ -360,8 +361,8 @@ with tab_producao:
                 df_ral, x="substancia", y="n",
                 title="Top 10 Substâncias — Registros RAL",
                 labels={"substancia": "Substância", "n": "Registros"},
-                template="plotly_dark",
-                color_discrete_sequence=["#D4A847"],
+                template="plotly_white",
+                color_discrete_sequence=[CHART_COLORS["primary"]],
             )
             st.plotly_chart(fig_ral, use_container_width=True)
     else:
@@ -414,8 +415,8 @@ with tab_territorio:
                 df_fase, x="fase", y="n",
                 title="Processos Minerários por Fase",
                 labels={"fase": "Fase", "n": "Processos"},
-                template="plotly_dark",
-                color_discrete_sequence=["#D4A847"],
+                template="plotly_white",
+                color_discrete_sequence=[CHART_COLORS["primary"]],
             )
             fig_fase.update_xaxes(tickangle=45)
             st.plotly_chart(fig_fase, use_container_width=True)
@@ -440,8 +441,8 @@ with tab_territorio:
                 df_sub, x="subs", y="n",
                 title="Top 15 Substâncias — Processos Minerários",
                 labels={"subs": "Substância", "n": "Processos"},
-                template="plotly_dark",
-                color_discrete_sequence=["#8BB85C"],
+                template="plotly_white",
+                color_discrete_sequence=[CHART_COLORS["success"]],
             )
             fig_sub.update_xaxes(tickangle=45)
             st.plotly_chart(fig_sub, use_container_width=True)

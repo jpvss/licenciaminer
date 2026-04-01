@@ -252,36 +252,36 @@ with cols_kpi[3]:
 
 # ── Paleta de cores ──
 CATEGORY_COLORS = {
-    "Metálicos Ferrosos": "#C45B52",
-    "Metálicos Preciosos": "#D4A847",
+    "Metálicos Ferrosos": "#E74C3C",
+    "Metálicos Preciosos": "#FF5F00",
     "Metálicos Estratégicos": "#E67E22",
     "Metálicos Não-Ferrosos": "#9B59B6",
     "Gemas e Pedras Preciosas": "#1ABC9C",
-    "Industrial": "#3498DB",
+    "Industrial": "#2980B9",
     "Construção Civil": "#95A5A6",
     "Rochas Ornamentais": "#8D6E63",
-    "Água Mineral": "#2980B9",
+    "Água Mineral": "#156082",
 }
 
 REGIME_COLORS = {
-    "portaria_lavra": "#D4A847",
-    "licenciamento": "#3498DB",
+    "portaria_lavra": "#FF5F00",
+    "licenciamento": "#2980B9",
     "plg": "#E67E22",
     "registro_extracao": "#95A5A6",
 }
 
 FASE_COLORS = {
-    "CONCESSÃO DE LAVRA": "#D4A847",
-    "CONCESSAO DE LAVRA": "#D4A847",
-    "LICENCIAMENTO": "#3498DB",
+    "CONCESSÃO DE LAVRA": "#FF5F00",
+    "CONCESSAO DE LAVRA": "#FF5F00",
+    "LICENCIAMENTO": "#2980B9",
     "LAVRA GARIMPEIRA": "#E67E22",
-    "AUTORIZAÇÃO DE PESQUISA": "#5BA77D",
+    "AUTORIZAÇÃO DE PESQUISA": "#27AE60",
     "REQUERIMENTO DE PESQUISA": "#95A5A6",
-    "REQUERIMENTO DE LAVRA": "#C17F59",
+    "REQUERIMENTO DE LAVRA": "#156082",
     "DISPONIBILIDADE": "#7f8c8d",
 }
 
-DEFAULT_COLOR = "#5E6B80"
+DEFAULT_COLOR = "#6B7C93"
 
 
 def _get_color(row, color_by_col):
@@ -297,7 +297,7 @@ def _get_color(row, color_by_col):
     elif color_by_col == "FASE":
         return FASE_COLORS.get(str(val), DEFAULT_COLOR)
     elif color_by_col == "ativo_cfem":
-        return "#5BA77D" if val else "#C45B52"
+        return "#27AE60" if val else "#E74C3C"
 
     return DEFAULT_COLOR
 
@@ -309,7 +309,7 @@ st.markdown(section_header("Mapa"), unsafe_allow_html=True)
 m = folium.Map(
     location=[-19.9, -43.9],
     zoom_start=7,
-    tiles="CartoDB dark_matter",
+    tiles="CartoDB positron",
 )
 
 # Adicionar polígonos de concessões — batch rendering para performance
@@ -403,20 +403,20 @@ if color_by == "categoria":
     palette = CATEGORY_COLORS
 elif color_by == "regime":
     palette = {
-        "Portaria de Lavra": "#D4A847",
-        "Licenciamento": "#3498DB",
+        "Portaria de Lavra": "#FF5F00",
+        "Licenciamento": "#2980B9",
         "Lavra Garimpeira": "#E67E22",
         "Registro de Extração": "#95A5A6",
     }
 elif color_by == "ativo_cfem":
-    palette = {"Ativo (CFEM)": "#5BA77D", "Inativo": "#C45B52"}
+    palette = {"Ativo (CFEM)": "#27AE60", "Inativo": "#E74C3C"}
 else:
     palette = {k: v for k, v in list(FASE_COLORS.items())[:6]}
 
 legend_items = " ".join(
     f'<span style="display:inline-flex;align-items:center;gap:4px;margin-right:12px;">'
     f'<span style="width:12px;height:12px;border-radius:2px;background:{color};display:inline-block;"></span>'
-    f'<span style="font-size:0.8rem;color:var(--slate);">{label}</span></span>'
+    f'<span style="font-size:0.8rem;color:var(--text-secondary);">{label}</span></span>'
     for label, color in palette.items()
 )
 st.markdown(f'<div style="margin-top:8px;">{legend_items}</div>', unsafe_allow_html=True)

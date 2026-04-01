@@ -394,9 +394,13 @@ elif st.session_state.dd_step == 4:
             st.markdown("**Escala de Conformidade:**")
             for faixa in CONFORMIDADE_ESCALA:
                 marker = "**>**" if faixa["min"] <= score <= faixa["max"] else " "
+                cor = faixa["cor"]
+                label = faixa["label"]
+                rng = f'{faixa["min"]:.0%}–{faixa["max"]:.0%}'
                 st.markdown(
-                    f'{marker} <span style="color:{faixa["cor"]}; font-weight:bold;">&#9679;</span> '
-                    f'{faixa["label"]} ({faixa["min"]:.0%}–{faixa["max"]:.0%})',
+                    f'{marker} <span style="color:{cor};'
+                    f' font-weight:bold;">&#9679;</span>'
+                    f" {label} ({rng})",
                     unsafe_allow_html=True,
                 )
 
@@ -483,9 +487,10 @@ elif st.session_state.dd_step == 4:
                 """
                 SELECT
                     COUNT(*) AS total,
-                    SUM(CASE WHEN decisao = 'Deferido' THEN 1 ELSE 0 END) AS deferidos,
+                    SUM(CASE WHEN decisao = 'deferido' THEN 1 ELSE 0 END) AS deferidos,
                     ROUND(
-                        SUM(CASE WHEN decisao = 'Deferido' THEN 1.0 ELSE 0 END) / COUNT(*) * 100, 1
+                        SUM(CASE WHEN decisao = 'deferido' THEN 1.0 ELSE 0 END)
+                        / NULLIF(COUNT(*), 0) * 100, 1
                     ) AS taxa_aprovacao
                 FROM v_mg_semad
                 WHERE atividade LIKE ? || '%'
