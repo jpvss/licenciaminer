@@ -26,17 +26,17 @@ pages = {
         st.Page("app/pages/home.py", title="Painel Principal", icon="🏠", default=True),
     ],
     "Summo Ambiental": [
-        st.Page("app/pages/1_visão_geral.py", title="Base de Dados", icon="🗃️"),
+        st.Page("app/pages/1_visao_geral.py", title="Base de Dados", icon="🗃️"),
         st.Page("app/pages/2_explorar_dados.py", title="Explorar Licenças", icon="🔍"),
         st.Page("app/pages/3_consulta.py", title="Consulta por Empresa", icon="🏢"),
-        st.Page("app/pages/4_análise_decisões.py", title="Análise de Risco", icon="⚖️"),
+        st.Page("app/pages/4_analise_decisoes.py", title="Análise de Risco", icon="⚖️"),
         st.Page("app/pages/due_diligence.py", title="Due Diligence Ambiental", icon="📑"),
     ],
     "Direitos e Concessões": [
-        st.Page("app/pages/5_concessões.py", title="Base de Concessões", icon="🗃️"),
-        st.Page("app/pages/6_mapa_concessões.py", title="Mapa de Concessões", icon="🗺️"),
+        st.Page("app/pages/5_concessoes.py", title="Base de Concessões", icon="🗃️"),
+        st.Page("app/pages/6_mapa_concessoes.py", title="Mapa de Concessões", icon="🗺️"),
         st.Page("app/pages/viabilidade.py", title="Análise de Viabilidade", icon="📐"),
-        st.Page("app/pages/7_prospecção.py", title="Prospecção de Oportunidades", icon="🎯"),
+        st.Page("app/pages/7_prospeccao.py", title="Prospecção de Oportunidades", icon="🎯"),
     ],
     "Mineral Intelligence": [
         st.Page("app/pages/inteligencia_comercial.py", title="Inteligência Comercial", icon="📈"),
@@ -66,14 +66,15 @@ inject_theme(st)
 with st.sidebar:
     st.markdown("""
     <div class="sidebar-brand">
-        <h2>SQ</h2>
-        <p>Sistema Integrado Summo Quartile</p>
+        <h2>Summo Quartile</h2>
+        <div class="brand-accent"></div>
+        <p>Sistema Integrado</p>
     </div>
     """, unsafe_allow_html=True)
 
     st.caption(
-        "Dados de fontes públicas oficiais. "
-        "Cada registro é rastreável à fonte original."
+        "Fontes públicas oficiais · "
+        "Cada registro rastreável à origem"
     )
 
     if st.button("Atualizar dados", help="Limpar cache e recarregar dados dos parquets"):

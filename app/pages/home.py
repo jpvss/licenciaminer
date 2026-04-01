@@ -36,7 +36,7 @@ with st.expander("Como usar o sistema", expanded=False):
 4. **SQ Solutions** — Soluções em IA para mineração
 5. **Gestão Interna** — Ferramentas internas da Summo Quartile
 
-**CNPJs para testar (Summo Ambiental → Consulta):**
+**CNPJs para testar (Summo Ambiental > Consulta):**
 - `17.170.150/0001-46` — Vallourec (siderurgia/mineração)
 - `16.628.281/0003-23` — Samarco Mineração
 - `08.902.291/0001-15` — CSN Mineração
@@ -70,21 +70,21 @@ st.caption("Soluções em licenciamento ambiental")
 
 cols = st.columns(5)
 _ambiental = [
-    ("pages/1_visão_geral.py", "🗃️", "Base de Dados",
+    ("pages/1_visao_geral.py", "**Base de Dados**",
      "Resumo executivo e tendências", f"{fmt_br(semad_n)} decisões"),
-    ("pages/2_explorar_dados.py", "🔍", "Explorar Licenças",
+    ("pages/2_explorar_dados.py", "**Explorar Licenças**",
      "Navegue pelos datasets", f"{fmt_br(anm_n)} processos ANM"),
-    ("pages/3_consulta.py", "🏢", "Consulta por Empresa",
+    ("pages/3_consulta.py", "**Consulta por Empresa**",
      "Dossiê por CNPJ ou projeto", f"{fmt_br(mining_n)} decisões mineração"),
-    ("pages/4_análise_decisões.py", "⚖️", "Análise de Risco",
+    ("pages/4_analise_decisoes.py", "**Análise de Risco**",
      "Padrões e fatores de risco", f"{fmt_br(infracoes_n)} infrações"),
-    ("pages/due_diligence.py", "📑", "Due Diligence",
+    ("pages/due_diligence.py", "**Due Diligence**",
      "Verificação de conformidade", "Novo"),
 ]
-for col, (page, icon, title, desc, stat) in zip(cols, _ambiental, strict=False):
+for col, (page, title, desc, stat) in zip(cols, _ambiental, strict=False):
     with col:
         st.page_link(
-            page, label=f"{icon} **{title}**\n\n{desc}\n\n`{stat}`",
+            page, label=f"{title}\n\n{desc}\n\n`{stat}`",
             use_container_width=True,
         )
 
@@ -94,19 +94,19 @@ st.caption("Novos negócios e análise de oportunidades")
 
 cols2 = st.columns(4)
 _concessoes = [
-    ("pages/5_concessões.py", "🗃️", "Base de Concessões",
+    ("pages/5_concessoes.py", "**Base de Concessões**",
      "Decretos de lavra e instrumentos"),
-    ("pages/6_mapa_concessões.py", "🗺️", "Mapa de Concessões",
+    ("pages/6_mapa_concessoes.py", "**Mapa de Concessões**",
      "Polígonos de concessões minerárias"),
-    ("pages/viabilidade.py", "📐", "Análise de Viabilidade",
-     "🚧 Em construção"),
-    ("pages/7_prospecção.py", "🎯", "Prospecção de Oportunidades",
+    ("pages/viabilidade.py", "**Análise de Viabilidade**",
+     "Em construção"),
+    ("pages/7_prospeccao.py", "**Prospecção de Oportunidades**",
      "Oportunidades de aquisição"),
 ]
-for col, (page, icon, title, desc) in zip(cols2, _concessoes, strict=False):
+for col, (page, title, desc) in zip(cols2, _concessoes, strict=False):
     with col:
         st.page_link(
-            page, label=f"{icon} **{title}**\n\n{desc}",
+            page, label=f"{title}\n\n{desc}",
             use_container_width=True,
         )
 
@@ -116,15 +116,15 @@ st.caption("Consultoria e geração de dados relevantes para o setor")
 
 cols3 = st.columns(2)
 _mi = [
-    ("pages/inteligencia_comercial.py", "📈", "Inteligência Comercial",
+    ("pages/inteligencia_comercial.py", "**Inteligência Comercial**",
      "Indicadores de mercado da mineração"),
-    ("pages/monitoramento.py", "📡", "Monitoramento",
-     "🚧 Em construção"),
+    ("pages/monitoramento.py", "**Monitoramento**",
+     "Em construção"),
 ]
-for col, (page, icon, title, desc) in zip(cols3, _mi, strict=False):
+for col, (page, title, desc) in zip(cols3, _mi, strict=False):
     with col:
         st.page_link(
-            page, label=f"{icon} **{title}**\n\n{desc}",
+            page, label=f"{title}\n\n{desc}",
             use_container_width=True,
         )
 
@@ -135,14 +135,14 @@ st.caption("Soluções em Tecnologia e IA")
 cols4 = st.columns(2)
 with cols4[0]:
     st.page_link(
-        "pages/mineradora_modelo.py", icon="⚙️",
+        "pages/mineradora_modelo.py",
         label="**Mineradora Modelo (IA)**\n\nDashboard operacional modelo (POC)",
         use_container_width=True,
     )
 with cols4[1]:
     st.page_link(
-        "pages/gestao_interna.py", icon="🏢",
-        label="**Gestão Interna SQ**\n\n🚧 Em construção",
+        "pages/gestao_interna.py",
+        label="**Gestão Interna SQ**\n\nEm construção",
         use_container_width=True,
     )
 
@@ -156,10 +156,9 @@ except Exception:
 
 st.markdown("")
 st.markdown(f"""
-<div style="text-align: center; padding: 1rem 0; border-top: 1px solid var(--stratum-3);">
-    <span style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--slate-dim);
-                 letter-spacing: 0.06em;">
-        {_n_sources} FONTES OFICIAIS · 100% RASTREÁVEL · DADOS PÚBLICOS · SUMMO QUARTILE
+<div class="trust-strip">
+    <span>
+        {_n_sources} FONTES OFICIAIS &middot; 100% RASTREÁVEL &middot; DADOS PÚBLICOS &middot; SUMMO QUARTILE
     </span>
 </div>
 """, unsafe_allow_html=True)

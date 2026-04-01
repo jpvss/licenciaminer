@@ -37,10 +37,12 @@ from app.components.dd_scoring import (  # noqa: E402
     gerar_recomendacoes,
 )
 from app.styles.theme import (  # noqa: E402
+    conformity_gauge_html,
     hero_html,
     inject_theme,
     section_header,
     source_attribution,
+    stepper_html,
 )
 
 inject_theme(st)
@@ -65,17 +67,12 @@ if "dd_doc_status" not in st.session_state:
 if "dd_avaliacoes" not in st.session_state:
     st.session_state.dd_avaliacoes = {}
 
-# ── Barra de progresso ──
-steps = ["1. Configuração", "2. Checklist", "3. Conformidade", "4. Relatório"]
-step_cols = st.columns(4)
-for i, (col, label) in enumerate(zip(step_cols, steps, strict=False), 1):
-    with col:
-        if i < st.session_state.dd_step:
-            st.success(f"✅ {label}")
-        elif i == st.session_state.dd_step:
-            st.info(f"▶ {label}")
-        else:
-            st.markdown(f"⬜ {label}")
+# ── Stepper ──
+step_labels = ["Configuração", "Checklist", "Conformidade", "Relatório"]
+st.markdown(
+    stepper_html(step_labels, st.session_state.dd_step),
+    unsafe_allow_html=True,
+)
 
 
 # ═══════════════════════════════════════════════════════════
@@ -135,7 +132,7 @@ if st.session_state.dd_step == 1:
                 modalidade = doc.get("modalidade", "")
                 st.markdown(f"{i}. **{nome}** ({modalidade})")
 
-    if st.button("Próxima etapa →", type="primary", use_container_width=True):
+    if st.button("Próxima etapa", type="primary", use_container_width=True):
         st.session_state.dd_config = {
             "licenca_tipo": licenca_tipo,
             "atividade": atividade.split(" — ")[0],
@@ -181,7 +178,7 @@ elif st.session_state.dd_step == 2:
         modalidades.setdefault(mod, []).append(doc)
 
     for modalidade, docs_grupo in modalidades.items():
-        with st.expander(f"📁 {modalidade} ({len(docs_grupo)} documentos)", expanded=True):
+        with st.expander(f"{modalidade} ({len(docs_grupo)} documentos)", expanded=True):
             for doc in docs_grupo:
                 nome = doc["documento"]
                 col_nome, col_status = st.columns([3, 1])
@@ -207,11 +204,11 @@ elif st.session_state.dd_step == 2:
 
     col_back, col_next = st.columns(2)
     with col_back:
-        if st.button("← Voltar", use_container_width=True):
+        if st.button("Voltar", use_container_width=True):
             st.session_state.dd_step = 1
             st.rerun()
     with col_next:
-        if st.button("Próxima etapa →", type="primary", use_container_width=True):
+        if st.button("Próxima etapa", type="primary", use_container_width=True):
             st.session_state.dd_step = 3
             # Pre-populate avaliacoes for presented docs
             all_requisitos = load_requisitos()
@@ -254,19 +251,23 @@ elif st.session_state.dd_step == 3:
             col_score, col_detail = st.columns([1, 2])
             with col_score:
                 cls = classificar_conformidade(score)
-                st.metric("Conformidade", f"{score:.0%}", delta=cls["label"])
                 st.markdown(
-                    f'<div style="background:{cls["cor"]}20; border-left:3px solid {cls["cor"]}; '
-                    f'padding:0.5rem; border-radius:4px; font-size:0.85rem;">'
-                    f'{cls["descricao"]}</div>',
+                    conformity_gauge_html(score, cls["label"], cls["cor"]),
                     unsafe_allow_html=True,
                 )
             with col_detail:
                 st.markdown(
-                    f"✅ Atende: **{result.atende}** · "
-                    f"⚠️ Parcial: **{result.atende_parcial}** · "
-                    f"❌ Não atende: **{result.nao_atende}** · "
-                    f"⬜ N/A: **{result.nao_aplica}**"
+                    f"**Atende:** {result.atende} · "
+                    f"**Parcial:** {result.atende_parcial} · "
+                    f"**Não atende:** {result.nao_atende} · "
+                    f"**N/A:** {result.nao_aplica}"
+                )
+                st.markdown(
+                    f'<div style="background:{cls["cor"]}10; border-left:4px solid {cls["cor"]}; '
+                    f'padding:0.6rem 0.8rem; border-radius:0 var(--radius-sm) var(--radius-sm) 0; '
+                    f'font-size:0.85rem; color:var(--text-secondary);">'
+                    f'{cls["descricao"]}</div>',
+                    unsafe_allow_html=True,
                 )
                 if result.requisitos_aplicaveis > 0:
                     st.progress(score)
@@ -280,7 +281,7 @@ elif st.session_state.dd_step == 3:
             if not reqs:
                 continue
 
-            with st.expander(f"📄 {doc_nome} ({len(reqs)} requisitos)", expanded=False):
+            with st.expander(f"{doc_nome} ({len(reqs)} requisitos)", expanded=False):
                 # Agrupar por módulo/tópico
                 topicos: dict[str, list[dict[str, str]]] = {}
                 for req in reqs:
@@ -319,11 +320,11 @@ elif st.session_state.dd_step == 3:
 
     col_back, col_next = st.columns(2)
     with col_back:
-        if st.button("← Voltar", use_container_width=True):
+        if st.button("Voltar", use_container_width=True):
             st.session_state.dd_step = 2
             st.rerun()
     with col_next:
-        if st.button("Gerar Relatório →", type="primary", use_container_width=True):
+        if st.button("Gerar Relatório", type="primary", use_container_width=True):
             st.session_state.dd_step = 4
             st.rerun()
 
@@ -344,7 +345,7 @@ elif st.session_state.dd_step == 4:
 
     # Visão Geral
     tab_geral, tab_docs, tab_recom, tab_contexto = st.tabs([
-        "📊 Visão Geral", "📄 Por Documento", "💡 Recomendações", "🔍 Contexto Histórico"
+        "Visão Geral", "Por Documento", "Recomendações", "Contexto Histórico"
     ])
 
     with tab_geral:
@@ -359,11 +360,8 @@ elif st.session_state.dd_step == 4:
         with kpi_cols[0]:
             score = result.conformidade_nao_ponderada
             cls = classificar_conformidade(score)
-            st.metric("Conformidade Global", f"{score:.0%}")
             st.markdown(
-                f'<div style="background:{cls["cor"]}20; border-left:3px solid {cls["cor"]}; '
-                f'padding:0.4rem 0.6rem; border-radius:4px; font-size:0.8rem;">'
-                f'<strong>{cls["label"]}</strong></div>',
+                conformity_gauge_html(score, cls["label"], cls["cor"]),
                 unsafe_allow_html=True,
             )
         with kpi_cols[1]:
@@ -372,7 +370,9 @@ elif st.session_state.dd_step == 4:
         with kpi_cols[2]:
             st.metric("Requisitos Avaliados", f"{result.requisitos_aplicaveis}")
         with kpi_cols[3]:
+            st.markdown('<div class="metric-orange">', unsafe_allow_html=True)
             st.metric("Recomendações", f"{len(recomendacoes)}")
+            st.markdown('</div>', unsafe_allow_html=True)
 
         # Breakdown
         st.markdown("")
@@ -385,17 +385,17 @@ elif st.session_state.dd_step == 4:
                 pct_p = result.atende_parcial / total_aval
                 pct_n = result.nao_atende / total_aval
                 st.markdown(
-                    f"- ✅ Atende: **{result.atende}** ({pct_a:.0%})\n"
-                    f"- ⚠️ Parcial: **{result.atende_parcial}** ({pct_p:.0%})\n"
-                    f"- ❌ Não atende: **{result.nao_atende}** ({pct_n:.0%})\n"
-                    f"- ⬜ Não aplica: **{result.nao_aplica}**"
+                    f"- Atende: **{result.atende}** ({pct_a:.0%})\n"
+                    f"- Parcial: **{result.atende_parcial}** ({pct_p:.0%})\n"
+                    f"- Não atende: **{result.nao_atende}** ({pct_n:.0%})\n"
+                    f"- Não aplica: **{result.nao_aplica}**"
                 )
         with col_break2:
             st.markdown("**Escala de Conformidade:**")
             for faixa in CONFORMIDADE_ESCALA:
-                marker = "→" if faixa["min"] <= score <= faixa["max"] else " "
+                marker = "**>**" if faixa["min"] <= score <= faixa["max"] else " "
                 st.markdown(
-                    f'{marker} <span style="color:{faixa["cor"]}">●</span> '
+                    f'{marker} <span style="color:{faixa["cor"]}; font-weight:bold;">&#9679;</span> '
                     f'{faixa["label"]} ({faixa["min"]:.0%}–{faixa["max"]:.0%})',
                     unsafe_allow_html=True,
                 )
@@ -432,8 +432,8 @@ elif st.session_state.dd_step == 4:
                 )
             with col_detail:
                 st.caption(
-                    f"✅ {doc_result.atende} · ⚠️ {doc_result.atende_parcial} · "
-                    f"❌ {doc_result.nao_atende} · ⬜ {doc_result.nao_aplica}"
+                    f"Atende: {doc_result.atende} · Parcial: {doc_result.atende_parcial} · "
+                    f"Não atende: {doc_result.nao_atende} · N/A: {doc_result.nao_aplica}"
                 )
             st.markdown("---")
 
@@ -451,7 +451,7 @@ elif st.session_state.dd_step == 4:
             media = [r for r in recomendacoes if r["prioridade"] == "Média"]
 
             if alta:
-                st.error(f"🔴 **{len(alta)} itens de alta prioridade** (Não Atende)")
+                st.error(f"**{len(alta)} itens de alta prioridade** (Não Atende)")
                 for r in alta[:20]:
                     st.markdown(
                         f"- `{r['requisito_id']}` **{r['documento']}** — {r['teste'][:150]}"
@@ -460,7 +460,7 @@ elif st.session_state.dd_step == 4:
                     st.caption(f"... e mais {len(alta) - 20} itens")
 
             if media:
-                st.warning(f"🟡 **{len(media)} pontos de atenção** (Atende Parcialmente)")
+                st.warning(f"**{len(media)} pontos de atenção** (Atende Parcialmente)")
                 for r in media[:20]:
                     st.markdown(
                         f"- `{r['requisito_id']}` **{r['documento']}** — {r['teste'][:150]}"
@@ -518,9 +518,9 @@ elif st.session_state.dd_step == 4:
                 )
                 n_infracoes = infracoes[0]["n"] if infracoes else 0
                 if n_infracoes > 0:
-                    st.warning(f"⚠️ {n_infracoes} infrações IBAMA registradas para este CNPJ")
+                    st.warning(f"{n_infracoes} infrações IBAMA registradas para este CNPJ")
                 else:
-                    st.success("✅ Nenhuma infração IBAMA registrada")
+                    st.success("Nenhuma infração IBAMA registrada")
 
         except Exception as e:
             st.info(f"Dados de contexto não disponíveis: {e}")
@@ -535,11 +535,11 @@ elif st.session_state.dd_step == 4:
     st.markdown("")
     col_back, col_reset = st.columns(2)
     with col_back:
-        if st.button("← Voltar para Conformidade", use_container_width=True):
+        if st.button("Voltar para Conformidade", use_container_width=True):
             st.session_state.dd_step = 3
             st.rerun()
     with col_reset:
-        if st.button("🔄 Nova Avaliação", use_container_width=True):
+        if st.button("Nova Avaliação", type="primary", use_container_width=True):
             st.session_state.dd_step = 1
             st.session_state.dd_config = {}
             st.session_state.dd_doc_status = {}

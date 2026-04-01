@@ -262,10 +262,14 @@ with tab_producao:
         # Top municípios por arrecadação
         top_muni = safe_query(
             """
-            SELECT municipio, SUM(valor_recolhido) AS total
+            SELECT "Município" AS municipio,
+                   SUM(TRY_CAST(
+                       REPLACE(REPLACE("ValorRecolhido", '.', ''), ',', '.')
+                       AS DOUBLE
+                   )) AS total
             FROM v_cfem
-            WHERE municipio IS NOT NULL
-            GROUP BY municipio
+            WHERE "Município" IS NOT NULL
+            GROUP BY "Município"
             ORDER BY total DESC
             LIMIT 15
             """,
@@ -289,10 +293,14 @@ with tab_producao:
         # Top substâncias
         top_sub = safe_query(
             """
-            SELECT substancia, SUM(valor_recolhido) AS total
+            SELECT "Substância" AS substancia,
+                   SUM(TRY_CAST(
+                       REPLACE(REPLACE("ValorRecolhido", '.', ''), ',', '.')
+                       AS DOUBLE
+                   )) AS total
             FROM v_cfem
-            WHERE substancia IS NOT NULL
-            GROUP BY substancia
+            WHERE "Substância" IS NOT NULL
+            GROUP BY "Substância"
             ORDER BY total DESC
             LIMIT 10
             """,
@@ -335,10 +343,10 @@ with tab_producao:
 
         top_ral = safe_query(
             """
-            SELECT substancia, COUNT(*) AS n
+            SELECT "Substância Mineral" AS substancia, COUNT(*) AS n
             FROM v_ral
-            WHERE substancia IS NOT NULL
-            GROUP BY substancia
+            WHERE "Substância Mineral" IS NOT NULL
+            GROUP BY "Substância Mineral"
             ORDER BY n DESC
             LIMIT 10
             """,
@@ -390,10 +398,10 @@ with tab_territorio:
         # Por fase
         by_fase = safe_query(
             """
-            SELECT fase, COUNT(*) AS n
+            SELECT FASE AS fase, COUNT(*) AS n
             FROM v_anm
-            WHERE fase IS NOT NULL
-            GROUP BY fase
+            WHERE FASE IS NOT NULL
+            GROUP BY FASE
             ORDER BY n DESC
             """,
             context="ANM por fase",
@@ -415,10 +423,10 @@ with tab_territorio:
         # Por substância
         by_sub = safe_query(
             """
-            SELECT subs, COUNT(*) AS n
+            SELECT SUBS AS subs, COUNT(*) AS n
             FROM v_anm
-            WHERE subs IS NOT NULL
-            GROUP BY subs
+            WHERE SUBS IS NOT NULL
+            GROUP BY SUBS
             ORDER BY n DESC
             LIMIT 15
             """,

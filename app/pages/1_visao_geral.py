@@ -21,6 +21,8 @@ from app.components.data_loader import (  # noqa: E402
     safe_query,
 )
 from app.styles.theme import (  # noqa: E402
+    CHART_COLORS,
+    get_plotly_layout,
     hero_html,
     inject_theme,
     insight_card,
@@ -85,22 +87,28 @@ with col1:
     st.markdown(source_attribution(f"SEMAD MG · {semad_date}"), unsafe_allow_html=True)
 
 with col2:
+    st.markdown('<div class="metric-blue">', unsafe_allow_html=True)
     st.metric(
         "Processos ANM (MG)", fmt_br(anm_count),
         help="Processos minerários ativos na ANM: pesquisa, lavra, licenciamento, etc.",
     )
+    st.markdown('</div>', unsafe_allow_html=True)
     st.markdown(source_attribution("ANM SIGMINE"), unsafe_allow_html=True)
 
 with col3:
+    st.markdown('<div class="metric-danger">', unsafe_allow_html=True)
     st.metric(
         "Infrações IBAMA (MG)", fmt_br(inf_count),
         help="Autos de infração ambiental registrados pelo IBAMA em Minas Gerais",
     )
+    st.markdown('</div>', unsafe_allow_html=True)
     st.markdown(source_attribution("IBAMA Dados Abertos"), unsafe_allow_html=True)
 
 with col4:
+    st.markdown('<div class="metric-orange">', unsafe_allow_html=True)
     st.metric("Aprovação Mineração", fmt_pct(mining_approval_rate),
               help="Deferidos / total (inclui arquivamentos no denominador)")
+    st.markdown('</div>', unsafe_allow_html=True)
     st.markdown(
         source_attribution(f"N = {fmt_br(mining_count)} decisões"),
         unsafe_allow_html=True,
@@ -133,7 +141,6 @@ with chart_col:
     try:
         trend_df = run_query_df(QUERY_MINING_TREND)
         if not trend_df.empty:
-            # Get overall mining average for reference line
             overall_avg = mining_approval_rate
 
             fig = go.Figure()
@@ -144,7 +151,7 @@ with chart_col:
                 y=trend_df["taxa_aprovacao"],
                 mode="none",
                 fill="tozeroy",
-                fillcolor="rgba(212, 168, 71, 0.06)",
+                fillcolor="rgba(21, 96, 130, 0.06)",
                 showlegend=False,
                 hoverinfo="skip",
             ))
@@ -156,10 +163,10 @@ with chart_col:
                 mode="lines+markers+text",
                 text=[f"{v:.0f}%" for v in trend_df["taxa_aprovacao"]],
                 textposition="top center",
-                textfont={"size": 11, "color": "#8B9BB4", "family": "Instrument Sans"},
-                line={"color": "#D4A847", "width": 2.5},
-                marker={"size": 7, "color": "#D4A847",
-                        "line": {"width": 2, "color": "#0C0E12"}},
+                textfont={"size": 11, "color": "#4A5568", "family": "Inter"},
+                line={"color": CHART_COLORS["primary"], "width": 2.5},
+                marker={"size": 7, "color": CHART_COLORS["primary"],
+                        "line": {"width": 2, "color": "#FFFFFF"}},
                 hovertemplate=(
                     "<b>%{x}</b><br>"
                     "Taxa: %{y:.1f}%<br>"
@@ -174,11 +181,11 @@ with chart_col:
             fig.add_hline(
                 y=overall_avg,
                 line_dash="dot",
-                line_color="#5E6B80",
+                line_color="#8896A6",
                 line_width=1,
                 annotation_text=f"Média: {overall_avg:.0f}%",
                 annotation_position="right",
-                annotation_font={"size": 10, "color": "#5E6B80",
+                annotation_font={"size": 10, "color": "#8896A6",
                                   "family": "JetBrains Mono"},
             )
 
@@ -187,17 +194,18 @@ with chart_col:
                 x=trend_df["ano"],
                 y=trend_df["total"],
                 yaxis="y2",
-                marker_color="rgba(139, 155, 180, 0.15)",
+                marker_color="rgba(41, 128, 185, 0.08)",
                 showlegend=False,
                 hoverinfo="skip",
             ))
 
-            fig.update_layout(
+            layout = get_plotly_layout(
+                height=340,
                 yaxis={
                     "range": [0, 100],
                     "title": {"text": "Taxa (%)", "font": {"size": 11}},
-                    "gridcolor": "rgba(36, 41, 53, 0.8)",
-                    "zerolinecolor": "rgba(36, 41, 53, 0.8)",
+                    "gridcolor": "rgba(226, 230, 237, 0.6)",
+                    "zerolinecolor": "#E2E6ED",
                 },
                 yaxis2={
                     "overlaying": "y",
@@ -207,26 +215,16 @@ with chart_col:
                     "range": [0, max(trend_df["total"]) * 5],
                 },
                 xaxis={
-                    "gridcolor": "rgba(36, 41, 53, 0.5)",
+                    "gridcolor": "rgba(226, 230, 237, 0.4)",
                     "dtick": 1,
                 },
-                height=340,
-                margin={"t": 10, "b": 35, "l": 45, "r": 20},
-                plot_bgcolor="rgba(0,0,0,0)",
-                paper_bgcolor="rgba(0,0,0,0)",
-                font={"color": "#8B9BB4", "family": "Instrument Sans"},
-                hovermode="x unified",
-                hoverlabel={
-                    "bgcolor": "#1A1E28",
-                    "bordercolor": "#2E3442",
-                    "font": {"family": "Instrument Sans", "size": 12},
-                },
             )
+            fig.update_layout(**layout)
             st.plotly_chart(fig, use_container_width=True,
                             config={"displayModeBar": False})
             st.markdown(
                 source_attribution(
-                    f"SEMAD MG · {fmt_br(mining_count)} decisões · Apenas anos com N ≥ 10"
+                    f"SEMAD MG · {fmt_br(mining_count)} decisões · Apenas anos com N >= 10"
                 ),
                 unsafe_allow_html=True,
             )
@@ -338,19 +336,15 @@ st.markdown(section_header("Fontes de Dados"), unsafe_allow_html=True)
 
 sources = get_source_info()
 
-# Source table as HTML table (Streamlit sanitizer-friendly)
+# Source table using the new table class
 table_html = """
-<table style="width:100%; border-collapse:collapse; font-family:var(--font-body); font-size:0.82rem;">
+<table class="source-table">
 <thead>
-<tr style="border-bottom:1px solid var(--stratum-4);">
-    <th style="padding:0.5rem 0.6rem; text-align:left; font-size:0.68rem; text-transform:uppercase;
-               letter-spacing:0.1em; color:var(--slate-dim); font-weight:400;">Fonte</th>
-    <th style="padding:0.5rem 0.6rem; text-align:right; font-size:0.68rem; text-transform:uppercase;
-               letter-spacing:0.1em; color:var(--slate-dim); font-weight:400;">Registros</th>
-    <th style="padding:0.5rem 0.6rem; text-align:right; font-size:0.68rem; text-transform:uppercase;
-               letter-spacing:0.1em; color:var(--slate-dim); font-weight:400;">Atualização</th>
-    <th style="padding:0.5rem 0.6rem; text-align:right; font-size:0.68rem; text-transform:uppercase;
-               letter-spacing:0.1em; color:var(--slate-dim); font-weight:400;">Link</th>
+<tr>
+    <th>Fonte</th>
+    <th>Registros</th>
+    <th>Atualização</th>
+    <th>Link</th>
 </tr>
 </thead>
 <tbody>
@@ -364,42 +358,32 @@ for s in sources:
 
     # Status dot
     is_fresh = date and date != "—"
-    dot_color = "var(--malachite)" if is_fresh else "var(--oxide)"
+    dot_color = "var(--success)" if is_fresh else "var(--danger)"
     date_display = date if is_fresh else "—"
 
-    # Records (Brazilian formatting)
+    # Records
     if isinstance(records, int):
-        rec_display = (
-            f'<span style="color:var(--amber); font-family:var(--font-mono);'
-            f' font-weight:500; font-size:0.8rem;">{fmt_br(records)}</span>'
-        )
+        rec_display = f'<span class="td-count">{fmt_br(records)}</span>'
     elif records and records != "—":
-        rec_display = (
-            f'<span style="color:var(--amber); font-family:var(--font-mono);'
-            f' font-weight:500; font-size:0.8rem;">{records}</span>'
-        )
+        rec_display = f'<span class="td-count">{records}</span>'
     else:
-        rec_display = '<span style="color:var(--slate-dim);">—</span>'
+        rec_display = '<span style="color:var(--text-muted);">—</span>'
 
     # Link
     link_html = ""
     if url and url.startswith("http"):
-        link_html = (
-            f'<a href="{url}" target="_blank" style="color:var(--link);'
-            f' text-decoration:none; font-size:0.75rem;">verificar ↗</a>'
-        )
+        link_html = f'<a href="{url}" target="_blank">verificar &#8599;</a>'
 
     table_html += f"""
-<tr style="border-bottom:1px solid var(--stratum-2);">
-    <td style="padding:0.55rem 0.6rem; color:var(--quartz); font-weight:500;">
+<tr>
+    <td class="td-name">
         <span style="display:inline-block; width:7px; height:7px; border-radius:50%;
                      background:{dot_color}; margin-right:8px; vertical-align:middle;"></span>
         {name}
     </td>
-    <td style="padding:0.55rem 0.6rem; text-align:right;">{rec_display}</td>
-    <td style="padding:0.55rem 0.6rem; text-align:right; font-family:var(--font-mono);
-               font-size:0.75rem; color:var(--slate-dim);">{date_display}</td>
-    <td style="padding:0.55rem 0.6rem; text-align:right;">{link_html}</td>
+    <td>{rec_display}</td>
+    <td class="td-date">{date_display}</td>
+    <td class="td-link">{link_html}</td>
 </tr>
 """
 
