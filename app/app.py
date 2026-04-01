@@ -16,6 +16,13 @@ import streamlit as st  # noqa: E402
 
 from app.styles.theme import inject_theme  # noqa: E402
 
+st.set_page_config(
+    page_title="Summo Quartile",
+    page_icon="SQ",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
 # ── Definição de páginas ──
 # Cada seção corresponde a uma unidade de negócio da Summo Quartile.
 # Páginas com dados reais usam os arquivos existentes.
@@ -51,13 +58,6 @@ pages = {
 }
 
 pg = st.navigation(pages)
-
-st.set_page_config(
-    page_title="Summo Quartile",
-    page_icon="SQ",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
 
 # ── Tema global (frame compartilhado entre todas as páginas) ──
 inject_theme(st)
