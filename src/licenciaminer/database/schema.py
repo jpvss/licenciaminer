@@ -20,4 +20,6 @@ PARQUET_SOURCES: dict[str, str | list[str]] = {
     "v_ral": "anm_ral.parquet",
     "v_scm": "scm_concessoes.parquet",
     "v_concessoes": "concessoes_mg.parquet",
+    "v_bcb_cotacoes": "bcb_cotacoes.parquet",
+    "v_comex_mineracao": "comex_mineracao.parquet",
 }

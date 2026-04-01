@@ -1,0 +1,19 @@
+data,mineral,preco_usd,unidade,fonte
+2024-01-02,Minerio de Ferro (62% Fe CFR),136.50,USD/t,Investing.com
+2024-02-01,Minerio de Ferro (62% Fe CFR),129.00,USD/t,Investing.com
+2024-03-01,Minerio de Ferro (62% Fe CFR),112.80,USD/t,Investing.com
+2024-04-01,Minerio de Ferro (62% Fe CFR),107.50,USD/t,Investing.com
+2024-05-01,Minerio de Ferro (62% Fe CFR),117.20,USD/t,Investing.com
+2024-06-01,Minerio de Ferro (62% Fe CFR),109.30,USD/t,Investing.com
+2024-07-01,Minerio de Ferro (62% Fe CFR),106.80,USD/t,Investing.com
+2024-08-01,Minerio de Ferro (62% Fe CFR),99.50,USD/t,Investing.com
+2024-09-01,Minerio de Ferro (62% Fe CFR),93.20,USD/t,Investing.com
+2024-10-01,Minerio de Ferro (62% Fe CFR),108.90,USD/t,Investing.com
+2024-11-01,Minerio de Ferro (62% Fe CFR),104.10,USD/t,Investing.com
+2024-12-01,Minerio de Ferro (62% Fe CFR),105.40,USD/t,Investing.com
+2024-01-02,Ouro,2062.00,USD/oz,Investing.com
+2024-06-01,Ouro,2326.00,USD/oz,Investing.com
+2024-12-01,Ouro,2638.00,USD/oz,Investing.com
+2024-01-02,Niobio (FeNb),44.00,USD/kg,IndexMundi
+2024-06-01,Niobio (FeNb),44.00,USD/kg,IndexMundi
+2024-12-01,Niobio (FeNb),43.50,USD/kg,IndexMundi

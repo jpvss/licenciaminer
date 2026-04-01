@@ -60,6 +60,19 @@ ANM_FASES: list[str] = [
 MG_DEFAULT_FILE: Path = RAW_DIR / "mg_decisoes.xlsx"
 MG_MINING_CODE_PREFIX: str = "A-0"
 
+# BCB PTAX (Banco Central)
+BCB_PTAX_URL = os.getenv(
+    "BCB_PTAX_URL",
+    "https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/"
+    "CotacaoDolarPeriodo(dataInicial=@di,dataFinalCotacao=@df)",
+)
+
+# Comex Stat (MDIC)
+COMEX_API_URL = os.getenv(
+    "COMEX_API_URL",
+    "https://api-comexstat.mdic.gov.br/general",
+)
+
 # Timeouts e retry
 HTTP_TIMEOUT: float = 120.0
 RETRY_ATTEMPTS: int = 5

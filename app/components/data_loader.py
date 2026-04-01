@@ -123,6 +123,8 @@ def get_source_info() -> list[dict]:
         "spatial_overlaps": "(computado a partir de ANM + UCs + TIs + biomas)",
         "anm_scm": "https://app.anm.gov.br/dadosabertos/SCM/",
         "concessoes_mg": "(consolidado: SCM + SIGMINE + CFEM)",
+        "bcb_ptax": "https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/",
+        "comex_stat": "https://api-comexstat.mdic.gov.br/",
     }
 
     source_names = {
@@ -140,6 +142,8 @@ def get_source_info() -> list[dict]:
         "spatial_overlaps": "Sobreposições Espaciais",
         "anm_scm": "ANM SCM Concessões",
         "concessoes_mg": "Concessões MG Consolidadas",
+        "bcb_ptax": "BCB PTAX Câmbio USD/BRL",
+        "comex_stat": "Comex Stat Comércio Exterior",
     }
 
     # Map source keys to parquet filenames for fallback row counting

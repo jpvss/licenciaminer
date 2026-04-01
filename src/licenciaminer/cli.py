@@ -287,12 +287,42 @@ def spatial(ctx: click.Context, layer: str) -> None:
     click.echo("Spatial: coleta concluída")
 
 
+@collect.command("bcb")
+@click.option(
+    "--months", type=int, default=24,
+    help="Meses de histórico (padrão: 24).",
+)
+@click.pass_context
+def bcb(ctx: click.Context, months: int) -> None:
+    """Coletar cotações USD/BRL do BCB PTAX."""
+    from licenciaminer.collectors.bcb_ptax import collect_bcb_ptax
+
+    output_dir: Path = ctx.obj["data_dir"]
+    path = collect_bcb_ptax(output_dir, months=months)
+    click.echo(f"BCB PTAX: dados salvos em {path}")
+
+
+@collect.command("comex")
+@click.option(
+    "--years", type=int, default=5,
+    help="Anos de histórico (padrão: 5).",
+)
+@click.pass_context
+def comex(ctx: click.Context, years: int) -> None:
+    """Coletar dados de comércio exterior mineral do Comex Stat/MDIC."""
+    from licenciaminer.collectors.comex_stat import collect_comex
+
+    output_dir: Path = ctx.obj["data_dir"]
+    path = collect_comex(output_dir, years=years)
+    click.echo(f"Comex Stat: dados salvos em {path}")
+
+
 @collect.command("all")
 @click.pass_context
 def collect_all(ctx: click.Context) -> None:
     """Coletar de todas as fontes automatizadas.
 
-    Executa: ibama, anm, scm, infracoes, cfem, cnpj, ral, copam, spatial.
+    Executa: ibama, anm, scm, infracoes, cfem, cnpj, ral, copam, bcb, comex, spatial.
     Pula: mg (requer download manual), mg-docs, mg-textos, outorgas.
     Ao final, consolida concessões via join-concessoes.
     """
@@ -304,6 +334,16 @@ def collect_all(ctx: click.Context) -> None:
     ctx.invoke(cnpj)
     ctx.invoke(ral)
     ctx.invoke(copam)
+
+    try:
+        ctx.invoke(bcb)
+    except Exception as e:
+        click.echo(f"BCB PTAX: erro (continuando) — {e}")
+
+    try:
+        ctx.invoke(comex)
+    except Exception as e:
+        click.echo(f"Comex Stat: erro (continuando) — {e}")
 
     try:
         ctx.invoke(spatial)
