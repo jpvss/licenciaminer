@@ -84,12 +84,6 @@ with st.sidebar:
         "Cada registro rastreável à origem"
     )
 
-    if st.button("Atualizar dados", help="Limpar cache e recarregar dados dos parquets"):
-        st.cache_data.clear()
-        st.cache_resource.clear()
-        st.toast("Cache limpo. Recarregando...")
-        st.rerun()
-
     # Data freshness
     try:
         from app.components.data_loader import load_metadata
@@ -103,10 +97,8 @@ with st.sidebar:
                 Dados: {last_date}
             </div>
             """, unsafe_allow_html=True)
-        else:
-            st.warning("Metadados de coleta não encontrados. Execute `licenciaminer collect`.")
     except Exception:
-        st.warning("Não foi possível verificar a data dos dados.")
+        pass
 
 # ── Executar a página selecionada ──
 pg.run()

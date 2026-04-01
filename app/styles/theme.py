@@ -23,16 +23,17 @@ def get_theme_css() -> str:
     .stDeployButton, footer, #MainMenu,
     [data-testid="stStatusWidget"],
     [data-testid="manage-app-button"],
-    [data-testid="stAppViewBlockContainer"] > footer,
-    .stApp > footer,
-    ._managedApp_1qtan_1,
-    [data-testid="stBottomBlockContainer"],
-    .viewerBadge_container__r5tak,
-    ._profileContainer_gzau3_53 {display: none !important;}
+    [data-testid="stBottomBlockContainer"] {display: none !important;}
     header[data-testid="stHeader"] {visibility: hidden; height: 0; min-height: 0; padding: 0;}
-    .stApp > footer, .stApp [data-testid="manage-app-button"] {
-        visibility: hidden !important; height: 0 !important; position: fixed !important; bottom: -100px !important;
-    }
+    /* Streamlit Cloud "Manage app" toolbar — fixed bar at bottom */
+    [data-testid="stAppDeployButton"],
+    div[class*="manage"],
+    div[class*="stToolbar"],
+    iframe[title="streamlit_manage"] {display: none !important;}
+    .stApp::after {content: ""; display: block; height: 0;}
+    div:has(> [data-testid="manage-app-button"]) {display: none !important;}
+    /* Nuclear option: any fixed element at bottom that isn't ours */
+    body > div:last-child:not(.stApp):not(#root) {display: none !important;}
 
     /* ══════════════════════════════════════════════
        DESIGN TOKENS — Consultoria Estratégica
