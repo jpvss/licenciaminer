@@ -19,21 +19,19 @@ def get_theme_css() -> str:
     """Retorna o CSS completo do tema Consultoria Estratégica."""
     return """
     <style>
-    /* ── Hide Streamlit chrome ── */
-    .stDeployButton, footer, #MainMenu,
-    [data-testid="stStatusWidget"],
-    [data-testid="manage-app-button"],
-    [data-testid="stBottomBlockContainer"] {display: none !important;}
-    header[data-testid="stHeader"] {visibility: hidden; height: 0; min-height: 0; padding: 0;}
-    /* Streamlit Cloud "Manage app" toolbar — fixed bar at bottom */
-    [data-testid="stAppDeployButton"],
-    div[class*="manage"],
-    div[class*="stToolbar"],
-    iframe[title="streamlit_manage"] {display: none !important;}
-    .stApp::after {content: ""; display: block; height: 0;}
+    /* ── Hide Streamlit chrome (keep header functional for mobile nav) ── */
+    .stDeployButton, #MainMenu,
+    [data-testid="stStatusWidget"] {display: none !important;}
+    /* Make header transparent but keep it interactive (hamburger menu) */
+    header[data-testid="stHeader"] {
+        background: transparent !important;
+        border: none !important;
+    }
+    /* Hide header decorative children but keep the sidebar toggle button */
+    header[data-testid="stHeader"] [data-testid="stDecoration"] {display: none !important;}
+    /* Hide Streamlit Cloud footer elements */
+    footer, [data-testid="manage-app-button"],
     div:has(> [data-testid="manage-app-button"]) {display: none !important;}
-    /* Nuclear option: any fixed element at bottom that isn't ours */
-    body > div:last-child:not(.stApp):not(#root) {display: none !important;}
 
     /* ══════════════════════════════════════════════
        DESIGN TOKENS — Consultoria Estratégica
@@ -1275,6 +1273,99 @@ def get_theme_css() -> str:
         transition: opacity 0.15s ease;
     }
     .source-table .td-link a:hover { opacity: 1; }
+
+    /* ══════════════════════════════════════════════
+       MOBILE RESPONSIVE — ≤768px
+       ══════════════════════════════════════════════ */
+    @media (max-width: 768px) {
+        /* Ensure header stays accessible for hamburger menu */
+        header[data-testid="stHeader"] {
+            visibility: visible !important;
+            height: auto !important;
+            min-height: auto !important;
+            padding: 0 !important;
+        }
+
+        /* Reduce main container padding */
+        .block-container {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+            padding-top: 1rem !important;
+        }
+
+        /* Hero: smaller on mobile */
+        .geo-hero h1 {
+            font-size: 1.5rem !important;
+        }
+        .geo-hero .hero-sub {
+            font-size: 0.82rem;
+        }
+
+        /* KPI row: 2 columns on mobile */
+        .dash-kpi-row {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.6rem;
+        }
+        .dash-kpi {
+            padding: 0.9rem 1rem;
+        }
+        .dash-kpi-value {
+            font-size: 1.3rem;
+        }
+
+        /* Streamlit columns: force stack on narrow screens */
+        [data-testid="stHorizontalBlock"] {
+            flex-wrap: wrap !important;
+        }
+        [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+            min-width: 100% !important;
+            flex: 1 1 100% !important;
+        }
+
+        /* Page link cards: reduce min-height on mobile */
+        [data-testid="stPageLink"] a,
+        .stPageLink a {
+            min-height: 100px !important;
+            padding: 1rem !important;
+        }
+        [data-testid="stPageLink"] a p strong,
+        .stPageLink a p strong {
+            font-size: 0.9rem !important;
+        }
+
+        /* Section headers: compact */
+        .dash-section-header {
+            margin-bottom: 0.6rem;
+        }
+        .geo-section {
+            font-size: 0.68rem;
+            margin: 1.5rem 0 0.6rem 0;
+        }
+
+        /* Insight cards */
+        .geo-insight .insight-value {
+            font-size: 1.2rem;
+        }
+
+        /* Tables: horizontal scroll */
+        [data-testid="stDataFrame"] {
+            overflow-x: auto !important;
+        }
+    }
+
+    /* Extra small screens */
+    @media (max-width: 480px) {
+        .dash-kpi-row {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 0.5rem;
+        }
+        .dash-kpi-value {
+            font-size: 1.1rem;
+        }
+        .geo-hero h1 {
+            font-size: 1.3rem !important;
+        }
+    }
     </style>
     """
 
