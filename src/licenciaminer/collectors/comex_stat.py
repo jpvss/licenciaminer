@@ -45,7 +45,12 @@ def _query_comex(payload: dict) -> list[dict]:
         resp = client.post(COMEX_API_URL, json=payload)
         resp.raise_for_status()
         data = resp.json()
-        return data.get("data", data) if isinstance(data, dict) else data
+        if isinstance(data, dict):
+            inner = data.get("data", data)
+            if isinstance(inner, dict):
+                return inner.get("list", [])
+            return inner
+        return data
 
 
 def collect_comex(
@@ -68,7 +73,7 @@ def collect_comex(
 
     all_records = []
 
-    for flow in ["EXP", "IMP"]:
+    for flow, label in [("export", "Exportação"), ("import", "Importação")]:
         payload = {
             "flow": flow,
             "monthDetail": True,
@@ -95,7 +100,7 @@ def collect_comex(
             records = _query_comex(payload)
             if isinstance(records, list):
                 for r in records:
-                    r["fluxo"] = "Exportação" if flow == "EXP" else "Importação"
+                    r["fluxo"] = label
                 all_records.extend(records)
                 logger.info("Comex %s: %d registros", flow, len(records))
         except Exception:
@@ -118,16 +123,23 @@ def collect_comex(
         "metricFOB": "valor_fob_usd",
         "metricKG": "peso_kg",
         "year": "ano",
-        "month": "mes",
+        "monthNumber": "mes",
         "chapter": "capitulo_ncm",
         "heading": "posicao_ncm",
+        "headingCode": "codigo_posicao",
+        "chapterCode": "codigo_capitulo",
         "state": "uf",
         "country": "pais",
     }
     df = df.rename(columns={k: v for k, v in col_map.items() if k in df.columns})
 
+    # Converter valores numéricos (API retorna strings)
+    for col in ["valor_fob_usd", "peso_kg", "ano", "mes"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    df = add_metadata(df, "comex_stat")
     atomic_parquet_write(df, output)
-    add_metadata(output, "comex_stat", len(df))
 
     logger.info("Comex Stat: %d registros salvos em %s", len(df), output)
     return output

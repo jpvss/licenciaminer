@@ -50,7 +50,6 @@ def _fetch_ptax(date_start: str, date_end: str) -> list[dict]:
         "@di": f"'{date_start}'",
         "@df": f"'{date_end}'",
         "$format": "json",
-        "$orderby": "dataHoraCotacao desc",
     }
     logger.info("BCB PTAX: buscando %s a %s", date_start, date_end)
     with httpx.Client(timeout=HTTP_TIMEOUT) as client:
@@ -111,8 +110,8 @@ def collect_bcb_ptax(
     df["cotacao_compra"] = df["cotacao_compra"].astype(float)
     df["cotacao_venda"] = df["cotacao_venda"].astype(float)
 
+    df = add_metadata(df, "bcb_ptax")
     atomic_parquet_write(df, output)
-    add_metadata(output, "bcb_ptax", len(df))
 
     logger.info("BCB PTAX: %d cotações salvas em %s", len(df), output)
     return output

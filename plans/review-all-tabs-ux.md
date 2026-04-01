@@ -16,7 +16,7 @@ Review current implementation, identify gaps, propose high-value low-effort impr
 | 5 | Análise de Decisões | DONE | BR formatting, porte/date humanized, guidance caption |
 | 6 | Concessões | DONE | BR formatting, pagination guard, help tooltips, detail panel |
 | 7 | Mapa | DONE | Dark tile, BR formatting, help tooltips on UC/TI layers |
-| 8 | Prospecção | PENDING | Review scoring, empresa view, município view |
+| 8 | Prospecção | DONE | BR formatting all 3 views, help tooltip on score, use_container_width |
 
 ---
 
