@@ -10,7 +10,20 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routers import chat, decisions, empresa, explorer, overview, reports, due_diligence
+from api.routers import (
+    chat,
+    concessoes,
+    decisions,
+    due_diligence,
+    empresa,
+    explorer,
+    geospatial,
+    intelligence,
+    overview,
+    prospeccao,
+    reports,
+    simulator,
+)
 from api.services.database import close_connection, get_connection
 
 logging.basicConfig(level=logging.INFO)
@@ -40,8 +53,10 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "http://localhost:3001",
+        "https://summo-quartile.vercel.app",
+        "https://licenciaminer-production.up.railway.app",
     ],
-    allow_origin_regex=r"https://.*\.(vercel\.app|railway\.app)$",
+    allow_origin_regex=r"https://summo-quartile[a-z0-9-]*\.vercel\.app$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -51,6 +66,11 @@ app.include_router(overview.router, prefix="/api", tags=["Visão Geral"])
 app.include_router(decisions.router, prefix="/api", tags=["Decisões"])
 app.include_router(empresa.router, prefix="/api", tags=["Empresa"])
 app.include_router(explorer.router, prefix="/api", tags=["Explorador"])
+app.include_router(concessoes.router, prefix="/api", tags=["Concessões"])
+app.include_router(geospatial.router, prefix="/api", tags=["Geoespacial"])
+app.include_router(prospeccao.router, prefix="/api", tags=["Prospecção"])
+app.include_router(intelligence.router, prefix="/api", tags=["Inteligência Comercial"])
+app.include_router(simulator.router, prefix="/api", tags=["Mineradora Modelo"])
 app.include_router(reports.router, prefix="/api", tags=["Relatórios"])
 app.include_router(due_diligence.router, prefix="/api", tags=["Due Diligence"])
 app.include_router(chat.router, prefix="/api", tags=["Chat"])

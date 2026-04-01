@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   BarChart3,
+  FileWarning,
   TrendingDown,
   MapPin,
   Activity,
@@ -18,6 +19,9 @@ import {
   AreaChart,
   Area,
   Cell,
+  ScatterChart,
+  Scatter,
+  ZAxis,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -28,10 +32,14 @@ import {
   fetchDecisionsByModalidade,
   fetchRejectionTrend,
   fetchRegionalRigor,
+  fetchInfractionBands,
+  fetchInfractionsVsApproval,
   fmtNumber,
   fmtPct,
   type RejectionTrend,
   type RegionalRigor,
+  type InfractionBand,
+  type InfractionsVsApproval,
 } from "@/lib/api";
 
 const CHART_TOOLTIP_STYLE = {
@@ -46,6 +54,8 @@ export default function DecisoesPage() {
   const [regionalRigor, setRegionalRigor] = useState<RegionalRigor[] | null>(null);
   const [modalidade, setModalidade] = useState<Record<string, unknown>[] | null>(null);
   const [approvalRates, setApprovalRates] = useState<Record<string, unknown>[] | null>(null);
+  const [infractionBands, setInfractionBands] = useState<InfractionBand[] | null>(null);
+  const [infractionsVsApproval, setInfractionsVsApproval] = useState<InfractionsVsApproval[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -53,6 +63,8 @@ export default function DecisoesPage() {
     fetchRegionalRigor().then(setRegionalRigor).catch(() => {});
     fetchDecisionsByModalidade().then(setModalidade).catch(() => {});
     fetchApprovalRates().then(setApprovalRates).catch(() => {});
+    fetchInfractionBands().then(setInfractionBands).catch(() => {});
+    fetchInfractionsVsApproval().then(setInfractionsVsApproval).catch(() => {});
   }, []);
 
   // Aggregate modalidade data for stacked view
@@ -171,6 +183,7 @@ export default function DecisoesPage() {
           <TabsTrigger value="regional">Rigor Regional</TabsTrigger>
           <TabsTrigger value="modalidade">Por Modalidade</TabsTrigger>
           <TabsTrigger value="yearly">Taxa Anual</TabsTrigger>
+          <TabsTrigger value="risco">Fatores de Risco</TabsTrigger>
         </TabsList>
 
         {/* Tab 1: Rejection trend */}
@@ -296,7 +309,7 @@ export default function DecisoesPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 font-heading">
                 <Activity className="h-4 w-4 text-brand-teal" />
-                Taxa de Aprovação Anual (Todas Atividades)
+                Taxa de Aprova\u00e7\u00e3o Anual (Todas Atividades)
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -306,8 +319,8 @@ export default function DecisoesPage() {
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                     <XAxis dataKey="ano" tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} />
                     <YAxis unit="%" domain={[0, 100]} tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} />
-                    <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v, name) => [name === "Taxa Aprovação" ? `${Number(v).toFixed(1)}%` : fmtNumber(Number(v)), String(name)]} />
-                    <Bar dataKey="taxa" name="Taxa Aprovação" radius={[4, 4, 0, 0]}>
+                    <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v, name) => [name === "Taxa Aprova\u00e7\u00e3o" ? `${Number(v).toFixed(1)}%` : fmtNumber(Number(v)), String(name)]} />
+                    <Bar dataKey="taxa" name="Taxa Aprova\u00e7\u00e3o" radius={[4, 4, 0, 0]}>
                       {yearlyRates.map((entry, i) => (
                         <Cell
                           key={i}
@@ -322,6 +335,92 @@ export default function DecisoesPage() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Tab 5: Risk Factors */}
+        <TabsContent value="risco">
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Infraction bands vs approval */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 font-heading text-sm">
+                  <FileWarning className="h-4 w-4 text-danger" />
+                  Infrações IBAMA vs. Aprovação
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {infractionBands ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={infractionBands}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                      <XAxis dataKey="faixa_infracoes" tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} />
+                      <YAxis unit="%" domain={[0, 100]} tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} />
+                      <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v) => [`${Number(v).toFixed(1)}%`]} />
+                      <Bar dataKey="taxa_aprovacao" name="Taxa Aprovação" radius={[4, 4, 0, 0]}>
+                        {infractionBands.map((entry, i) => (
+                          <Cell
+                            key={i}
+                            fill={entry.taxa_aprovacao >= 70 ? "var(--success)" : entry.taxa_aprovacao >= 50 ? "var(--warning)" : "var(--danger)"}
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <Skeleton className="h-[300px] w-full" />
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Infractions scatter */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 font-heading text-sm">
+                  <Activity className="h-4 w-4 text-brand-orange" />
+                  Dispersão: Infrações × Aprovação
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {infractionsVsApproval ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <ScatterChart>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                      <XAxis
+                        type="number"
+                        dataKey="total_infracoes"
+                        name="Infrações"
+                        tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                        label={{ value: "Infrações", position: "bottom", fontSize: 11 }}
+                      />
+                      <YAxis
+                        type="number"
+                        dataKey="taxa_aprovacao"
+                        name="Aprovação"
+                        unit="%"
+                        domain={[0, 100]}
+                        tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                      />
+                      <ZAxis type="number" dataKey="total_decisoes" range={[20, 400]} />
+                      <Tooltip
+                        contentStyle={CHART_TOOLTIP_STYLE}
+                        formatter={(v, name) => [
+                          name === "Aprovação" ? `${Number(v).toFixed(1)}%` : String(v),
+                          String(name),
+                        ]}
+                      />
+                      <Scatter
+                        data={infractionsVsApproval}
+                        fill="var(--brand-orange)"
+                        fillOpacity={0.6}
+                      />
+                    </ScatterChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <Skeleton className="h-[300px] w-full" />
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
 

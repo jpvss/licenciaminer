@@ -115,6 +115,8 @@ export interface Decision {
   decisao: string;
   data_decisao: string;
   municipio: string;
+  detail_id?: string | number;
+  [key: string]: unknown;
 }
 
 export function fetchEmpresa(cnpj: string) {
@@ -207,6 +209,41 @@ export function fetchRegionalRigor() {
   return apiFetch<RegionalRigor[]>("/decisions/regional-rigor");
 }
 
+export interface InfractionBand {
+  faixa_infracoes: string;
+  total: number;
+  deferidos: number;
+  indeferidos: number;
+  taxa_aprovacao: number;
+}
+
+export interface InfractionsVsApproval {
+  total_infracoes: number;
+  total_decisoes: number;
+  deferidos: number;
+  taxa_aprovacao: number;
+}
+
+export interface ClassModalidade {
+  classe: number;
+  modalidade: string;
+  total: number;
+  deferidos: number;
+  taxa_aprovacao: number;
+}
+
+export function fetchInfractionBands() {
+  return apiFetch<InfractionBand[]>("/decisions/infraction-bands");
+}
+
+export function fetchInfractionsVsApproval() {
+  return apiFetch<InfractionsVsApproval[]>("/decisions/infractions-vs-approval");
+}
+
+export function fetchClassModalidade() {
+  return apiFetch<ClassModalidade[]>("/decisions/class-modalidade");
+}
+
 /* ── Due Diligence ── */
 
 export interface LicenseType {
@@ -282,7 +319,7 @@ export function submitDDScore(payload: {
   });
 }
 
-/* ── Explorer / Concessões ── */
+/* ── Explorer ── */
 
 export interface ExplorerResponse {
   dataset: string;
@@ -292,23 +329,96 @@ export interface ExplorerResponse {
   rows: Record<string, unknown>[];
 }
 
+export interface ExplorerFilters {
+  limit?: number;
+  offset?: number;
+  search?: string;
+  decisao?: string;
+  classe?: number;
+  ano_min?: number;
+  ano_max?: number;
+  mining_only?: boolean;
+}
+
+export interface RecordText {
+  text: string;
+  truncated: boolean;
+  total_length: number;
+}
+
 export function fetchExplorerDatasets() {
   return apiFetch<Record<string, string>>("/explorer/datasets");
 }
 
-export function fetchExplorerData(
-  dataset: string,
-  params?: { limit?: number; offset?: number; decisao?: string; classe?: number; ano_min?: number; ano_max?: number }
-) {
+export function fetchExplorerData(dataset: string, params?: ExplorerFilters) {
   const qs = new URLSearchParams();
   if (params?.limit) qs.set("limit", String(params.limit));
   if (params?.offset) qs.set("offset", String(params.offset));
+  if (params?.search) qs.set("search", params.search);
   if (params?.decisao) qs.set("decisao", params.decisao);
   if (params?.classe) qs.set("classe", String(params.classe));
   if (params?.ano_min) qs.set("ano_min", String(params.ano_min));
   if (params?.ano_max) qs.set("ano_max", String(params.ano_max));
+  if (params?.mining_only) qs.set("mining_only", "true");
   const q = qs.toString();
   return apiFetch<ExplorerResponse>(`/explorer/${dataset}${q ? `?${q}` : ""}`);
+}
+
+export function fetchExplorerRecord(dataset: string, recordId: string) {
+  return apiFetch<Record<string, unknown>>(
+    `/explorer/${dataset}/record/${encodeURIComponent(recordId)}`
+  );
+}
+
+export function fetchExplorerRecordText(dataset: string, recordId: string) {
+  return apiFetch<RecordText>(
+    `/explorer/${dataset}/record/${encodeURIComponent(recordId)}/text`
+  );
+}
+
+export function explorerExportUrl(dataset: string, params?: ExplorerFilters): string {
+  const qs = new URLSearchParams();
+  if (params?.search) qs.set("search", params.search);
+  if (params?.decisao) qs.set("decisao", params.decisao);
+  if (params?.classe) qs.set("classe", String(params.classe));
+  if (params?.ano_min) qs.set("ano_min", String(params.ano_min));
+  if (params?.ano_max) qs.set("ano_max", String(params.ano_max));
+  if (params?.mining_only) qs.set("mining_only", "true");
+  const q = qs.toString();
+  return `${API_BASE}/explorer/${dataset}/export.csv${q ? `?${q}` : ""}`;
+}
+
+/* ── Empresa ANM ── */
+
+export interface ANMTitulo {
+  PROCESSO: string;
+  FASE: string;
+  SUBS: string;
+  AREA_HA: number;
+  ANO: number;
+  UF: string;
+}
+
+export function fetchEmpresaANM(cnpj: string) {
+  return apiFetch<{ titular: string; total: number; titulos: ANMTitulo[] }>(
+    `/empresa/${cnpj}/anm`
+  );
+}
+
+/* ── Report PDF ── */
+
+export async function downloadReportPDF(cnpj: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/report/${cnpj}/download-sync`, {
+    method: "POST",
+  });
+  if (!res.ok) throw new Error(`Erro ao gerar relatório: ${res.status}`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `relatorio_${cnpj}_${new Date().toISOString().slice(0, 10)}.pdf`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 /* ── LLM Chat ── */
@@ -341,19 +451,6 @@ export function streamChat(
   });
 }
 
-/* ── Formatting helpers ── */
+/* ── Formatting re-exports (canonical source: lib/format.ts) ── */
 
-export function fmtReais(value: number): string {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(value);
-}
-
-export function fmtPct(value: number): string {
-  return `${value.toFixed(1)}%`;
-}
-
-export function fmtNumber(value: number): string {
-  return new Intl.NumberFormat("pt-BR").format(value);
-}
+export { fmtReais, fmtPct, fmtBR as fmtNumber } from "./format";

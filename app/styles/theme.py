@@ -1027,6 +1027,86 @@ def get_theme_css() -> str:
     }
 
     /* ══════════════════════════════════════════════
+       DASHBOARD — KPI row, sections, card grid
+       ══════════════════════════════════════════════ */
+
+    /* KPI summary row */
+    .dash-kpi-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin: 0.5rem 0 2rem 0;
+    }
+    .dash-kpi {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 1.2rem 1.4rem;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        box-shadow: var(--shadow-xs);
+    }
+    .dash-kpi-value {
+        font-family: var(--font-body);
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: var(--navy);
+        line-height: 1.2;
+    }
+    .dash-kpi-label {
+        font-family: var(--font-body);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-tertiary);
+        font-weight: 500;
+    }
+    @media (max-width: 640px) {
+        .dash-kpi-row { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* Section container */
+    .dash-section {
+        margin-bottom: 2rem;
+    }
+    .dash-section-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 1rem;
+        padding-bottom: 0.6rem;
+        border-bottom: 2px solid var(--border);
+    }
+    .dash-section-accent {
+        width: 4px;
+        height: 32px;
+        background: var(--section-accent, var(--orange));
+        border-radius: 2px;
+        flex-shrink: 0;
+    }
+    .dash-section-title {
+        font-family: var(--font-body) !important;
+        font-size: 0.78rem !important;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--text-tertiary) !important;
+        font-weight: 600 !important;
+        margin: 0 !important;
+    }
+    .dash-section-sub {
+        font-family: var(--font-body);
+        font-size: 0.82rem;
+        color: var(--text-muted);
+        margin: 2px 0 0 0;
+    }
+
+    /* Tighten gap between section header and page-link cards */
+    .dash-section-header + div [data-testid="stHorizontalBlock"] {
+        margin-top: -0.5rem;
+    }
+
+    /* ══════════════════════════════════════════════
        TRUST STRIP — Bottom of pages
        ══════════════════════════════════════════════ */
     .trust-strip {

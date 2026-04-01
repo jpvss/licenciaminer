@@ -5,9 +5,11 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   Building2,
+  Database,
   FileSearch,
   LayoutDashboard,
   Map,
+  Search,
   ShieldCheck,
   TrendingUp,
 } from "lucide-react";
@@ -17,23 +19,19 @@ const NAV_SECTIONS = [
   {
     label: "Summo Ambiental",
     items: [
-      { href: "/", label: "Visão Geral", icon: LayoutDashboard },
+      { href: "/", label: "Painel Principal", icon: LayoutDashboard },
+      { href: "/explorar", label: "Explorar Dados", icon: Database },
       { href: "/empresa", label: "Consulta Empresa", icon: Building2 },
-      { href: "/decisoes", label: "Análise Decisões", icon: BarChart3 },
+      { href: "/decisoes", label: "An\u00e1lise Decis\u00f5es", icon: BarChart3 },
       { href: "/due-diligence", label: "Due Diligence", icon: ShieldCheck },
     ],
   },
   {
-    label: "Direitos e Concessões",
+    label: "Direitos e Concess\u00f5es",
     items: [
-      { href: "/concessoes", label: "Concessões", icon: FileSearch },
+      { href: "/concessoes", label: "Base de Concess\u00f5es", icon: FileSearch },
       { href: "/mapa", label: "Mapa Geoespacial", icon: Map },
-    ],
-  },
-  {
-    label: "Inteligência",
-    items: [
-      { href: "/prospeccao", label: "Prospecção", icon: TrendingUp },
+      { href: "/prospeccao", label: "Prospec\u00e7\u00e3o", icon: TrendingUp },
     ],
   },
 ];
@@ -96,7 +94,7 @@ export function SidebarNav() {
       {/* Footer */}
       <div className="border-t border-sidebar-border px-6 py-3">
         <p className="text-[10px] text-sidebar-foreground/30">
-          v0.1.0 &middot; Dados: MG SEMAD, IBAMA, ANM
+          v0.2.0 &middot; Dados: MG SEMAD, IBAMA, ANM
         </p>
       </div>
     </aside>

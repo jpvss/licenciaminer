@@ -1,14 +1,14 @@
 """Endpoints de geração de relatórios PDF."""
 
 import logging
+import time
 import uuid
 from datetime import datetime
-from threading import Thread
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Path
 from fastapi.responses import Response
 
-from api.services.database import run_query, fmt_reais
+from api.services.database import fmt_reais, run_query
 from licenciaminer.database.queries import (
     QUERY_CNPJ_ANM_TITULOS,
     QUERY_CNPJ_CFEM,
@@ -26,8 +26,30 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# In-memory store para PDFs gerados (substituir por Redis/S3 em produção)
+# In-memory store para PDFs gerados com TTL (24h auto-cleanup)
 _report_store: dict[str, dict] = {}
+_REPORT_TTL_SECONDS = 86400  # 24 hours
+_MAX_STORED_REPORTS = 50
+
+
+def _cleanup_old_reports():
+    """Remove relatórios com mais de 24h ou quando excede o limite."""
+    now = time.time()
+    expired = [
+        k for k, v in _report_store.items()
+        if now - v.get("created_at", 0) > _REPORT_TTL_SECONDS
+    ]
+    for k in expired:
+        del _report_store[k]
+
+    # Se ainda excede o limite, remove os mais antigos
+    if len(_report_store) > _MAX_STORED_REPORTS:
+        sorted_keys = sorted(
+            _report_store.keys(),
+            key=lambda k: _report_store[k].get("created_at", 0),
+        )
+        for k in sorted_keys[:len(_report_store) - _MAX_STORED_REPORTS]:
+            del _report_store[k]
 
 
 def _collect_report_data(cnpj: str) -> dict:
@@ -238,8 +260,9 @@ def generate_report(
 
     Retorna job_id para consultar status e baixar o PDF.
     """
+    _cleanup_old_reports()
     job_id = str(uuid.uuid4())[:8]
-    _report_store[job_id] = {"status": "generating", "cnpj": cnpj}
+    _report_store[job_id] = {"status": "generating", "cnpj": cnpj, "created_at": time.time()}
 
     def _generate(job_id: str, cnpj: str):
         try:
@@ -304,3 +327,36 @@ def download_report(job_id: str):
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{job["filename"]}"'},
     )
+
+
+@router.post("/report/{cnpj}/download-sync")
+def download_report_sync(
+    cnpj: str = Path(..., min_length=11, max_length=14),
+):
+    """Gera e retorna PDF em uma única requisição (síncrono).
+
+    Mais simples para o frontend: POST → blob → download.
+    Timeout recomendado: 60s no cliente.
+    """
+    try:
+        from app.components.report_generator import generate_report_pdf
+        from app.components.report_data import ReportData
+
+        raw = _collect_report_data(cnpj)
+
+        report_data = ReportData(cnpj=cnpj)
+        for key, value in raw.items():
+            if hasattr(report_data, key) and key != "cnpj":
+                setattr(report_data, key, value)
+
+        pdf_bytes = generate_report_pdf(report_data)
+        filename = f"relatorio_{cnpj}_{datetime.now():%Y%m%d}.pdf"
+
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+    except Exception as e:
+        logger.exception("Erro ao gerar PDF síncrono para %s", cnpj)
+        raise HTTPException(status_code=500, detail=f"Erro na geração do relatório: {e}")
