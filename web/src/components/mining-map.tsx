@@ -1,0 +1,239 @@
+"use client";
+
+import { useRef, useCallback, useState } from "react";
+import Map, {
+  Source,
+  Layer,
+  Popup,
+  NavigationControl,
+  type MapRef,
+  type MapLayerMouseEvent,
+} from "react-map-gl/maplibre";
+import "maplibre-gl/dist/maplibre-gl.css";
+import { Badge } from "@/components/ui/badge";
+import { fmtHa } from "@/lib/format";
+
+interface MiningMapProps {
+  geojson: GeoJSON.FeatureCollection | null;
+  colorBy: "categoria" | "regime" | "fase" | "cfem";
+  colorPalettes: {
+    categoria: Record<string, string>;
+    regime: Record<string, string>;
+    fase: Record<string, string>;
+  };
+  showUCs: boolean;
+  showTIs: boolean;
+  ucsGeojson: GeoJSON.FeatureCollection | null;
+  tisGeojson: GeoJSON.FeatureCollection | null;
+}
+
+interface PopupInfo {
+  lng: number;
+  lat: number;
+  properties: Record<string, unknown>;
+}
+
+const MG_CENTER = { longitude: -43.9, latitude: -19.9 };
+const INITIAL_ZOOM = 6;
+
+const CFEM_COLORS: Record<string, string> = {
+  true: "#27AE60",
+  false: "#E74C3C",
+};
+
+export function MiningMap({
+  geojson,
+  colorBy,
+  colorPalettes,
+  showUCs,
+  showTIs,
+  ucsGeojson,
+  tisGeojson,
+}: MiningMapProps) {
+  const mapRef = useRef<MapRef>(null);
+  const [popup, setPopup] = useState<PopupInfo | null>(null);
+  const [hoverFeatureId, setHoverFeatureId] = useState<string | null>(null);
+
+  const getColorExpression = useCallback((): string | unknown[] => {
+    const palette =
+      colorBy === "cfem"
+        ? CFEM_COLORS
+        : colorBy === "fase"
+          ? colorPalettes.fase
+          : colorBy === "regime"
+            ? colorPalettes.regime
+            : colorPalettes.categoria;
+
+    const propName =
+      colorBy === "cfem"
+        ? "ativo_cfem"
+        : colorBy === "fase"
+          ? "FASE"
+          : colorBy;
+
+    const entries = Object.entries(palette);
+    if (entries.length === 0) return "#95A5A6";
+
+    const matchExpr: unknown[] = ["match", ["to-string", ["get", propName]]];
+    for (const [key, color] of entries) {
+      matchExpr.push(key, color);
+    }
+    matchExpr.push("#95A5A6"); // fallback
+    return matchExpr;
+  }, [colorBy, colorPalettes]);
+
+  const handleClick = useCallback((e: MapLayerMouseEvent) => {
+    const feature = e.features?.[0];
+    if (!feature) {
+      setPopup(null);
+      return;
+    }
+    setPopup({
+      lng: e.lngLat.lng,
+      lat: e.lngLat.lat,
+      properties: feature.properties as Record<string, unknown>,
+    });
+  }, []);
+
+  const handleMouseEnter = useCallback(() => {
+    const map = mapRef.current?.getMap();
+    if (map) map.getCanvas().style.cursor = "pointer";
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    const map = mapRef.current?.getMap();
+    if (map) map.getCanvas().style.cursor = "";
+  }, []);
+
+  return (
+    <Map
+      ref={mapRef}
+      initialViewState={{
+        ...MG_CENTER,
+        zoom: INITIAL_ZOOM,
+      }}
+      style={{ width: "100%", height: "100%" }}
+      mapStyle="https://tiles.openfreemap.org/styles/liberty"
+      interactiveLayerIds={geojson ? ["concessoes-fill"] : []}
+      onClick={handleClick}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      <NavigationControl position="top-right" />
+
+      {/* UCs layer */}
+      {showUCs && ucsGeojson && (
+        <Source id="ucs" type="geojson" data={ucsGeojson}>
+          <Layer
+            id="ucs-fill"
+            type="fill"
+            paint={{
+              "fill-color": "#27AE60",
+              "fill-opacity": 0.12,
+            }}
+          />
+          <Layer
+            id="ucs-outline"
+            type="line"
+            paint={{
+              "line-color": "#27AE60",
+              "line-width": 1,
+              "line-opacity": 0.5,
+            }}
+          />
+        </Source>
+      )}
+
+      {/* TIs layer */}
+      {showTIs && tisGeojson && (
+        <Source id="tis" type="geojson" data={tisGeojson}>
+          <Layer
+            id="tis-fill"
+            type="fill"
+            paint={{
+              "fill-color": "#E74C3C",
+              "fill-opacity": 0.12,
+            }}
+          />
+          <Layer
+            id="tis-outline"
+            type="line"
+            paint={{
+              "line-color": "#E74C3C",
+              "line-width": 1,
+              "line-opacity": 0.5,
+            }}
+          />
+        </Source>
+      )}
+
+      {/* Concessões layer */}
+      {geojson && (
+        <Source id="concessoes" type="geojson" data={geojson}>
+          <Layer
+            id="concessoes-fill"
+            type="fill"
+            paint={{
+              "fill-color": getColorExpression() as string,
+              "fill-opacity": 0.5,
+            }}
+          />
+          <Layer
+            id="concessoes-outline"
+            type="line"
+            paint={{
+              "line-color": getColorExpression() as string,
+              "line-width": 1.5,
+              "line-opacity": 0.8,
+            }}
+          />
+        </Source>
+      )}
+
+      {/* Popup */}
+      {popup && (
+        <Popup
+          longitude={popup.lng}
+          latitude={popup.lat}
+          closeOnClick={false}
+          onClose={() => setPopup(null)}
+          maxWidth="300px"
+          className="mining-popup"
+        >
+          <div className="space-y-1.5 text-xs">
+            <p className="font-mono font-medium">
+              {str(popup.properties.processo_norm)}
+            </p>
+            {popup.properties.titular != null && (
+              <p className="text-muted-foreground truncate max-w-[260px]">
+                {str(popup.properties.titular)}
+              </p>
+            )}
+            <div className="flex flex-wrap gap-1">
+              {popup.properties.substancia_principal != null && (
+                <Badge variant="secondary" className="text-[9px]">
+                  {str(popup.properties.substancia_principal)}
+                </Badge>
+              )}
+              {popup.properties.FASE != null && (
+                <Badge variant="outline" className="text-[9px]">
+                  {str(popup.properties.FASE)}
+                </Badge>
+              )}
+            </div>
+            {popup.properties.AREA_HA != null && (
+              <p className="tabular-nums">
+                Área: {fmtHa(Number(popup.properties.AREA_HA))}
+              </p>
+            )}
+          </div>
+        </Popup>
+      )}
+    </Map>
+  );
+}
+
+function str(v: unknown): string {
+  if (v === null || v === undefined) return "—";
+  return String(v);
+}

@@ -451,6 +451,233 @@ export function streamChat(
   });
 }
 
+/* ── Concessões ── */
+
+export interface ConcessoesFilters {
+  search?: string;
+  regime?: string[];
+  categoria?: string[];
+  substancia?: string[];
+  municipio?: string[];
+  cfem_status?: "ativo" | "inativo";
+  estrategico?: boolean;
+  limit?: number;
+  offset?: number;
+}
+
+export interface ConcessoesStats {
+  total: number;
+  cfem_ativas: number | null;
+  substancias: number;
+  municipios: number;
+}
+
+export interface ConcessoesFilterOptions {
+  regimes: string[];
+  categorias: string[];
+  substancias: string[];
+  municipios: string[];
+  regime_labels: Record<string, string>;
+  view: string;
+}
+
+export interface ConcessoesResponse {
+  view: string;
+  total: number;
+  limit: number;
+  offset: number;
+  regime_labels: Record<string, string>;
+  rows: Record<string, unknown>[];
+}
+
+function concessoesQS(params?: ConcessoesFilters): string {
+  if (!params) return "";
+  const qs = new URLSearchParams();
+  if (params.search) qs.set("search", params.search);
+  params.regime?.forEach((v) => qs.append("regime", v));
+  params.categoria?.forEach((v) => qs.append("categoria", v));
+  params.substancia?.forEach((v) => qs.append("substancia", v));
+  params.municipio?.forEach((v) => qs.append("municipio", v));
+  if (params.cfem_status) qs.set("cfem_status", params.cfem_status);
+  if (params.estrategico != null) qs.set("estrategico", String(params.estrategico));
+  if (params.limit) qs.set("limit", String(params.limit));
+  if (params.offset) qs.set("offset", String(params.offset));
+  const q = qs.toString();
+  return q ? `?${q}` : "";
+}
+
+export function fetchConcessoesFilters() {
+  return apiFetch<ConcessoesFilterOptions>("/concessoes/filters");
+}
+
+export function fetchConcessoesStats(params?: ConcessoesFilters) {
+  return apiFetch<ConcessoesStats>(`/concessoes/stats${concessoesQS(params)}`);
+}
+
+export function fetchConcessoes(params?: ConcessoesFilters) {
+  return apiFetch<ConcessoesResponse>(`/concessoes${concessoesQS(params)}`);
+}
+
+export function fetchConcessaoDetail(processo: string) {
+  return apiFetch<Record<string, unknown>>(`/concessoes/${encodeURIComponent(processo)}`);
+}
+
+/* ── Prospecção ── */
+
+export interface ProspeccaoFilters {
+  min_score?: number;
+  regime?: string[];
+  categoria?: string[];
+  estrategico?: boolean;
+  limit?: number;
+  offset?: number;
+}
+
+export interface ProspeccaoOpportunity {
+  processo_norm: string;
+  regime: string;
+  titular: string;
+  substancia_principal: string;
+  municipio_principal: string;
+  categoria: string;
+  AREA_HA: number;
+  ativo_cfem: boolean;
+  cfem_total: number;
+  estrategico: string;
+  score: number;
+  motivo: string;
+}
+
+export interface ProspeccaoResponse {
+  total: number;
+  limit: number;
+  offset: number;
+  stats: {
+    total: number;
+    avg_score: number;
+    strategic_count: number;
+    total_area: number;
+  };
+  rows: ProspeccaoOpportunity[];
+}
+
+export interface EmpresaPortfolio {
+  titular: string;
+  total_concessoes: number;
+  substancias_distintas: number;
+  ativas_cfem: number;
+  inativas: number;
+  cfem_total: number;
+  area_total: number;
+}
+
+export interface MunicipioConcentration {
+  municipio: string;
+  substancia: string;
+  concessoes: number;
+  ativas: number;
+  area_total: number;
+  cfem_total: number;
+}
+
+function prospeccaoQS(params?: ProspeccaoFilters): string {
+  if (!params) return "";
+  const qs = new URLSearchParams();
+  if (params.min_score != null) qs.set("min_score", String(params.min_score));
+  params.regime?.forEach((v) => qs.append("regime", v));
+  params.categoria?.forEach((v) => qs.append("categoria", v));
+  if (params.estrategico != null) qs.set("estrategico", String(params.estrategico));
+  if (params.limit) qs.set("limit", String(params.limit));
+  if (params.offset) qs.set("offset", String(params.offset));
+  const q = qs.toString();
+  return q ? `?${q}` : "";
+}
+
+export function fetchOpportunities(params?: ProspeccaoFilters) {
+  return apiFetch<ProspeccaoResponse>(`/prospeccao/opportunities${prospeccaoQS(params)}`);
+}
+
+export function fetchEmpresaPortfolios() {
+  return apiFetch<{ stats: Record<string, unknown>; rows: EmpresaPortfolio[] }>("/prospeccao/empresas");
+}
+
+export function fetchMunicipioConcentration() {
+  return apiFetch<{ total: number; rows: MunicipioConcentration[] }>("/prospeccao/municipios");
+}
+
+export function fetchScoreBreakdown() {
+  return apiFetch<{ max_score: number; criteria: { criterion: string; points: number }[] }>("/prospeccao/score-breakdown");
+}
+
+/* ── Geospatial ── */
+
+export interface GeoConcessoesResponse {
+  total: number;
+  returned: number;
+  truncated: boolean;
+  enriched: boolean;
+  geojson: GeoJSON.FeatureCollection;
+}
+
+export interface GeoStats {
+  total_polygons: number;
+  total_all: number;
+  enriched: boolean;
+  enriched_count?: number;
+  distinct_substances?: number;
+  total_area_ha?: number;
+}
+
+export interface GeoFilterOptions {
+  options: {
+    regimes: string[];
+    categorias: string[];
+    substancias: string[];
+    fases?: string[];
+  };
+  color_palettes: {
+    categoria: Record<string, string>;
+    regime: Record<string, string>;
+    fase: Record<string, string>;
+  };
+}
+
+function geoQS(params?: {
+  regime?: string[];
+  categoria?: string[];
+  substancia?: string[];
+  cfem_status?: string;
+  estrategico?: boolean;
+  limit?: number;
+}): string {
+  if (!params) return "";
+  const qs = new URLSearchParams();
+  params.regime?.forEach((v) => qs.append("regime", v));
+  params.categoria?.forEach((v) => qs.append("categoria", v));
+  params.substancia?.forEach((v) => qs.append("substancia", v));
+  if (params.cfem_status) qs.set("cfem_status", params.cfem_status);
+  if (params.estrategico != null) qs.set("estrategico", String(params.estrategico));
+  if (params.limit) qs.set("limit", String(params.limit));
+  const q = qs.toString();
+  return q ? `?${q}` : "";
+}
+
+export function fetchGeoConcessoes(params?: Parameters<typeof geoQS>[0]) {
+  return apiFetch<GeoConcessoesResponse>(`/geo/concessoes${geoQS(params)}`);
+}
+
+export function fetchGeoStats(params?: Parameters<typeof geoQS>[0]) {
+  return apiFetch<GeoStats>(`/geo/concessoes/stats${geoQS(params)}`);
+}
+
+export function fetchGeoFilters() {
+  return apiFetch<GeoFilterOptions>("/geo/concessoes/filters");
+}
+
+export function fetchGeoLayer(layer: "ucs" | "tis") {
+  return apiFetch<GeoJSON.FeatureCollection>(`/geo/layers/${layer}`);
+}
+
 /* ── Formatting re-exports (canonical source: lib/format.ts) ── */
 
 export { fmtReais, fmtPct, fmtBR as fmtNumber } from "./format";
