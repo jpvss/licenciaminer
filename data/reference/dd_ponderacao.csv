@@ -1,0 +1,9 @@
+tipo_risco,nivel,peso,descricao
+Operacional,Baixo,0.25,Pouca ou nenhuma perturbação na operação
+Operacional,Moderado,0.5,Perturbação ou interrupção temporária na operação
+Operacional,Alto,1.0,Perturbação permanente na operação
+Operacional,Extremo,2.0,Interrupção da operação por tempo indeterminado
+Legal,Baixo,0.25,Descumprimento de norma interna passível de advertência
+Legal,Moderado,0.5,Descumprimento legal não significativo e/ou multa leve
+Legal,Alto,1.0,"Descumprimento legal significativo, fiscalização/autuação"
+Legal,Extremo,2.0,Violação grave com risco de interdição ou processo criminal
