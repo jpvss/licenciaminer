@@ -4,6 +4,7 @@ port = 8501
 
 [client]
 toolbarMode = "minimal"
+showSidebarNavigation = false
 
 [theme]
 base = "light"
