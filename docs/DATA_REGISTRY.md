@@ -1,6 +1,6 @@
-# Data Registry — LicenciaMiner
+# Data Registry — Sistema Integrado Summo Quartile
 
-Last updated: 2026-03-22
+Last updated: 2026-03-31
 
 ## How to Read This Document
 
@@ -318,12 +318,131 @@ data/reference/
 
 ---
 
-## NEXT: PRODUCT DEVELOPMENT
+## LAYER 6: Market Intelligence
 
-The MG data foundation is complete (10/12 sources, 2 blocked by external infrastructure).
+### 6A. BCB PTAX Exchange Rates
+| Field | Value |
+|-------|-------|
+| **What** | Daily USD/BRL exchange rates (buy/sell) from Banco Central |
+| **Where (source)** | https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/ |
+| **Where (local)** | `data/processed/bcb_cotacoes.parquet` |
+| **Key fields** | data, cotacao_compra, cotacao_venda |
+| **Refresh** | `licenciaminer collect bcb` (full overwrite, ~2 sec) |
+| **Frequency** | Weekly |
+| **Status** | ✅ Complete |
 
-Product development can begin:
-1. Design predictive risk score from cross-source features
-2. Build FastAPI query endpoints
-3. Create analysis export / dashboard
-4. Prototype for user validation
+### 6B. Comex Stat Mining Trade
+| Field | Value |
+|-------|-------|
+| **What** | Export/import data for mineral products (NCM chapter 26) |
+| **Where (source)** | https://api-comexstat.mdic.gov.br/ |
+| **Where (local)** | `data/processed/comex_mineracao.parquet` |
+| **Key fields** | ano, mes, capitulo_ncm, posicao_ncm, uf, pais, valor_fob_usd, peso_kg, fluxo |
+| **Refresh** | `licenciaminer collect comex` (full overwrite, ~5 sec) |
+| **Frequency** | Monthly |
+| **Status** | ✅ Complete |
+
+### 6C. Commodity Prices (Manual)
+| Field | Value |
+|-------|-------|
+| **What** | Iron ore, gold, niobium spot prices |
+| **Where (source)** | Investing.com, IndexMundi, TradingEconomics (manual) |
+| **Where (local)** | `data/reference/commodity_prices.csv` |
+| **Key fields** | data, mineral, preco_usd, unidade, fonte |
+| **Refresh** | Upload via Inteligência Comercial page UI |
+| **Frequency** | Monthly (manual) |
+| **Status** | ✅ Template with sample data |
+
+---
+
+## LAYER 7: Reference Data (Due Diligence)
+
+### 7A. DD Document Inventory
+| Field | Value |
+|-------|-------|
+| **What** | 119 documents mapped for environmental licensing compliance |
+| **Where (source)** | Extracted from Excel model (DN COPAM 217/2017 + MG legislation) |
+| **Where (local)** | `data/reference/dd_inventario_documentos.csv` |
+| **Key fields** | num, licenca, documento, doc_id, modalidade, fase |
+| **Status** | ✅ Complete |
+
+### 7B. DD Compliance Tests
+| Field | Value |
+|-------|-------|
+| **What** | 1,934 adherence tests mapped across all document types |
+| **Where (source)** | Extracted from Excel model |
+| **Where (local)** | `data/reference/dd_requisitos_testes.csv` |
+| **Key fields** | requisito_id, documento, topico, teste_aderencia, evidencia_esperada, peso |
+| **Status** | ✅ Complete |
+
+### 7C. DD Weighting Table
+| Field | Value |
+|-------|-------|
+| **What** | 8 risk weighting levels (4 Operational + 4 Legal) |
+| **Where (source)** | Extracted from Excel model |
+| **Where (local)** | `data/reference/dd_ponderacao.csv` |
+| **Status** | ✅ Complete |
+
+---
+
+## REFRESH COMMANDS (Updated)
+
+### Daily/Weekly (fast)
+```bash
+licenciaminer collect mg --scrape --all-activities
+licenciaminer collect mg-docs --mining-only
+licenciaminer collect ibama
+licenciaminer collect infracoes
+licenciaminer collect cfem
+licenciaminer collect copam
+licenciaminer collect bcb                              # New: exchange rates
+```
+
+### Weekly (slower)
+```bash
+licenciaminer collect anm --uf MG
+licenciaminer collect spatial --layer all
+licenciaminer collect comex                            # New: trade data
+```
+
+### Quarterly / As needed
+```bash
+licenciaminer collect cnpj
+licenciaminer collect ral
+```
+
+### All automated sources
+```bash
+licenciaminer collect all    # Includes bcb and comex
+```
+
+---
+
+## FILE INVENTORY (Updated)
+
+```
+data/processed/
+  mg_semad_licencas.parquet      120 MB   42,758 decisions + PDF text
+  ibama_infracoes.parquet        130 MB   702,280 infractions
+  anm_processos.parquet            4 MB   50,723 mining processes
+  anm_spatial_overlaps.parquet     ? MB   50,725 with UC/TI/bioma flags
+  anm_cfem.parquet               2.4 MB   91,026 royalty payments
+  anm_ral.parquet                  ? MB   1,013 production records
+  copam_cmi_reunioes.parquet       ? MB   135 meetings, 2,234 docs
+  ibama_licencas.parquet         0.04 MB  1,115 federal licenses
+  cnpj_empresas.parquet            ? MB   ~6,300+ (growing)
+  bcb_cotacoes.parquet             ? MB   ~500 daily rates (24 months)
+  comex_mineracao.parquet          ? MB   Mining trade data (5 years)
+  collection_metadata.json                Timestamps per source
+
+data/reference/
+  icmbio_ucs.parquet                     344 conservation units
+  funai_tis.parquet                      16 indigenous territories
+  ibge_biomas.parquet                    6 biomes
+  anm_geometrias_mg.parquet              50,725 mining polygons
+  dd_inventario_documentos.csv           119 DD documents
+  dd_requisitos_testes.csv               1,934 DD compliance tests
+  dd_ponderacao.csv                      8 weighting levels
+  comex_ncm_mineracao.csv                17 mineral NCM codes
+  commodity_prices.csv                   Commodity price template
+```
