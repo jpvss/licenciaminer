@@ -91,6 +91,8 @@ def get_setor_data(setor: str):
             "nome": kpi.nome,
             "unidade": kpi.unidade,
             "target": kpi.target,
+            "min_val": kpi.min_val,
+            "max_val": kpi.max_val,
             "current": round(current, 2),
             "previous": round(previous, 2),
             "delta": round(delta, 2),

@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { MultiSelect } from "@/components/multi-select";
 import { StatCard } from "@/components/stat-card";
 import {
   fetchGeoConcessoes,
@@ -62,8 +63,9 @@ export default function MapaPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Filters
-  const [regime, setRegime] = useState("");
-  const [categoria, setCategoria] = useState("");
+  const [regime, setRegime] = useState<string[]>([]);
+  const [categoria, setCategoria] = useState<string[]>([]);
+  const [substancia, setSubstancia] = useState<string[]>([]);
   const [colorBy, setColorBy] = useState<ColorBy>("categoria");
 
   // Restriction layers
@@ -83,8 +85,9 @@ export default function MapaPage() {
     setError(null);
 
     const params = {
-      regime: regime ? [regime] : undefined,
-      categoria: categoria ? [categoria] : undefined,
+      regime: regime.length > 0 ? regime : undefined,
+      categoria: categoria.length > 0 ? categoria : undefined,
+      substancia: substancia.length > 0 ? substancia : undefined,
     };
 
     Promise.all([
@@ -100,7 +103,7 @@ export default function MapaPage() {
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [regime, categoria]);
+  }, [regime, categoria, substancia]);
 
   useEffect(() => {
     loadConcessoes();
@@ -210,38 +213,36 @@ export default function MapaPage() {
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">
                   Regime
                 </label>
-                <Select value={regime || "all"} onValueChange={(v) => setRegime(v === "all" ? "" : v)}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    {(filterOptions?.options.regimes ?? []).map((r) => (
-                      <SelectItem key={r} value={r}>
-                        {r}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <MultiSelect
+                  options={filterOptions?.options.regimes ?? []}
+                  selected={regime}
+                  onChange={setRegime}
+                  placeholder="Todos"
+                />
               </div>
 
               <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">
                   Categoria
                 </label>
-                <Select value={categoria || "all"} onValueChange={(v) => setCategoria(v === "all" ? "" : v)}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas</SelectItem>
-                    {(filterOptions?.options.categorias ?? []).map((c) => (
-                      <SelectItem key={c} value={c}>
-                        {c}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <MultiSelect
+                  options={filterOptions?.options.categorias ?? []}
+                  selected={categoria}
+                  onChange={setCategoria}
+                  placeholder="Todas"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Substância
+                </label>
+                <MultiSelect
+                  options={filterOptions?.options.substancias ?? []}
+                  selected={substancia}
+                  onChange={setSubstancia}
+                  placeholder="Todas"
+                />
               </div>
 
               <div>

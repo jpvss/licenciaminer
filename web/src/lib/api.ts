@@ -678,6 +678,150 @@ export function fetchGeoLayer(layer: "ucs" | "tis") {
   return apiFetch<GeoJSON.FeatureCollection>(`/geo/layers/${layer}`);
 }
 
+/* ── Intelligence (Market Data) ── */
+
+export interface PtaxResponse {
+  rows: { data: string; cotacao_venda: number }[];
+  latest: { data: string; cotacao_venda: number } | null;
+  total: number;
+}
+
+export function fetchPtax() {
+  return apiFetch<PtaxResponse>("/intelligence/ptax");
+}
+
+export interface CommodityResponse {
+  rows: Record<string, string>[];
+  minerals: string[];
+  latest: Record<string, Record<string, string>>;
+}
+
+export function fetchCommodities() {
+  return apiFetch<CommodityResponse>("/intelligence/commodities");
+}
+
+export function fetchComexYearly() {
+  return apiFetch<{ rows: { ano: number; fluxo: string; valor_fob_usd: number }[] }>("/intelligence/comex/yearly");
+}
+
+export function fetchComexByUF() {
+  return apiFetch<{ rows: { uf: string; valor_fob_usd: number }[] }>("/intelligence/comex/by-uf");
+}
+
+export function fetchCfemTopMunicipios() {
+  return apiFetch<{ rows: { municipio: string; total: number }[] }>("/intelligence/cfem/top-municipios");
+}
+
+export function fetchCfemTopSubstancias() {
+  return apiFetch<{ rows: { substancia: string; total: number }[] }>("/intelligence/cfem/top-substancias");
+}
+
+export function fetchRalTopSubstancias() {
+  return apiFetch<{ rows: { substancia: string; n: number }[] }>("/intelligence/ral/top-substancias");
+}
+
+export function fetchAnmByFase() {
+  return apiFetch<{ rows: { fase: string; n: number }[] }>("/intelligence/anm/by-fase");
+}
+
+export function fetchAnmBySubstancia() {
+  return apiFetch<{ rows: { substancia: string; n: number }[] }>("/intelligence/anm/by-substancia");
+}
+
+export function fetchAnmStats() {
+  return apiFetch<{ total_records: number }>("/intelligence/anm/stats");
+}
+
+/* ── Simulator (Mineradora Modelo) ── */
+
+export interface SimKPI {
+  nome: string;
+  unidade: string;
+  target: number;
+  min_val: number;
+  max_val: number;
+  current: number;
+  previous: number;
+  delta: number;
+  series: {
+    data: string[];
+    valor: number[];
+  };
+}
+
+export interface SimSetorResponse {
+  setor: string;
+  kpis: SimKPI[];
+  disclaimer: string;
+}
+
+export interface SimSetoresResponse {
+  setores: Record<string, { nome: string; unidade: string; target: number; min_val: number; max_val: number }[]>;
+  disclaimer: string;
+}
+
+export function fetchSimSetores() {
+  return apiFetch<SimSetoresResponse>("/simulator/setores");
+}
+
+export function fetchSimSetor(setor: string) {
+  return apiFetch<SimSetorResponse>(`/simulator/setores/${encodeURIComponent(setor)}`);
+}
+
+/* ── Viabilidade ── */
+
+export interface ViabilidadeStats {
+  total: number;
+  deferidos: number;
+  indeferidos: number;
+  arquivamentos: number;
+  taxa_aprovacao: number;
+}
+
+export interface CasoSimilar {
+  detail_id: number;
+  empreendimento: string;
+  municipio: string;
+  cnpj_cpf: string;
+  atividade: string;
+  classe: number;
+  regional: string;
+  modalidade: string;
+  decisao: string;
+  ano: number;
+  data_de_publicacao: string;
+  texto_chars: number;
+}
+
+export interface ViabilidadeResponse {
+  stats: ViabilidadeStats;
+  media_geral: number;
+  casos_similares: CasoSimilar[];
+}
+
+export function fetchAtividades() {
+  return apiFetch<string[]>("/consulta/atividades");
+}
+
+export function fetchRegionais() {
+  return apiFetch<string[]>("/consulta/regionais");
+}
+
+export function fetchViabilidade(params: {
+  atividade?: string;
+  classe?: number;
+  regional?: string;
+  cnpj?: string;
+}) {
+  const qs = new URLSearchParams();
+  if (params.atividade) qs.set("atividade", params.atividade);
+  if (params.classe != null) qs.set("classe", String(params.classe));
+  if (params.regional) qs.set("regional", params.regional);
+  if (params.cnpj) qs.set("cnpj", params.cnpj);
+  const q = qs.toString();
+  return apiFetch<ViabilidadeResponse>(`/consulta/viabilidade${q ? `?${q}` : ""}`);
+}
+
 /* ── Formatting re-exports (canonical source: lib/format.ts) ── */
 
 export { fmtReais, fmtPct, fmtBR as fmtNumber } from "./format";

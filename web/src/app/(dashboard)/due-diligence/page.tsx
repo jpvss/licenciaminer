@@ -5,15 +5,23 @@ import {
   ShieldCheck,
   ChevronRight,
   ChevronLeft,
+  ChevronDown,
   FileText,
   CheckCircle2,
   XCircle,
   AlertTriangle,
+  Download,
   Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   Select,
   SelectContent,
@@ -27,6 +35,7 @@ import {
   fetchDDDocuments,
   fetchDDRequirements,
   submitDDScore,
+  downloadReportPDF,
   fmtPct,
   type LicenseType,
   type DDDocument,
@@ -43,6 +52,18 @@ const EVAL_OPTIONS: { value: Evaluation; label: string; color: string }[] = [
   { value: "Não Aplica", label: "N/A", color: "text-muted-foreground" },
 ];
 
+const ATIVIDADES = [
+  { code: "A-01", label: "Pesquisa Mineral" },
+  { code: "A-02", label: "Lavra a Céu Aberto" },
+  { code: "A-03", label: "Lavra Subterrânea" },
+  { code: "A-04", label: "Dragagem / Água Mineral" },
+  { code: "A-05", label: "Beneficiamento" },
+  { code: "A-06", label: "Pilha de Estéril / Barragem" },
+  { code: "A-07", label: "Infraestrutura de Mineração" },
+];
+
+const CLASSES = [1, 2, 3, 4, 5, 6] as const;
+
 const STEPS = [
   { num: 1, label: "Configuração" },
   { num: 2, label: "Documentos" },
@@ -56,6 +77,9 @@ export default function DueDiligencePage() {
   // Step 1
   const [licenseTypes, setLicenseTypes] = useState<LicenseType[] | null>(null);
   const [selectedLicense, setSelectedLicense] = useState("");
+  const [selectedAtividade, setSelectedAtividade] = useState("A-02");
+  const [selectedClasse, setSelectedClasse] = useState("4");
+  const [cnpj, setCnpj] = useState("");
 
   // Step 2
   const [documents, setDocuments] = useState<DDDocument[] | null>(null);
@@ -70,6 +94,7 @@ export default function DueDiligencePage() {
   // Step 4
   const [result, setResult] = useState<DDScoreResult | null>(null);
   const [scoring, setScoring] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   // Load license types
   useEffect(() => {
@@ -200,37 +225,144 @@ export default function DueDiligencePage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="max-w-md space-y-4">
-              <div>
-                <label className="mb-1 block text-sm font-medium">
-                  Tipo de Licença
-                </label>
-                {licenseTypes ? (
-                  <Select value={selectedLicense} onValueChange={setSelectedLicense}>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {/* Left column */}
+              <div className="space-y-4">
+                <div>
+                  <label className="mb-1 block text-sm font-medium">
+                    Tipo de Licença
+                  </label>
+                  {licenseTypes ? (
+                    <Select value={selectedLicense} onValueChange={setSelectedLicense}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o tipo de licença" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {licenseTypes.map((lt) => (
+                          <SelectItem key={lt.code} value={lt.code}>
+                            <span className="font-medium">{lt.code}</span>
+                            <span className="ml-2 text-muted-foreground">
+                              — {lt.description}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Skeleton className="h-10 w-full" />
+                  )}
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium">
+                    Atividade
+                  </label>
+                  <Select value={selectedAtividade} onValueChange={setSelectedAtividade}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione o tipo de licença" />
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {licenseTypes.map((lt) => (
-                        <SelectItem key={lt.code} value={lt.code}>
-                          <span className="font-medium">{lt.code}</span>
+                      {ATIVIDADES.map((a) => (
+                        <SelectItem key={a.code} value={a.code}>
+                          <span className="font-medium">{a.code}</span>
                           <span className="ml-2 text-muted-foreground">
-                            — {lt.description}
+                            — {a.label}
                           </span>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                ) : (
-                  <Skeleton className="h-10 w-full" />
-                )}
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Código de atividade minerária (DN COPAM 217/2017)
+                  </p>
+                </div>
               </div>
 
-              <p className="text-xs text-muted-foreground">
-                A seleção do tipo de licença determina quais documentos e requisitos de teste
-                serão aplicáveis na avaliação de conformidade.
-              </p>
+              {/* Right column */}
+              <div className="space-y-4">
+                <div>
+                  <label className="mb-1 block text-sm font-medium">
+                    Classe Ambiental
+                  </label>
+                  <Select value={selectedClasse} onValueChange={setSelectedClasse}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CLASSES.map((c) => (
+                        <SelectItem key={c} value={String(c)}>
+                          Classe {c}
+                          <span className="ml-2 text-muted-foreground">
+                            {c === 1 ? "— Impacto mínimo" : c === 6 ? "— Impacto máximo" : ""}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Classe de impacto ambiental (1 = mínimo, 6 = máximo)
+                  </p>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium">
+                    CNPJ do Empreendedor
+                    <span className="ml-1 text-xs font-normal text-muted-foreground">(opcional)</span>
+                  </label>
+                  <Input
+                    placeholder="00.000.000/0000-00"
+                    value={cnpj}
+                    onChange={(e) => setCnpj(e.target.value)}
+                  />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Se informado, o relatório incluirá dados históricos da empresa
+                  </p>
+                </div>
+              </div>
             </div>
+
+            {/* Document preview */}
+            {selectedLicense && documents && documents.length > 0 && (
+              <div className="rounded-lg border bg-muted/30 p-4">
+                <p className="text-sm font-medium">
+                  <span className="font-tabular">{documents.length}</span> documentos aplicáveis
+                  para {selectedLicense} (Classe {selectedClasse})
+                </p>
+                <Collapsible>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="link" size="sm" className="mt-1 h-auto p-0 text-xs">
+                      <ChevronDown className="mr-1 h-3 w-3" />
+                      Ver lista de documentos
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <ol className="mt-2 space-y-1 text-xs text-muted-foreground">
+                      {documents.map((doc, i) => (
+                        <li key={doc.documento}>
+                          <span className="text-muted-foreground/60">{i + 1}.</span>{" "}
+                          <span className="font-medium text-foreground">{doc.documento}</span>
+                          {doc.descricao && (
+                            <span className="ml-1">({doc.descricao})</span>
+                          )}
+                        </li>
+                      ))}
+                    </ol>
+                  </CollapsibleContent>
+                </Collapsible>
+              </div>
+            )}
+
+            {loadingDocs && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Carregando documentos...
+              </div>
+            )}
+
+            <p className="text-xs text-muted-foreground">
+              A seleção do tipo de licença determina quais documentos e requisitos de teste
+              serão aplicáveis na avaliação de conformidade.
+            </p>
 
             <div className="flex justify-end">
               <Button
@@ -470,25 +602,60 @@ export default function DueDiligencePage() {
       {/* Step 4: Results */}
       {step === 4 && result && (
         <div className="space-y-6">
-          {/* Score hero */}
+          {/* Config summary */}
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+            <span><strong>Licença:</strong> {selectedLicense}</span>
+            <span><strong>Atividade:</strong> {selectedAtividade} — {ATIVIDADES.find((a) => a.code === selectedAtividade)?.label}</span>
+            <span><strong>Classe:</strong> {selectedClasse}</span>
+          </div>
+
+          {/* Score hero with gauge */}
           <Card className="relative overflow-hidden">
             <div
               className="absolute inset-y-0 left-0 w-2"
               style={{ backgroundColor: result.cor }}
             />
             <CardContent className="p-6">
-              <div className="flex flex-col items-center gap-4 sm:flex-row">
-                <div
-                  className="flex h-20 w-20 items-center justify-center rounded-full text-2xl font-bold text-white font-tabular"
-                  style={{ backgroundColor: result.cor }}
-                >
-                  {fmtPct(result.conformidade_nao_ponderada * 100)}
-                </div>
-                <div className="text-center sm:text-left">
+              <div className="flex flex-col items-center gap-6 sm:flex-row">
+                <ConformityGauge
+                  score={result.conformidade_nao_ponderada * 100}
+                  color={result.cor}
+                />
+                <div className="flex-1 text-center sm:text-left">
                   <h2 className="text-xl font-bold font-heading">
                     {result.classificacao}
                   </h2>
                   <p className="text-sm text-muted-foreground">{result.descricao}</p>
+                  <div className="mt-3 flex flex-wrap gap-4 text-xs">
+                    <span>Requisitos avaliados: <strong className="font-tabular">{result.requisitos_aplicaveis}</strong></span>
+                    <span>Documentos: <strong className="font-tabular">{documents?.length ?? 0}</strong></span>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2">
+                  {cnpj && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={pdfLoading}
+                      onClick={async () => {
+                        setPdfLoading(true);
+                        try {
+                          await downloadReportPDF(cnpj.replace(/\D/g, ""));
+                        } catch {
+                          // PDF generation may not be available
+                        } finally {
+                          setPdfLoading(false);
+                        }
+                      }}
+                    >
+                      {pdfLoading ? (
+                        <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Download className="mr-2 h-3.5 w-3.5" />
+                      )}
+                      Relatório PDF
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -572,6 +739,9 @@ export default function DueDiligencePage() {
               onClick={() => {
                 setStep(1);
                 setSelectedLicense("");
+                setSelectedAtividade("A-02");
+                setSelectedClasse("4");
+                setCnpj("");
                 setDocuments(null);
                 setDocStatus({});
                 setRequirements([]);
@@ -584,6 +754,46 @@ export default function DueDiligencePage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function ConformityGauge({ score, color }: { score: number; color: string }) {
+  const radius = 46;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (Math.min(score, 100) / 100) * circumference;
+
+  return (
+    <div className="relative flex h-28 w-28 shrink-0 items-center justify-center">
+      <svg className="h-28 w-28 -rotate-90" viewBox="0 0 100 100">
+        <circle
+          cx="50"
+          cy="50"
+          r={radius}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="6"
+          className="text-muted/40"
+        />
+        <circle
+          cx="50"
+          cy="50"
+          r={radius}
+          fill="none"
+          stroke={color}
+          strokeWidth="6"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          className="transition-all duration-700"
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-2xl font-bold font-tabular" style={{ color }}>
+          {fmtPct(score)}
+        </span>
+        <span className="text-[10px] text-muted-foreground">Conformidade</span>
+      </div>
     </div>
   );
 }

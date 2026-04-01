@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { MultiSelect } from "@/components/multi-select";
 import {
   Sheet,
   SheetContent,
@@ -67,8 +68,10 @@ export default function ConcessoesPage() {
   // Filters
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
-  const [regime, setRegime] = useState("");
-  const [categoria, setCategoria] = useState("");
+  const [regime, setRegime] = useState<string[]>([]);
+  const [categoria, setCategoria] = useState<string[]>([]);
+  const [substancia, setSubstancia] = useState<string[]>([]);
+  const [municipio, setMunicipio] = useState<string[]>([]);
   const [cfemStatus, setCfemStatus] = useState("");
 
   // Detail
@@ -85,11 +88,13 @@ export default function ConcessoesPage() {
   const filters: ConcessoesFilters = useMemo(
     () => ({
       search: search || undefined,
-      regime: regime ? [regime] : undefined,
-      categoria: categoria ? [categoria] : undefined,
+      regime: regime.length > 0 ? regime : undefined,
+      categoria: categoria.length > 0 ? categoria : undefined,
+      substancia: substancia.length > 0 ? substancia : undefined,
+      municipio: municipio.length > 0 ? municipio : undefined,
       cfem_status: (cfemStatus || undefined) as ConcessoesFilters["cfem_status"],
     }),
-    [search, regime, categoria, cfemStatus]
+    [search, regime, categoria, substancia, municipio, cfemStatus]
   );
 
   const loadData = useCallback(
@@ -129,13 +134,15 @@ export default function ConcessoesPage() {
   const clearFilters = () => {
     setSearch("");
     setSearchInput("");
-    setRegime("");
-    setCategoria("");
+    setRegime([]);
+    setCategoria([]);
+    setSubstancia([]);
+    setMunicipio([]);
     setCfemStatus("");
     setPage(0);
   };
 
-  const hasActiveFilters = !!(search || regime || categoria || cfemStatus);
+  const hasActiveFilters = !!(search || regime.length || categoria.length || substancia.length || municipio.length || cfemStatus);
 
   // Detail panel
   useEffect(() => {
@@ -271,42 +278,53 @@ export default function ConcessoesPage() {
               </div>
             </div>
 
-            <div>
+            <div className="min-w-[160px]">
               <label className="mb-1 block text-xs font-medium text-muted-foreground">
                 Regime
               </label>
-              <Select value={regime || "all"} onValueChange={(v) => { setRegime(v === "all" ? "" : v); setPage(0); }}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  {(filterOptions?.regimes ?? []).map((r) => (
-                    <SelectItem key={r} value={r}>
-                      {regimeLabels[r] ?? r}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <MultiSelect
+                options={filterOptions?.regimes ?? []}
+                selected={regime}
+                onChange={(v) => { setRegime(v); setPage(0); }}
+                placeholder="Todos"
+                labels={regimeLabels}
+              />
             </div>
 
-            <div>
+            <div className="min-w-[160px]">
               <label className="mb-1 block text-xs font-medium text-muted-foreground">
                 Categoria
               </label>
-              <Select value={categoria || "all"} onValueChange={(v) => { setCategoria(v === "all" ? "" : v); setPage(0); }}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas</SelectItem>
-                  {(filterOptions?.categorias ?? []).map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {c}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <MultiSelect
+                options={filterOptions?.categorias ?? []}
+                selected={categoria}
+                onChange={(v) => { setCategoria(v); setPage(0); }}
+                placeholder="Todas"
+              />
+            </div>
+
+            <div className="min-w-[160px]">
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                Substância
+              </label>
+              <MultiSelect
+                options={filterOptions?.substancias ?? []}
+                selected={substancia}
+                onChange={(v) => { setSubstancia(v); setPage(0); }}
+                placeholder="Todas"
+              />
+            </div>
+
+            <div className="min-w-[160px]">
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                Município
+              </label>
+              <MultiSelect
+                options={filterOptions?.municipios ?? []}
+                selected={municipio}
+                onChange={(v) => { setMunicipio(v); setPage(0); }}
+                placeholder="Todos"
+              />
             </div>
 
             <div>

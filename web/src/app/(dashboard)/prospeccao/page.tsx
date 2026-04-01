@@ -19,15 +19,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
+import { MultiSelect } from "@/components/multi-select";
 import {
   Table,
   TableBody,
@@ -74,8 +68,8 @@ export default function ProspeccaoPage() {
   const [oppLoading, setOppLoading] = useState(false);
   const [oppPage, setOppPage] = useState(0);
   const [minScore, setMinScore] = useState(30);
-  const [regime, setRegime] = useState("");
-  const [categoria, setCategoria] = useState("");
+  const [regime, setRegime] = useState<string[]>([]);
+  const [categoria, setCategoria] = useState<string[]>([]);
   const [estrategicoOnly, setEstrategicoOnly] = useState(false);
 
   // Empresas tab
@@ -99,8 +93,8 @@ export default function ProspeccaoPage() {
       setError(null);
       fetchOpportunities({
         min_score: minScore,
-        regime: regime ? [regime] : undefined,
-        categoria: categoria ? [categoria] : undefined,
+        regime: regime.length > 0 ? regime : undefined,
+        categoria: categoria.length > 0 ? categoria : undefined,
         estrategico: estrategicoOnly || undefined,
         limit: 200,
         offset: pg * 200,
@@ -232,38 +226,27 @@ export default function ProspeccaoPage() {
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">
                   Regime
                 </label>
-                <Select value={regime || "all"} onValueChange={(v) => { setRegime(v === "all" ? "" : v); setOppPage(0); }}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    {(filterOptions?.regimes ?? []).map((r) => (
-                      <SelectItem key={r} value={r}>
-                        {regimeLabels[r] ?? r}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <MultiSelect
+                  options={filterOptions?.regimes ?? []}
+                  selected={regime}
+                  onChange={(v) => { setRegime(v); setOppPage(0); }}
+                  placeholder="Todos"
+                  labels={regimeLabels}
+                  className="w-[180px]"
+                />
               </div>
 
               <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">
                   Categoria
                 </label>
-                <Select value={categoria || "all"} onValueChange={(v) => { setCategoria(v === "all" ? "" : v); setOppPage(0); }}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas</SelectItem>
-                    {(filterOptions?.categorias ?? []).map((c) => (
-                      <SelectItem key={c} value={c}>
-                        {c}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <MultiSelect
+                  options={filterOptions?.categorias ?? []}
+                  selected={categoria}
+                  onChange={(v) => { setCategoria(v); setOppPage(0); }}
+                  placeholder="Todas"
+                  className="w-[180px]"
+                />
               </div>
 
               <div className="flex items-center gap-2 pb-2">
