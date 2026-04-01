@@ -39,7 +39,6 @@ from licenciaminer.database.queries import (  # noqa: E402
 inject_theme(st)
 
 # ── Plotly layout defaults ──
-PLOTLY_LAYOUT = get_plotly_layout()
 COLORS = {
     "deferido": CHART_COLORS["success"],
     "indeferido": CHART_COLORS["danger"],
@@ -181,8 +180,7 @@ with tab_overview:
                         hovertemplate="%{x}<br>%{fullData.name}: %{y:,}<extra></extra>",
                     ))
 
-            fig.update_layout(
-                **PLOTLY_LAYOUT,
+            fig.update_layout(**get_plotly_layout(
                 barmode="stack",
                 height=380,
                 legend={
@@ -192,7 +190,7 @@ with tab_overview:
                 xaxis={"tickangle": -35, "tickfont": {"size": 10}},
                 yaxis={"title": {"text": "Decisões", "font": {"size": 11}},
                        "gridcolor": "rgba(36, 41, 53, 0.8)"},
-            )
+            ))
             st.plotly_chart(fig, use_container_width=True,
                             config={"displayModeBar": False})
             st.markdown(
@@ -252,12 +250,11 @@ with tab_overview:
                         "len": 0.6,
                     },
                 ))
-                fig.update_layout(
-                    **PLOTLY_LAYOUT,
+                fig.update_layout(**get_plotly_layout(
                     height=max(300, len(heat_pivot) * 35 + 60),
                     yaxis={"tickfont": {"size": 10}, "autorange": "reversed"},
                     xaxis={"side": "top", "tickfont": {"size": 10}},
-                )
+                ))
                 st.plotly_chart(fig, use_container_width=True,
                                 config={"displayModeBar": False})
                 st.markdown(
@@ -314,8 +311,7 @@ with tab_overview:
                     hovertemplate="%{x}: %{y:.1f}%<extra></extra>",
                 ))
 
-                fig.update_layout(
-                    **PLOTLY_LAYOUT,
+                fig.update_layout(**get_plotly_layout(
                     height=320,
                     yaxis={"range": [0, 50], "title": {"text": "%", "font": {"size": 11}},
                            "gridcolor": "rgba(36, 41, 53, 0.8)"},
@@ -324,7 +320,7 @@ with tab_overview:
                             "range": [0, max(trend_df["total"]) * 4]},
                     xaxis={"dtick": 1, "gridcolor": "rgba(36, 41, 53, 0.5)"},
                     legend={"orientation": "h", "y": -0.2, "font": {"size": 10}},
-                )
+                ))
                 st.plotly_chart(fig, use_container_width=True,
                                 config={"displayModeBar": False})
                 st.markdown(
@@ -366,14 +362,13 @@ with tab_overview:
                 ),
                 customdata=reg_df["total"],
             ))
-            fig.update_layout(
-                **PLOTLY_LAYOUT,
+            fig.update_layout(**get_plotly_layout(
                 height=max(250, len(reg_df) * 30 + 60),
                 xaxis={"title": {"text": "Taxa de Indeferimento (%)",
                                  "font": {"size": 11}},
                        "gridcolor": "rgba(36, 41, 53, 0.8)"},
                 yaxis={"autorange": "reversed", "tickfont": {"size": 10}},
-            )
+            ))
             st.plotly_chart(fig, use_container_width=True,
                             config={"displayModeBar": False})
             st.markdown(
@@ -418,14 +413,13 @@ with tab_risk:
                     ),
                     customdata=inf_df["total"],
                 ))
-                fig.update_layout(
-                    **PLOTLY_LAYOUT,
+                fig.update_layout(**get_plotly_layout(
                     height=320,
                     yaxis={"range": [0, 100],
                            "title": {"text": "Taxa Aprovação (%)", "font": {"size": 11}},
                            "gridcolor": "rgba(36, 41, 53, 0.8)"},
                     xaxis={"tickfont": {"size": 10}},
-                )
+                ))
                 st.plotly_chart(fig, use_container_width=True,
                                 config={"displayModeBar": False})
                 st.markdown(
@@ -544,12 +538,11 @@ with tab_risk:
                     "len": 0.6,
                 },
             ))
-            fig.update_layout(
-                **PLOTLY_LAYOUT,
+            fig.update_layout(**get_plotly_layout(
                 height=max(250, len(pivot) * 40 + 80),
                 yaxis={"tickfont": {"size": 10}},
                 xaxis={"side": "top", "tickfont": {"size": 10}},
-            )
+            ))
             st.plotly_chart(fig, use_container_width=True,
                             config={"displayModeBar": False})
             st.markdown(
@@ -628,14 +621,13 @@ with tab_risk:
                 ),
                 customdata=top["total"],
             ))
-            fig.update_layout(
-                **PLOTLY_LAYOUT,
+            fig.update_layout(**get_plotly_layout(
                 height=max(280, len(top) * 32 + 60),
                 xaxis={"title": {"text": "Taxa de Arquivamento (%)",
                                  "font": {"size": 11}},
                        "gridcolor": "rgba(36, 41, 53, 0.8)"},
                 yaxis={"autorange": "reversed", "tickfont": {"size": 10}},
-            )
+            ))
             st.plotly_chart(fig, use_container_width=True,
                             config={"displayModeBar": False})
             st.markdown(

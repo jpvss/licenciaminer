@@ -1331,7 +1331,12 @@ def source_attribution(text: str) -> str:
 # ── Plotly theme helper ──
 
 def get_plotly_layout(**overrides) -> dict:
-    """Retorna layout base do Plotly alinhado ao tema."""
+    """Retorna layout base do Plotly alinhado ao tema.
+
+    Dict-valued overrides (xaxis, yaxis, font, etc.) are deep-merged
+    into the defaults so callers can add keys without losing the base
+    grid/line colours.
+    """
     layout = {
         "plot_bgcolor": "rgba(0,0,0,0)",
         "paper_bgcolor": "rgba(0,0,0,0)",
@@ -1364,7 +1369,11 @@ def get_plotly_layout(**overrides) -> dict:
         "hovermode": "x unified",
         "margin": {"t": 30, "b": 35, "l": 50, "r": 20},
     }
-    layout.update(overrides)
+    for key, val in overrides.items():
+        if isinstance(val, dict) and isinstance(layout.get(key), dict):
+            layout[key] = {**layout[key], **val}
+        else:
+            layout[key] = val
     return layout
 
 
