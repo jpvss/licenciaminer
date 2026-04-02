@@ -8,6 +8,9 @@ import {
   ChevronDown,
   ChevronUp,
   Clock,
+  Globe,
+  BarChart3,
+  ShieldAlert,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -259,30 +262,30 @@ interface ParsedSection {
 }
 
 function parseSections(text: string): ParsedSection[] {
-  // Split by **Section Title** at start of line
   const lines = text.split("\n");
   const sections: ParsedSection[] = [];
   let currentTitle = "";
   let currentLines: string[] = [];
 
   for (const line of lines) {
-    const headerMatch = line.match(/^\*\*(.+?)\*\*\s*$/);
+    // Match section headers: **Title**, **Title**:, **Title** —, ## Title, ### Title
+    const headerMatch =
+      line.match(/^\s*\*\*(.+?)\*\*\s*[:—–-]?\s*$/) ||
+      line.match(/^\s*#{2,3}\s+(.+?)\s*$/);
     if (headerMatch) {
-      // Save previous section
       if (currentTitle || currentLines.length > 0) {
         sections.push({
           title: currentTitle,
           content: currentLines.join("\n").trim(),
         });
       }
-      currentTitle = headerMatch[1];
+      currentTitle = headerMatch[1].replace(/\*\*/g, "").trim();
       currentLines = [];
     } else {
       currentLines.push(line);
     }
   }
 
-  // Save last section
   if (currentTitle || currentLines.length > 0) {
     sections.push({
       title: currentTitle,
@@ -293,74 +296,95 @@ function parseSections(text: string): ParsedSection[] {
   return sections;
 }
 
-const SECTION_STYLES: Record<
-  string,
-  { border: string; bg: string; icon: string }
-> = {
-  cenário: {
-    border: "border-l-brand-gold",
-    bg: "bg-brand-gold/5",
-    icon: "text-brand-gold",
+interface SectionStyle {
+  border: string;
+  bg: string;
+  iconColor: string;
+  Icon: React.ElementType;
+}
+
+const SECTION_MATCHERS: { test: (s: string) => boolean; style: SectionStyle }[] = [
+  {
+    test: (s) => /cenário|cenario|atual|contexto|panorama/i.test(s),
+    style: {
+      border: "border-l-brand-gold",
+      bg: "bg-brand-gold/5",
+      iconColor: "text-brand-gold",
+      Icon: Globe,
+    },
   },
-  sinais: {
-    border: "border-l-brand-teal",
-    bg: "bg-brand-teal/5",
-    icon: "text-brand-teal",
+  {
+    test: (s) => /sinais|mercado|indicador|dado|número/i.test(s),
+    style: {
+      border: "border-l-brand-teal",
+      bg: "bg-brand-teal/5",
+      iconColor: "text-brand-teal",
+      Icon: BarChart3,
+    },
   },
-  riscos: {
-    border: "border-l-brand-orange",
-    bg: "bg-brand-orange/5",
-    icon: "text-brand-orange",
+  {
+    test: (s) => /risco|oportunidade|alerta|atenção/i.test(s),
+    style: {
+      border: "border-l-brand-orange",
+      bg: "bg-brand-orange/5",
+      iconColor: "text-brand-orange",
+      Icon: ShieldAlert,
+    },
   },
+];
+
+const DEFAULT_STYLE: SectionStyle = {
+  border: "border-l-brand-gold",
+  bg: "bg-brand-gold/5",
+  iconColor: "text-brand-gold",
+  Icon: Globe,
 };
 
-function getSectionStyle(title: string) {
-  const lower = title.toLowerCase();
-  if (lower.includes("cenário") || lower.includes("cenario") || lower.includes("atual"))
-    return SECTION_STYLES["cenário"];
-  if (lower.includes("sinais") || lower.includes("mercado") || lower.includes("indicador"))
-    return SECTION_STYLES["sinais"];
-  if (lower.includes("risco") || lower.includes("oportunidade"))
-    return SECTION_STYLES["riscos"];
-  return SECTION_STYLES["cenário"]; // fallback
+function getSectionStyle(title: string): SectionStyle {
+  return SECTION_MATCHERS.find((m) => m.test(title))?.style ?? DEFAULT_STYLE;
 }
 
 function StructuredBriefing({ text }: { text: string }) {
   const sections = parseSections(text);
+  const titled = sections.filter((s) => s.title && s.content);
 
-  // If no clear sections detected, fall back to simple rendering
-  if (sections.length <= 1) {
+  // Fallback: no clear sections — render as a single styled block
+  if (titled.length <= 1) {
     return (
-      <div className="prose prose-sm max-w-none text-xs leading-relaxed">
-        <FormattedText text={text} />
+      <div className="rounded-lg border-l-2 border-l-brand-gold bg-brand-gold/5 p-4">
+        <div className="text-xs leading-relaxed text-muted-foreground">
+          <FormattedText text={text} />
+        </div>
       </div>
     );
   }
 
   return (
     <div className="grid gap-3 md:grid-cols-3">
-      {sections
-        .filter((s) => s.title && s.content)
-        .map((section, i) => {
-          const style = getSectionStyle(section.title);
-          return (
-            <div
-              key={i}
-              className={cn(
-                "rounded-lg border-l-2 p-3 space-y-1.5",
-                style.border,
-                style.bg
-              )}
-            >
+      {titled.map((section, i) => {
+        const style = getSectionStyle(section.title);
+        const { Icon } = style;
+        return (
+          <div
+            key={i}
+            className={cn(
+              "rounded-lg border-l-2 p-4 space-y-2",
+              style.border,
+              style.bg
+            )}
+          >
+            <div className="flex items-center gap-1.5">
+              <Icon className={cn("h-3.5 w-3.5 shrink-0", style.iconColor)} />
               <h3 className="text-xs font-semibold text-foreground">
                 {section.title}
               </h3>
-              <div className="text-xs leading-relaxed text-muted-foreground">
-                <FormattedText text={section.content} />
-              </div>
             </div>
-          );
-        })}
+            <div className="text-[11px] leading-relaxed text-muted-foreground">
+              <FormattedText text={section.content} />
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
