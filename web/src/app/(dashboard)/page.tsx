@@ -39,6 +39,7 @@ import {
 const PLATFORM_MAP = [
   {
     section: "Análise & Pesquisa",
+    subtitle: "Investigue empresas, decisões e dados brutos do licenciamento ambiental",
     color: "text-brand-orange",
     borderColor: "border-brand-orange/20",
     items: [
@@ -49,6 +50,7 @@ const PLATFORM_MAP = [
   },
   {
     section: "Direitos Minerários",
+    subtitle: "Explore títulos minerários, mapeie concessões e identifique oportunidades",
     color: "text-brand-teal",
     borderColor: "border-brand-teal/20",
     items: [
@@ -59,6 +61,7 @@ const PLATFORM_MAP = [
   },
   {
     section: "Mercado & Conformidade",
+    subtitle: "Acompanhe indicadores de mercado e avalie a aderência regulatória",
     color: "text-brand-gold",
     borderColor: "border-brand-gold/20",
     items: [
@@ -167,6 +170,7 @@ export default function HomePage() {
                 <CardTitle className={`text-sm font-semibold uppercase tracking-wide ${group.color}`}>
                   {group.section}
                 </CardTitle>
+                <p className="text-xs text-muted-foreground">{group.subtitle}</p>
               </CardHeader>
               <CardContent className="space-y-1 pt-0">
                 {group.items.map((item) => (
