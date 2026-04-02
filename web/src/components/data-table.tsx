@@ -121,8 +121,8 @@ export function DataTable<TData>({
       </div>
 
       {/* Table — contained scroll */}
-      <div className="rounded-md border overflow-x-auto max-h-[520px] overflow-y-auto">
-        <Table className="min-w-[800px]">
+      <div className="rounded-md border overflow-auto max-h-[520px]">
+        <Table className="w-max min-w-full">
           <TableHeader className="sticky top-0 z-10">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id} className="bg-muted/80 backdrop-blur-sm">

@@ -25,12 +25,6 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MultiSelect } from "@/components/multi-select";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { DataTable, columnsFromKeys } from "@/components/data-table";
 import { StatCard } from "@/components/stat-card";
@@ -402,65 +396,77 @@ export default function ConcessoesPage() {
         </CardContent>
       </Card>
 
-      {/* Detail panel */}
-      <Sheet open={selectedProcesso !== null} onOpenChange={(v) => !v && setSelectedProcesso(null)}>
-        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle className="font-heading text-base">
+      {/* Inline detail panel */}
+      {selectedProcesso && (
+        <Card className="relative border-l-2 border-l-brand-teal animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-3 top-3 h-7 w-7"
+            onClick={() => setSelectedProcesso(null)}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 font-heading text-base">
+              <FileSearch className="h-4 w-4 text-brand-teal" />
               Detalhe da Concessão
-            </SheetTitle>
-          </SheetHeader>
+            </CardTitle>
+          </CardHeader>
 
-          {detailLoading && (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          )}
+          <CardContent>
+            {detailLoading && (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            )}
 
-          {detailRecord && !detailLoading && (
-            <div className="space-y-4 py-4">
-              <div>
-                <h3 className="font-medium text-sm">
-                  {str(detailRecord.titular)}
-                </h3>
-                <p className="mt-0.5 text-xs font-mono text-muted-foreground">
-                  {str(detailRecord.processo_norm ?? detailRecord.processo)}
-                </p>
-                {detailRecord.regime != null && (
-                  <Badge variant="secondary" className="mt-1">
-                    {regimeLabels[str(detailRecord.regime)] ?? str(detailRecord.regime)}
-                  </Badge>
+            {detailRecord && !detailLoading && (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-medium text-sm">
+                    {str(detailRecord.titular)}
+                  </h3>
+                  <p className="mt-0.5 text-xs font-mono text-muted-foreground">
+                    {str(detailRecord.processo_norm ?? detailRecord.processo)}
+                  </p>
+                  {detailRecord.regime != null && (
+                    <Badge variant="secondary" className="mt-1">
+                      {regimeLabels[str(detailRecord.regime)] ?? str(detailRecord.regime)}
+                    </Badge>
+                  )}
+                </div>
+
+                <Separator />
+
+                <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
+                  <Field label="Substância" value={str(detailRecord.substancia_principal)} />
+                  <Field label="Categoria" value={str(detailRecord.categoria)} />
+                  <Field label="Município" value={str(detailRecord.municipio_principal)} />
+                  <Field label="CNPJ" value={str(detailRecord.cpf_cnpj_do_titular)} mono />
+                  <Field label="Área" value={detailRecord.AREA_HA != null ? fmtHa(Number(detailRecord.AREA_HA)) : "—"} />
+                  <Field label="CFEM Total" value={detailRecord.cfem_total != null ? fmtReais(Number(detailRecord.cfem_total)) : "—"} />
+                  <Field label="CFEM Status" value={detailRecord.ativo_cfem === true ? "Ativo" : "Inativo"} />
+                  <Field label="Estratégico" value={detailRecord.estrategico === "sim" ? "Sim" : "Não"} />
+                </dl>
+
+                {detailRecord.scm_url != null && (
+                  <>
+                    <Separator />
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={String(detailRecord.scm_url)} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="mr-2 h-3.5 w-3.5" />
+                        Pesquisar no SCM/ANM
+                      </a>
+                    </Button>
+                  </>
                 )}
               </div>
-
-              <Separator />
-
-              <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                <Field label="Substância" value={str(detailRecord.substancia_principal)} />
-                <Field label="Categoria" value={str(detailRecord.categoria)} />
-                <Field label="Município" value={str(detailRecord.municipio_principal)} />
-                <Field label="CNPJ" value={str(detailRecord.cpf_cnpj_do_titular)} mono />
-                <Field label="Área" value={detailRecord.AREA_HA != null ? fmtHa(Number(detailRecord.AREA_HA)) : "—"} />
-                <Field label="CFEM Total" value={detailRecord.cfem_total != null ? fmtReais(Number(detailRecord.cfem_total)) : "—"} />
-                <Field label="CFEM Status" value={detailRecord.ativo_cfem === true ? "Ativo" : "Inativo"} />
-                <Field label="Estratégico" value={detailRecord.estrategico === "sim" ? "Sim" : "Não"} />
-              </dl>
-
-              {detailRecord.scm_url != null && (
-                <>
-                  <Separator />
-                  <Button variant="outline" size="sm" className="w-full" asChild>
-                    <a href={String(detailRecord.scm_url)} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="mr-2 h-3.5 w-3.5" />
-                      Pesquisar no SCM/ANM
-                    </a>
-                  </Button>
-                </>
-              )}
-            </div>
-          )}
-        </SheetContent>
-      </Sheet>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

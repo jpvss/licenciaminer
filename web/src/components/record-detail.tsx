@@ -5,14 +5,9 @@ import {
   ExternalLink,
   FileText,
   Loader2,
-  ChevronDown,
+  X,
 } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -51,23 +46,31 @@ export function RecordDetail({ dataset, recordId, onClose }: RecordDetailProps) 
       .finally(() => setLoading(false));
   }, [dataset, recordId]);
 
-  const open = recordId !== null;
+  if (!recordId) return null;
 
-  const portalUrl = recordId
-    ? `https://sistemas.meioambiente.mg.gov.br/licenciamento/site/view-externo?id=${recordId}`
-    : null;
+  const portalUrl = `https://sistemas.meioambiente.mg.gov.br/licenciamento/site/view-externo?id=${recordId}`;
 
   return (
-    <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle className="font-heading text-base">
-            Detalhe do Registro
-          </SheetTitle>
-        </SheetHeader>
+    <Card className="relative border-l-2 border-l-brand-teal animate-in fade-in slide-in-from-bottom-2 duration-300">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute right-3 top-3 h-7 w-7"
+        onClick={onClose}
+      >
+        <X className="h-4 w-4" />
+      </Button>
 
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 font-heading text-base">
+          <FileText className="h-4 w-4 text-brand-teal" />
+          Detalhe do Registro
+        </CardTitle>
+      </CardHeader>
+
+      <CardContent>
         {loading && (
-          <div className="flex items-center justify-center py-16">
+          <div className="flex items-center justify-center py-12">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         )}
@@ -77,7 +80,7 @@ export function RecordDetail({ dataset, recordId, onClose }: RecordDetailProps) 
         )}
 
         {record && !loading && (
-          <div className="space-y-4 py-4">
+          <div className="space-y-4">
             {/* Header */}
             <div>
               <h3 className="font-medium text-sm">
@@ -101,40 +104,41 @@ export function RecordDetail({ dataset, recordId, onClose }: RecordDetailProps) 
 
             <Separator />
 
-            {/* Key fields */}
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+            {/* Key fields — 2-col grid */}
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
               <Field label="CNPJ" value={str(record.cnpj_cpf)} mono />
               <Field label="Atividade" value={str(record.atividade)} />
               <Field label="Classe" value={str(record.classe)} />
               <Field label="Modalidade" value={str(record.modalidade)} />
               <Field label="Regional" value={str(record.regional)} />
-              <Field label="Munic\u00edpio" value={str(record.municipio)} />
+              <Field label="Município" value={str(record.municipio)} />
               <Field label="Ano" value={str(record.ano)} />
               {record.data_decisao != null && (
-                <Field label="Data Decis\u00e3o" value={fmtDate(str(record.data_decisao))} />
+                <Field label="Data Decisão" value={fmtDate(str(record.data_decisao))} />
               )}
             </dl>
 
-            {/* Portal link */}
-            {portalUrl && (
-              <Button variant="outline" size="sm" className="w-full" asChild>
+            {/* Actions row */}
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" asChild>
                 <a href={portalUrl} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="mr-2 h-3.5 w-3.5" />
                   Ver no Portal SEMAD
                 </a>
               </Button>
-            )}
-
-            <Separator />
+            </div>
 
             {/* Document links */}
             {record.documentos_pdf != null && (
-              <div>
-                <h4 className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">
-                  Documentos
-                </h4>
-                <DocumentLinks raw={str(record.documentos_pdf)} />
-              </div>
+              <>
+                <Separator />
+                <div>
+                  <h4 className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">
+                    Documentos
+                  </h4>
+                  <DocumentLinks raw={str(record.documentos_pdf)} />
+                </div>
+              </>
             )}
 
             {/* Parecer text (lazy loaded) */}
@@ -146,13 +150,13 @@ export function RecordDetail({ dataset, recordId, onClose }: RecordDetailProps) 
 
         {/* Non-SEMAD simple view */}
         {!loading && !error && recordId && dataset !== "v_mg_semad" && (
-          <div className="py-8 text-center text-sm text-muted-foreground">
+          <div className="py-6 text-center text-sm text-muted-foreground">
             <FileText className="mx-auto h-8 w-8 opacity-30 mb-2" />
-            Vis\u00e3o detalhada dispon\u00edvel apenas para SEMAD.
+            Visão detalhada disponível apenas para SEMAD.
           </div>
         )}
-      </SheetContent>
-    </Sheet>
+      </CardContent>
+    </Card>
   );
 }
 
