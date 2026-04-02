@@ -973,7 +973,7 @@ Com base nesses dados e no seu conhecimento do setor mineral brasileiro, escreva
     def generate():
         try:
             with client.messages.stream(
-                model="claude-opus-4-20250514",
+                model="claude-opus-4-6",
                 max_tokens=1024,
                 system=_AI_SYSTEM_PROMPT,
                 messages=[{"role": "user", "content": user_message}],
