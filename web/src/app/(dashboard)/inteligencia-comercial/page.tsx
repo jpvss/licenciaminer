@@ -68,13 +68,13 @@ function InteligenciaContent() {
     window.history.replaceState(null, "", `${window.location.pathname}${q ? `?${q}` : ""}`);
   }, [activeTab, activeMetric]);
 
-  // AI context — summarizes current view for the LLM
+  // AI context — the backend will enrich this with real DB data
   const aiContext = useMemo(() => ({
     pagina: "inteligencia-comercial",
     aba: activeTab,
     preset: activeMetric,
     tab_label: TAB_LABELS[activeTab],
-    instrucao: `O usuario está visualizando a aba "${TAB_LABELS[activeTab]}" com o preset "${activeMetric}". Analise os dados disponíveis nesta visão e gere insights relevantes para investidores do setor mineral brasileiro.`,
+    data_atual: new Date().toISOString().slice(0, 10),
   }), [activeTab, activeMetric]);
 
   return (

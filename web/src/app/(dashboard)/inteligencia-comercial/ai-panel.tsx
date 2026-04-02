@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Sparkles, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
+import { Sparkles, RefreshCw, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
 import { fetchAiStatus, streamMarketSummary } from "@/lib/api";
 
 interface AiPanelProps {
@@ -17,9 +16,8 @@ export function AiPanel({ context }: AiPanelProps) {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [collapsed, setCollapsed] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
-  const cacheRef = useRef<Map<string, string>>(new Map());
+  const hasGeneratedRef = useRef(false);
 
   // Check AI availability on mount
   useEffect(() => {
@@ -29,15 +27,6 @@ export function AiPanel({ context }: AiPanelProps) {
   }, []);
 
   const generateSummary = useCallback(() => {
-    // Check cache
-    const cacheKey = JSON.stringify(context);
-    const cached = cacheRef.current.get(cacheKey);
-    if (cached) {
-      setText(cached);
-      return;
-    }
-
-    // Abort previous stream
     if (abortRef.current) abortRef.current.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -55,9 +44,6 @@ export function AiPanel({ context }: AiPanelProps) {
       },
       controller.signal,
     )
-      .then(() => {
-        cacheRef.current.set(cacheKey, accumulated);
-      })
       .catch((e) => {
         if (e.name !== "AbortError") {
           setError(e.message || "Erro ao gerar análise");
@@ -65,6 +51,14 @@ export function AiPanel({ context }: AiPanelProps) {
       })
       .finally(() => setLoading(false));
   }, [context]);
+
+  // Auto-generate on mount once available
+  useEffect(() => {
+    if (available && !hasGeneratedRef.current) {
+      hasGeneratedRef.current = true;
+      generateSummary();
+    }
+  }, [available, generateSummary]);
 
   // Cleanup abort on unmount
   useEffect(() => {
@@ -76,109 +70,111 @@ export function AiPanel({ context }: AiPanelProps) {
   // Don't render if AI is not available
   if (available === false) return null;
 
-  // Loading initial status check
-  if (available === null) {
-    return (
-      <Card>
-        <CardContent className="p-4">
-          <Skeleton className="h-32 w-full" />
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <Card className="h-fit">
       <CardHeader className="flex flex-row items-center justify-between pb-2 gap-2">
         <CardTitle className="text-sm font-medium flex items-center gap-1.5">
           <Sparkles className="h-3.5 w-3.5 text-brand-gold" />
-          Análise AI
+          Briefing Estratégico
         </CardTitle>
-        <div className="flex items-center gap-1">
-          {text && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 w-7 p-0 lg:hidden"
-              onClick={() => setCollapsed((v) => !v)}
-            >
-              {collapsed ? (
-                <ChevronDown className="h-3.5 w-3.5" />
-              ) : (
-                <ChevronUp className="h-3.5 w-3.5" />
-              )}
-            </Button>
-          )}
-        </div>
+        {text && !loading && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 gap-1 text-[10px] text-muted-foreground"
+            onClick={generateSummary}
+          >
+            <RefreshCw className="h-3 w-3" />
+            Atualizar
+          </Button>
+        )}
       </CardHeader>
-      <CardContent className={cn(collapsed && "hidden lg:block")}>
-        {!text && !loading && !error && (
-          <div className="text-center py-6">
-            <Sparkles className="mx-auto h-8 w-8 text-muted-foreground/20 mb-3" />
-            <p className="text-xs text-muted-foreground mb-3">
-              Gere um resumo executivo baseado nos dados visíveis.
-            </p>
-            <Button
-              size="sm"
-              onClick={generateSummary}
-              className="gap-1.5"
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              Gerar Análise
-            </Button>
+      <CardContent>
+        {/* Loading skeleton */}
+        {loading && !text && (
+          <div className="space-y-2.5">
+            <Skeleton className="h-3 w-[90%]" />
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-[75%]" />
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-[85%]" />
+            <Skeleton className="h-3 w-[60%]" />
+            <div className="pt-2" />
+            <Skeleton className="h-3 w-[40%]" />
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-[80%]" />
           </div>
         )}
 
-        {loading && (
-          <div className="space-y-2">
-            {text ? (
-              <div className="prose prose-sm max-w-none text-xs leading-relaxed whitespace-pre-wrap">
-                {text}
-                <span className="inline-block w-1.5 h-3.5 bg-brand-gold animate-pulse ml-0.5" />
-              </div>
-            ) : (
-              <>
-                <Skeleton className="h-3 w-full" />
-                <Skeleton className="h-3 w-[80%]" />
-                <Skeleton className="h-3 w-[90%]" />
-                <Skeleton className="h-3 w-[60%]" />
-              </>
+        {/* Streaming text */}
+        {text && (
+          <div className="prose prose-sm max-w-none text-xs leading-relaxed">
+            <FormattedBriefing text={text} />
+            {loading && (
+              <span className="inline-block w-1.5 h-3.5 bg-brand-gold animate-pulse ml-0.5 align-middle" />
             )}
           </div>
         )}
 
-        {text && !loading && (
-          <div className="space-y-3">
-            <div className="prose prose-sm max-w-none text-xs leading-relaxed whitespace-pre-wrap">
-              {text}
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-1.5 text-xs h-7"
-              onClick={generateSummary}
-            >
-              <RefreshCw className="h-3 w-3" />
-              Regenerar
-            </Button>
-          </div>
-        )}
-
-        {error && (
-          <div className="text-center py-4">
-            <p className="text-xs text-danger mb-2">{error}</p>
+        {/* Error state */}
+        {error && !text && (
+          <div className="flex flex-col items-center py-4 gap-2">
+            <AlertCircle className="h-5 w-5 text-muted-foreground/40" />
+            <p className="text-xs text-muted-foreground text-center">{error}</p>
             <Button
               variant="outline"
               size="sm"
               onClick={generateSummary}
-              className="gap-1.5 text-xs"
+              className="gap-1.5 text-xs mt-1"
             >
               <RefreshCw className="h-3 w-3" />
               Tentar novamente
             </Button>
           </div>
         )}
+
+        {/* Initial check loading */}
+        {available === null && (
+          <div className="space-y-2">
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-[80%]" />
+          </div>
+        )}
       </CardContent>
     </Card>
+  );
+}
+
+/** Renders markdown-like bold (**text**) and bullet points from the LLM response. */
+function FormattedBriefing({ text }: { text: string }) {
+  const lines = text.split("\n");
+
+  return (
+    <>
+      {lines.map((line, i) => {
+        const trimmed = line.trim();
+        if (!trimmed) return <br key={i} />;
+
+        // Bold headers: **Text**
+        const formatted = trimmed.replace(
+          /\*\*(.+?)\*\*/g,
+          '<strong class="font-semibold text-foreground">$1</strong>'
+        );
+
+        // Bullet points
+        if (trimmed.startsWith("- ") || trimmed.startsWith("• ")) {
+          return (
+            <div key={i} className="flex gap-1.5 pl-1 py-0.5">
+              <span className="text-brand-gold shrink-0 mt-px">•</span>
+              <span dangerouslySetInnerHTML={{ __html: formatted.slice(2) }} />
+            </div>
+          );
+        }
+
+        return (
+          <p key={i} className="py-0.5" dangerouslySetInnerHTML={{ __html: formatted }} />
+        );
+      })}
+    </>
   );
 }

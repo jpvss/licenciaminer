@@ -526,18 +526,37 @@ class AISummaryRequest(BaseModel):
     context: dict
 
 
-_AI_SYSTEM_PROMPT = """Você é um analista sênior de inteligência mineral no Summo Quartile.
-Seu papel é analisar dados do setor minerário brasileiro e gerar insights acionáveis para investidores.
+_AI_SYSTEM_PROMPT = """Você é um sócio sênior de estratégia mineral no Summo Quartile, com 20+ anos no setor de mineração brasileiro. Você escreve briefings executivos matinais para investidores e tomadores de decisão.
 
-Diretrizes:
-- Responda sempre em português brasileiro
-- Cite números específicos dos dados fornecidos
-- Formate números no padrão brasileiro (1.234,56)
-- Gere 3-5 bullets de insights concisos
-- Destaque tendências, anomalias e riscos
-- Mencione fontes de dados (ANM, BCB, CFEM, Comex Stat)
-- Seja objetivo e direto — sem introduções genéricas
-- Se os dados são insuficientes para uma análise robusta, diga isso claramente
+Seu papel: analisar os dados quantitativos fornecidos E cruzar com seu conhecimento profundo do setor para entregar uma narrativa estratégica — não apenas números, mas O QUE SIGNIFICAM para quem está investindo ou operando no setor mineral brasileiro.
+
+## Estrutura do Briefing
+
+Escreva em formato de briefing executivo com estas seções:
+
+**Cenário Atual** (2-3 parágrafos)
+Cruze os dados fornecidos com o contexto macroeconômico e setorial. Mencione:
+- Tendências de preço de commodities minerais (ferro, ouro, nióbio) e drivers globais (China, transição energética)
+- Câmbio USD/BRL e impacto na competitividade das exportações minerais
+- Movimentos regulatórios recentes (ANM, IBAMA, COPAM, legislação ambiental)
+- Eventos relevantes do setor nos últimos meses (fusões, acidentes, novas concessões, decisões judiciais)
+
+**Sinais de Mercado** (bullets)
+- 3-5 indicadores-chave dos dados com interpretação estratégica
+- Compare com benchmarks ou períodos anteriores quando possível
+
+**Riscos e Oportunidades**
+- 2-3 riscos concretos (regulatório, ambiental, preço, câmbio)
+- 2-3 oportunidades que os dados sugerem
+
+## Diretrizes de Estilo
+- Português brasileiro, tom executivo (nem acadêmico, nem informal)
+- Cite números específicos dos dados — use formato brasileiro (1.234,56)
+- Referencie fontes: BCB PTAX, ANM/CFEM, Comex Stat/MDIC, SIGMINE
+- Conecte dados locais com tendências globais
+- Seja assertivo nas análises — investidores querem perspectiva, não disclaimers
+- NÃO comece com "Com base nos dados fornecidos..." — vá direto ao cenário
+- Máximo ~400 palavras
 """
 
 
@@ -546,6 +565,118 @@ def get_ai_status():
     """Verifica se a API de AI está disponível."""
     available = bool(os.environ.get("ANTHROPIC_API_KEY"))
     return {"available": available}
+
+
+def _build_data_context() -> str:
+    """Coleta dados reais do banco para enriquecer o prompt da AI."""
+    sections = []
+
+    # PTAX
+    ptax = _safe_query(
+        "SELECT data, cotacao_venda FROM v_bcb_cotacoes ORDER BY data DESC LIMIT 5"
+    )
+    if ptax:
+        latest = ptax[0]
+        sections.append(
+            f"USD/BRL (PTAX): última cotação {latest['cotacao_venda']:.4f} em {latest['data']}"
+        )
+
+    # CFEM YTD
+    current_year = datetime.now().year
+    cfem_ytd = _safe_query(
+        f"""
+        SELECT Ano as ano, SUM({_CFEM_VALUE_EXPR}) AS total
+        FROM v_cfem WHERE Ano IN (?, ?)
+        GROUP BY Ano ORDER BY Ano
+        """,
+        [current_year - 1, current_year],
+    )
+    if cfem_ytd:
+        for r in cfem_ytd:
+            sections.append(f"CFEM {r['ano']}: R$ {r['total']:,.2f}")
+
+    # CFEM top 5 municipalities
+    cfem_mun = _safe_query(
+        f"""
+        SELECT "Município" AS municipio,
+               SUM({_CFEM_VALUE_EXPR}) AS total
+        FROM v_cfem WHERE "Município" IS NOT NULL
+        GROUP BY "Município" ORDER BY total DESC LIMIT 5
+        """
+    )
+    if cfem_mun:
+        mun_list = ", ".join(f"{r['municipio']} (R$ {r['total']:,.0f})" for r in cfem_mun)
+        sections.append(f"Top municípios CFEM: {mun_list}")
+
+    # CFEM top 5 substances
+    cfem_sub = _safe_query(
+        f"""
+        SELECT "Substância" AS substancia,
+               SUM({_CFEM_VALUE_EXPR}) AS total
+        FROM v_cfem WHERE "Substância" IS NOT NULL
+        GROUP BY "Substância" ORDER BY total DESC LIMIT 5
+        """
+    )
+    if cfem_sub:
+        sub_list = ", ".join(f"{r['substancia']} (R$ {r['total']:,.0f})" for r in cfem_sub)
+        sections.append(f"Top substâncias CFEM: {sub_list}")
+
+    # Trade balance
+    comex = _safe_query(
+        """
+        SELECT ano, fluxo, SUM(valor_fob_usd) AS total
+        FROM v_comex_mineracao
+        WHERE ano >= ? - 1
+        GROUP BY ano, fluxo ORDER BY ano
+        """,
+        [current_year],
+    )
+    if comex:
+        for year in sorted({r["ano"] for r in comex}):
+            exp = sum(r["total"] for r in comex if r["ano"] == year and r["fluxo"] == "Exportação")
+            imp = sum(r["total"] for r in comex if r["ano"] == year and r["fluxo"] == "Importação")
+            sections.append(f"Comércio exterior {year}: Export US$ {exp:,.0f}, Import US$ {imp:,.0f}, Saldo US$ {exp - imp:,.0f}")
+
+    # Top export countries
+    top_countries = _safe_query(
+        """
+        SELECT pais, SUM(valor_fob_usd) AS total
+        FROM v_comex_mineracao WHERE fluxo = 'Exportação'
+        GROUP BY pais ORDER BY total DESC LIMIT 5
+        """
+    )
+    if top_countries:
+        countries = ", ".join(f"{r['pais']} (US$ {r['total']:,.0f})" for r in top_countries)
+        sections.append(f"Top destinos exportação: {countries}")
+
+    # ANM stats
+    anm = _safe_query("SELECT COUNT(*) AS n FROM v_anm")
+    if anm:
+        sections.append(f"Processos ANM registrados: {anm[0]['n']:,}")
+
+    # Commodity prices
+    commodity_csv = REFERENCE_DIR / "commodity_prices.csv"
+    if commodity_csv.exists():
+        with open(commodity_csv, encoding="utf-8") as f:
+            rows = list(csv.DictReader(f))
+        # Latest per mineral
+        latest_by = {}
+        for r in rows:
+            latest_by[r["mineral"]] = r
+        for mineral, data in latest_by.items():
+            sections.append(f"{mineral}: {data['preco_usd']} {data.get('unidade', '')} (ref. {data['data']})")
+
+    # Freshness
+    meta = load_metadata()
+    fresh_parts = []
+    for key in ["bcb_ptax", "anm_cfem", "comex_mineracao"]:
+        if key in meta:
+            dt = meta[key].get("collected_at", "")[:10]
+            fresh_parts.append(f"{key}: {dt}")
+    if fresh_parts:
+        sections.append(f"Dados coletados em: {', '.join(fresh_parts)}")
+
+    return "\n".join(f"- {s}" for s in sections)
 
 
 @router.post("/intelligence/ai-summary/stream")
@@ -558,8 +689,18 @@ async def stream_ai_summary(request: AISummaryRequest):
             detail="ANTHROPIC_API_KEY não configurada",
         )
 
-    context_json = json.dumps(request.context, ensure_ascii=False, default=str)
-    user_message = f"Analise os seguintes dados de inteligência mineral e gere um resumo executivo:\n\n{context_json}"
+    # Build rich context from actual database data
+    data_context = _build_data_context()
+    frontend_context = json.dumps(request.context, ensure_ascii=False, default=str)
+
+    user_message = f"""Dados quantitativos do setor mineral brasileiro (fonte: banco de dados Summo Quartile):
+
+{data_context}
+
+Contexto da visualização do usuário:
+{frontend_context}
+
+Com base nesses dados e no seu conhecimento do setor mineral brasileiro, escreva o briefing executivo."""
 
     client = anthropic.Anthropic(api_key=api_key)
 
