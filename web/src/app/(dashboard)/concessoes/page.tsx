@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { Suspense, useEffect, useState, useCallback, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   FileSearch,
   Search,
@@ -53,6 +54,15 @@ const HIDDEN_COLUMNS = new Set([
 ]);
 
 export default function ConcessoesPage() {
+  return (
+    <Suspense>
+      <ConcessoesContent />
+    </Suspense>
+  );
+}
+
+function ConcessoesContent() {
+  const params = useSearchParams();
   const [filterOptions, setFilterOptions] = useState<ConcessoesFilterOptions | null>(null);
   const [stats, setStats] = useState<ConcessoesStats | null>(null);
   const [data, setData] = useState<ConcessoesResponse | null>(null);
@@ -60,9 +70,9 @@ export default function ConcessoesPage() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
 
-  // Filters
-  const [search, setSearch] = useState("");
-  const [searchInput, setSearchInput] = useState("");
+  // Filters — pre-fill from URL search params (cross-page nav)
+  const [search, setSearch] = useState(params.get("search") ?? "");
+  const [searchInput, setSearchInput] = useState(params.get("search") ?? "");
   const [regime, setRegime] = useState<string[]>([]);
   const [categoria, setCategoria] = useState<string[]>([]);
   const [substancia, setSubstancia] = useState<string[]>([]);

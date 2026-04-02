@@ -64,6 +64,8 @@ export function EmpresaDossier({ cnpj }: { cnpj: string }) {
   const [error, setError] = useState<string | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  const [pdfSuccess, setPdfSuccess] = useState(false);
+  const [pdfStep, setPdfStep] = useState("");
 
   useEffect(() => {
     setLoading(true);
@@ -103,12 +105,27 @@ export function EmpresaDossier({ cnpj }: { cnpj: string }) {
   const handlePDFDownload = async () => {
     setPdfLoading(true);
     setPdfError(null);
+    setPdfSuccess(false);
+    const steps = [
+      "Coletando dados de 10 fontes...",
+      "Gerando análise de risco...",
+      "Montando relatório PDF...",
+    ];
+    let stepIndex = 0;
+    setPdfStep(steps[0]);
+    const interval = setInterval(() => {
+      stepIndex = Math.min(stepIndex + 1, steps.length - 1);
+      setPdfStep(steps[stepIndex]);
+    }, 1500);
     try {
       await downloadReportPDF(cnpj);
+      setPdfSuccess(true);
     } catch (e) {
       setPdfError(e instanceof Error ? e.message : "Erro ao gerar PDF");
     } finally {
+      clearInterval(interval);
       setPdfLoading(false);
+      setPdfStep("");
     }
   };
 
@@ -172,8 +189,18 @@ export function EmpresaDossier({ cnpj }: { cnpj: string }) {
               <RiskBadge level={data.risk_level} />
             </div>
           </div>
+          {pdfStep && (
+            <p className="mt-2 text-xs text-muted-foreground animate-pulse">
+              {pdfStep}
+            </p>
+          )}
           {pdfError && (
             <p className="mt-2 text-xs text-destructive">{pdfError}</p>
+          )}
+          {pdfSuccess && !pdfLoading && (
+            <p className="mt-2 text-xs text-success">
+              PDF gerado com sucesso · Nível de risco: {data.risk_level}
+            </p>
           )}
         </CardContent>
       </Card>

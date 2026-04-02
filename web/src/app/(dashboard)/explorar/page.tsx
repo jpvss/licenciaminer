@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { Suspense, useEffect, useState, useCallback, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import { type ColumnDef } from "@tanstack/react-table";
 import {
   FileSearch,
@@ -45,7 +46,54 @@ const HIDDEN_COLUMNS = new Set([
   "detail_id",
 ]);
 
+// Per-dataset column formatting and display names
+const COLUMN_CONFIG: Record<string, Record<string, { label?: string; mono?: boolean; currency?: boolean; date?: boolean; badge?: boolean; maxW?: number }>> = {
+  v_mg_semad: {
+    processo: { mono: true },
+    decisao: { badge: true },
+    data_decisao: { date: true, label: "Data Decisão" },
+    cnpj_cpf: { mono: true, label: "CNPJ/CPF" },
+    atividade: { maxW: 180 },
+  },
+  v_ibama: {
+    licenca: { label: "Licença", mono: true },
+    empreendimento: { maxW: 250 },
+    tipo_licenca: { label: "Tipo" },
+    data_emissao: { date: true, label: "Emissão" },
+    data_validade: { date: true, label: "Validade" },
+  },
+  v_anm: {
+    processo_norm: { label: "Processo", mono: true },
+    FASE: { label: "Fase" },
+    SUBS: { label: "Substância" },
+    AREA_HA: { label: "Área (ha)" },
+    UF: { label: "UF" },
+  },
+  v_cfem: {
+    cnpj: { mono: true, label: "CNPJ" },
+    substancia: { label: "Substância" },
+    valor_recolhido: { currency: true, label: "Valor (R$)" },
+    ano_referencia: { label: "Ano" },
+    mes_referencia: { label: "Mês" },
+  },
+  v_ibama_infracoes: {
+    data_infracao: { date: true, label: "Data" },
+    municipio: { label: "Município" },
+    descricao: { maxW: 300, label: "Descrição" },
+    cpf_cnpj: { mono: true, label: "CPF/CNPJ" },
+  },
+};
+
 export default function ExploradorPage() {
+  return (
+    <Suspense>
+      <ExploradorContent />
+    </Suspense>
+  );
+}
+
+function ExploradorContent() {
+  const params = useSearchParams();
   const [datasets, setDatasets] = useState<Record<string, string> | null>(null);
   const [selectedDataset, setSelectedDataset] = useState<string>("");
   const [data, setData] = useState<ExplorerResponse | null>(null);
@@ -53,9 +101,9 @@ export default function ExploradorPage() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
 
-  // Filters
-  const [search, setSearch] = useState("");
-  const [searchInput, setSearchInput] = useState("");
+  // Filters — pre-fill from URL search params (cross-page nav)
+  const [search, setSearch] = useState(params.get("search") ?? "");
+  const [searchInput, setSearchInput] = useState(params.get("search") ?? "");
   const [decisao, setDecisao] = useState<string>("");
   const [classe, setClasse] = useState<string>("");
   const [anoMin, setAnoMin] = useState<string>("");
@@ -65,18 +113,25 @@ export default function ExploradorPage() {
   // Detail panel
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
 
-  // Load datasets on mount
+  // Load datasets on mount — select from URL param if provided
+  const urlDataset = params.get("dataset");
   useEffect(() => {
     fetchExplorerDatasets()
       .then((ds) => {
         setDatasets(ds);
         const entries = Object.entries(ds);
-        if (entries.length > 0) {
+        // Try URL param first (e.g. ?dataset=mg_semad → v_mg_semad)
+        const match = urlDataset
+          ? Object.values(ds).find((v) => v === urlDataset || v === `v_${urlDataset}`)
+          : null;
+        if (match) {
+          setSelectedDataset(match);
+        } else if (entries.length > 0) {
           setSelectedDataset(entries[0][1]);
         }
       })
       .catch((e) => setError(e.message));
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filters: ExplorerFilters = useMemo(
     () => ({
@@ -137,33 +192,62 @@ export default function ExploradorPage() {
   const hasActiveFilters = !!(search || decisao || classe || anoMin || anoMax || miningOnly);
   const isSemad = selectedDataset === "v_mg_semad";
 
-  // Build columns from first row keys
+  // Build columns from first row keys with per-dataset formatting
   const columns: ColumnDef<Record<string, unknown>, unknown>[] = useMemo(() => {
     if (!data?.rows?.[0]) return [];
     const keys = Object.keys(data.rows[0]).filter((k) => !HIDDEN_COLUMNS.has(k));
+    const colConfig = COLUMN_CONFIG[selectedDataset] ?? {};
 
-    // For SEMAD dataset, add decision badge column
-    return keys.map((key) => ({
-      accessorKey: key,
-      header: key,
-      cell: ({ getValue }: { getValue: () => unknown }) => {
-        const value = getValue();
-        if (key === "decisao" && typeof value === "string") {
-          return (
-            <Badge
-              variant={
-                value.startsWith("Def") ? "default" : value.startsWith("Ind") ? "destructive" : "secondary"
-              }
-              className="text-[10px]"
-            >
-              {value}
-            </Badge>
-          );
-        }
-        return formatCell(value);
-      },
-    }));
-  }, [data]);
+    return keys.map((key) => {
+      const cfg = colConfig[key];
+      return {
+        accessorKey: key,
+        header: cfg?.label ?? key,
+        cell: ({ getValue }: { getValue: () => unknown }) => {
+          const value = getValue();
+
+          // Badge for decision columns
+          if (cfg?.badge && typeof value === "string") {
+            return (
+              <Badge
+                variant={
+                  value.startsWith("Def") ? "default" : value.startsWith("Ind") ? "destructive" : "secondary"
+                }
+                className="text-[10px]"
+              >
+                {value}
+              </Badge>
+            );
+          }
+
+          // Currency formatting
+          if (cfg?.currency && value != null) {
+            return (
+              <span className="font-tabular">
+                {Number(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+              </span>
+            );
+          }
+
+          // Monospace for codes/IDs
+          if (cfg?.mono && value != null) {
+            return <span className="font-mono text-xs">{String(value)}</span>;
+          }
+
+          // Max width with truncation
+          if (cfg?.maxW && value != null) {
+            return (
+              <span className="block truncate" style={{ maxWidth: cfg.maxW }} title={String(value)}>
+                {String(value)}
+              </span>
+            );
+          }
+
+          return formatCell(value);
+        },
+      };
+    });
+  }, [data, selectedDataset]);
 
   const handleRowClick = (row: Record<string, unknown>) => {
     if (isSemad && row.detail_id) {

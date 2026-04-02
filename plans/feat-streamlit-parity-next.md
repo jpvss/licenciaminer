@@ -5,7 +5,7 @@ Excludes: auth, multi-tenant, LLM chat sidebar (deferred).
 
 ---
 
-## Current State — ~85% Feature Parity
+## Current State — ~95% Feature Parity
 
 The Next.js app has all 12 active Streamlit pages ported with core functionality working.
 Two major rounds of work have been completed:
@@ -89,18 +89,18 @@ Two major rounds of work have been completed:
 - [ ] **Active filter chips** — create `<FilterChips>` component showing active filters as removable badges, add to Explorar, Concessões, Mapa, Prospecção
   - New file: `web/src/components/filter-chips.tsx`
 
-#### Gap 5: Chart Enhancements
-- [ ] **Trend chart dual axis** — Dashboard trend chart should have volume bars on secondary axis (like Streamlit), not just the line
+#### Gap 5: Chart Enhancements ✅
+- [x] **Trend chart dual axis** — ComposedChart with volume bars + approval % line on secondary axis
   - File: `web/src/app/(dashboard)/trend-chart.tsx`
-- [ ] **Reference lines** on bar charts — add average indicators to regional rigor and yearly approval charts
+- [x] **Reference lines** on bar charts — average indicators on regional rigor and yearly approval charts
   - File: `web/src/app/(dashboard)/decisoes/page.tsx`
-- [ ] **Approval by class distribution** chart — missing from decisões
-  - Backend: may need `/api/decisoes/by-class` endpoint or can aggregate from existing data
+- [x] **Approval by class distribution** chart — aggregated from existing approval-rates data, shown alongside yearly tab
+  - No new endpoint needed
 
-#### Gap 6: PDF Report UX
-- [ ] **Progress indicator** during PDF generation — "Coletando dados de 10 fontes..."
-- [ ] **Risk level in success message** after generation
-- [ ] **Persist download state** — don't lose PDF reference on tab switch
+#### Gap 6: PDF Report UX ✅
+- [x] **Progress indicator** during PDF generation — step messages ("Coletando dados de 10 fontes...")
+- [x] **Risk level in success message** after generation
+- [x] **Persist download state** — pdfSuccess state persists across tab switches
   - File: `web/src/app/(dashboard)/empresa/dossier.tsx`
 
 #### Gap 7: Data Enrichment (Backend)
@@ -114,23 +114,24 @@ Two major rounds of work have been completed:
 
 ### 🟢 P2 — Nice-to-Have / Completeness
 
-#### Gap 8: Cross-Page Navigation
-- [ ] Click company in Prospecção → navigate to Consulta Empresa with CNPJ pre-filled
-- [ ] Click polygon on Mapa → navigate to Concessões detail
-- [ ] Click regional in Decisões → filter Explorar by that regional
-  - These are UX enhancements, not parity gaps
+#### Gap 8: Cross-Page Navigation ✅
+- [x] Click processo in Prospecção → navigate to Concessões with search pre-filled
+- [ ] Click polygon on Mapa → navigate to Concessões detail (requires MapLibre click handler)
+- [x] Click regional in Decisões → link to Explorar by that regional
+- [x] URL params support: Explorar reads `?dataset=&search=`, Concessões reads `?search=`
 
-#### Gap 9: Due Diligence Polish
-- [ ] **Conformity gauge visualization** — circular ring chart showing overall score
-- [ ] **Risk classification display** — badge with color and explanation
-- [ ] Better document preview count after configuration step
+#### Gap 9: Due Diligence Polish ✅
+- [x] **Conformity gauge visualization** — circular SVG ring chart (ConformityGauge component)
+- [x] **Risk classification display** — color bar + classificacao + descricao
+- [x] Document preview count shown in step 1 configuration
   - File: `web/src/app/(dashboard)/due-diligence/page.tsx`
 
-#### Gap 10: Explorar Dados — Per-Dataset Column Config
-- [ ] Currently all datasets use same generic column rendering
-- [ ] IBAMA dataset should highlight specific columns (licença type, empreendimento, vencimento)
-- [ ] CFEM dataset should format currency columns
-- [ ] ANM dataset should show processo as monospaced
+#### Gap 10: Explorar Dados — Per-Dataset Column Config ✅
+- [x] COLUMN_CONFIG with per-dataset labels, mono, currency, badge, maxW formatting
+- [x] IBAMA: licença mono, empreendimento maxW, date columns labeled
+- [x] CFEM: currency formatting for valor_recolhido, CNPJ mono
+- [x] ANM: processo mono, custom labels
+- [x] SEMAD: decisão badge, processo mono, dates labeled
   - File: `web/src/app/(dashboard)/explorar/page.tsx`
 
 ---

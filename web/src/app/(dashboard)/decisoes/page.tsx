@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import {
   BarChart3,
   Building2,
@@ -12,6 +13,7 @@ import {
   TrendingDown,
   MapPin,
   Activity,
+  ArrowRight,
 } from "lucide-react";
 import {
   BarChart,
@@ -27,6 +29,7 @@ import {
   ScatterChart,
   Scatter,
   ZAxis,
+  ReferenceLine,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -129,6 +132,25 @@ export default function DecisoesPage() {
       )
         .map((r) => ({ ...r, taxa: r.total > 0 ? Math.round((1000 * r.deferidos) / r.total) / 10 : 0 }))
         .sort((a, b) => a.ano - b.ano)
+    : null;
+
+  // Aggregate approval rates by class
+  const classeRates = approvalRates
+    ? Object.values(
+        approvalRates.reduce<Record<number, { classe: number; total: number; deferidos: number }>>(
+          (acc, row) => {
+            const classe = Number(row.classe);
+            if (!classe || classe < 1 || classe > 6) return acc;
+            if (!acc[classe]) acc[classe] = { classe, total: 0, deferidos: 0 };
+            acc[classe].total += Number(row.total);
+            acc[classe].deferidos += Number(row.deferidos);
+            return acc;
+          },
+          {}
+        )
+      )
+        .map((r) => ({ ...r, taxa: r.total > 0 ? Math.round((1000 * r.deferidos) / r.total) / 10 : 0, label: `Classe ${r.classe}` }))
+        .sort((a, b) => a.classe - b.classe)
     : null;
 
   // KPIs from rejection trend
@@ -310,6 +332,18 @@ export default function DecisoesPage() {
                       width={130}
                     />
                     <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v) => [`${Number(v).toFixed(1)}%`]} />
+                    <ReferenceLine
+                      x={Math.round(regionalRigor.reduce((s, r) => s + r.taxa_indeferimento, 0) / regionalRigor.length * 10) / 10}
+                      stroke="var(--muted-foreground)"
+                      strokeDasharray="4 4"
+                      strokeWidth={1.5}
+                      label={{
+                        value: `Média`,
+                        position: "top",
+                        fontSize: 10,
+                        fill: "var(--muted-foreground)",
+                      }}
+                    />
                     <Bar dataKey="taxa_indeferimento" name="Taxa Indeferimento" radius={[0, 4, 4, 0]}>
                       {regionalRigor.map((entry, i) => (
                         <Cell
@@ -367,13 +401,14 @@ export default function DecisoesPage() {
           </Card>
         </TabsContent>
 
-        {/* Tab 4: Yearly approval */}
+        {/* Tab 4: Yearly approval + by class */}
         <TabsContent value="yearly">
-          <Card>
+          <div className="grid gap-4 lg:grid-cols-3">
+          <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 font-heading">
                 <Activity className="h-4 w-4 text-brand-teal" />
-                Taxa de Aprovação Anual (Todas Atividades)
+                Taxa de Aprovação Anual
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -384,6 +419,18 @@ export default function DecisoesPage() {
                     <XAxis dataKey="ano" tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} />
                     <YAxis unit="%" domain={[0, 100]} tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} />
                     <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v, name) => [name === "Taxa Aprovação" ? `${Number(v).toFixed(1)}%` : fmtNumber(Number(v)), String(name)]} />
+                    <ReferenceLine
+                      y={Math.round(yearlyRates.reduce((s, r) => s + r.taxa, 0) / yearlyRates.length * 10) / 10}
+                      stroke="var(--muted-foreground)"
+                      strokeDasharray="4 4"
+                      strokeWidth={1.5}
+                      label={{
+                        value: "Média",
+                        position: "right",
+                        fontSize: 10,
+                        fill: "var(--muted-foreground)",
+                      }}
+                    />
                     <Bar dataKey="taxa" name="Taxa Aprovação" radius={[4, 4, 0, 0]}>
                       {yearlyRates.map((entry, i) => (
                         <Cell
@@ -399,6 +446,42 @@ export default function DecisoesPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Approval by class */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 font-heading text-base">
+                <BarChart3 className="h-4 w-4 text-brand-orange" />
+                Por Classe de Impacto
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {classeRates ? (
+                <ResponsiveContainer width="100%" height={360}>
+                  <BarChart data={classeRates} layout="vertical" margin={{ left: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                    <XAxis type="number" unit="%" domain={[0, 100]} tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} />
+                    <YAxis type="category" dataKey="label" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} width={70} />
+                    <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v) => [`${Number(v).toFixed(1)}%`]} />
+                    <Bar dataKey="taxa" name="Aprovação" radius={[0, 4, 4, 0]}>
+                      {classeRates.map((entry, i) => (
+                        <Cell
+                          key={i}
+                          fill={entry.taxa >= 70 ? "var(--success)" : entry.taxa >= 50 ? "var(--warning)" : "var(--danger)"}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <Skeleton className="h-[360px] w-full" />
+              )}
+              <p className="mt-2 text-[10px] text-muted-foreground/60">
+                Classe 1 = menor impacto · Classe 6 = maior impacto (DN COPAM 217/2017)
+              </p>
+            </CardContent>
+          </Card>
+          </div>
         </TabsContent>
 
         {/* Tab 5: Risk Factors */}
@@ -520,7 +603,16 @@ export default function DecisoesPage() {
                 <tbody>
                   {regionalRigor.map((r) => (
                     <tr key={r.regional} className="border-b border-border/50">
-                      <td className="py-2 font-medium">{r.regional}</td>
+                      <td className="py-2 font-medium">
+                        <Link
+                          href={`/explorar?dataset=mg_semad&search=${encodeURIComponent(r.regional)}`}
+                          className="inline-flex items-center gap-1 hover:text-brand-teal transition-colors"
+                          title="Ver decisões no Explorador"
+                        >
+                          {r.regional}
+                          <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </Link>
+                      </td>
                       <td className="py-2 text-right font-tabular">{fmtNumber(r.total)}</td>
                       <td className="py-2 text-right font-tabular">{fmtNumber(r.deferidos)}</td>
                       <td className="py-2 text-right font-tabular">{fmtNumber(r.indeferidos)}</td>

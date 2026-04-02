@@ -1,13 +1,15 @@
 "use client";
 
 import {
-  AreaChart,
-  Area,
+  ComposedChart,
+  Bar,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Legend,
 } from "recharts";
 import type { TrendPoint } from "@/lib/api";
 
@@ -22,17 +24,7 @@ export function TrendChart({ data }: { data: TrendPoint[] }) {
 
   return (
     <ResponsiveContainer width="100%" height={320}>
-      <AreaChart data={data}>
-        <defs>
-          <linearGradient id="gradTotal" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.2} />
-            <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0} />
-          </linearGradient>
-          <linearGradient id="gradDeferidos" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="var(--chart-4)" stopOpacity={0.2} />
-            <stop offset="95%" stopColor="var(--chart-4)" stopOpacity={0} />
-          </linearGradient>
-        </defs>
+      <ComposedChart data={data}>
         <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
         <XAxis
           dataKey="ano"
@@ -40,8 +32,33 @@ export function TrendChart({ data }: { data: TrendPoint[] }) {
           axisLine={{ stroke: "var(--border)" }}
         />
         <YAxis
+          yAxisId="left"
           tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
           axisLine={{ stroke: "var(--border)" }}
+          label={{
+            value: "Decisões",
+            angle: -90,
+            position: "insideLeft",
+            fontSize: 11,
+            fill: "var(--muted-foreground)",
+            offset: 0,
+          }}
+        />
+        <YAxis
+          yAxisId="right"
+          orientation="right"
+          unit="%"
+          domain={[0, 100]}
+          tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
+          axisLine={{ stroke: "var(--border)" }}
+          label={{
+            value: "Aprovação",
+            angle: 90,
+            position: "insideRight",
+            fontSize: 11,
+            fill: "var(--muted-foreground)",
+            offset: 0,
+          }}
         />
         <Tooltip
           contentStyle={{
@@ -51,27 +68,43 @@ export function TrendChart({ data }: { data: TrendPoint[] }) {
             fontSize: 13,
           }}
           formatter={(value, name) => [
-            Number(value).toLocaleString("pt-BR"),
+            String(name) === "Aprovação"
+              ? `${Number(value).toFixed(1)}%`
+              : Number(value).toLocaleString("pt-BR"),
             String(name),
           ]}
         />
-        <Area
-          type="monotone"
+        <Legend
+          wrapperStyle={{ fontSize: 12 }}
+          iconType="rect"
+          iconSize={10}
+        />
+        <Bar
+          yAxisId="left"
           dataKey="total"
           name="Total"
-          stroke="var(--chart-1)"
-          fill="url(#gradTotal)"
-          strokeWidth={2}
+          fill="var(--chart-1)"
+          fillOpacity={0.3}
+          radius={[3, 3, 0, 0]}
         />
-        <Area
-          type="monotone"
+        <Bar
+          yAxisId="left"
           dataKey="deferidos"
           name="Deferidos"
-          stroke="var(--chart-4)"
-          fill="url(#gradDeferidos)"
-          strokeWidth={2}
+          fill="var(--chart-4)"
+          fillOpacity={0.5}
+          radius={[3, 3, 0, 0]}
         />
-      </AreaChart>
+        <Line
+          yAxisId="right"
+          type="monotone"
+          dataKey="taxa_aprovacao"
+          name="Aprovação"
+          stroke="var(--brand-teal)"
+          strokeWidth={2.5}
+          dot={{ r: 3, fill: "var(--brand-teal)" }}
+        />
+      </ComposedChart>
     </ResponsiveContainer>
   );
 }
