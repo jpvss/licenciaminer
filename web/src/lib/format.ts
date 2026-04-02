@@ -53,6 +53,11 @@ export function fmtCNPJ(cnpj: string): string {
   return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
 }
 
+/** Dólar americano: US$ 1,234.56 */
+export function fmtUSD(n: number): string {
+  return n.toLocaleString("en-US", { style: "currency", currency: "USD" });
+}
+
 /** Score badge color class based on value (0-100) */
 export function scoreColor(score: number): string {
   if (score >= 70) return "text-green-700 bg-green-100";

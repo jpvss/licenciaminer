@@ -1,15 +1,22 @@
 """Endpoints de Inteligência Comercial — Mineral Intelligence.
 
 Pilares: Mercado/Cotações, Comércio Exterior, Produção/Arrecadação, Gestão Territorial.
+Inclui KPI summary, time-series, AI summary (SSE) e minerais estratégicos.
 """
 
 import csv
+import json
 import logging
+import os
+from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Query
+import anthropic
+from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 
-from api.services.database import run_query
-from licenciaminer.config import REFERENCE_DIR
+from api.services.database import load_metadata, run_query
+from licenciaminer.config import DATA_DIR, REFERENCE_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -235,3 +242,350 @@ def get_anm_by_substancia(limit: int = Query(15, ge=1, le=50)):
         [limit],
     )
     return {"rows": rows}
+
+
+# ── KPI Summary ──
+
+
+_CFEM_VALUE_EXPR = """TRY_CAST(
+    REPLACE(REPLACE("ValorRecolhido", '.', ''), ',', '.') AS DOUBLE
+)"""
+
+
+@router.get("/intelligence/kpi-summary")
+def get_kpi_summary():
+    """Retorna KPIs resumidos para o strip de inteligência."""
+    meta = load_metadata()
+
+    # USD/BRL
+    ptax_rows = _safe_query(
+        "SELECT data, cotacao_venda FROM v_bcb_cotacoes ORDER BY data"
+    )
+    usd_brl = None
+    if ptax_rows:
+        latest = ptax_rows[-1]
+        # Sparkline: last 30 data points
+        spark = [r["cotacao_venda"] for r in ptax_rows[-30:]]
+        # Delta vs 30 days ago
+        prev = ptax_rows[-31]["cotacao_venda"] if len(ptax_rows) > 30 else ptax_rows[0]["cotacao_venda"]
+        delta = (latest["cotacao_venda"] - prev) / prev if prev else 0
+        usd_brl = {
+            "latest": latest["cotacao_venda"],
+            "date": latest["data"],
+            "delta": round(delta, 4),
+            "sparkline": spark,
+        }
+
+    # Iron ore (commodity CSV)
+    ferro = None
+    commodity_csv = REFERENCE_DIR / "commodity_prices.csv"
+    if commodity_csv.exists():
+        with open(commodity_csv, encoding="utf-8") as f:
+            rows = [r for r in csv.DictReader(f) if "Ferro" in r.get("mineral", "")]
+        if rows:
+            latest_row = rows[-1]
+            prev_row = rows[-2] if len(rows) > 1 else rows[0]
+            latest_price = float(latest_row["preco_usd"])
+            prev_price = float(prev_row["preco_usd"])
+            delta = (latest_price - prev_price) / prev_price if prev_price else 0
+            ferro = {
+                "latest": latest_price,
+                "unit": latest_row.get("unidade", "USD/t"),
+                "date": latest_row["data"],
+                "delta": round(delta, 4),
+                "sparkline": [float(r["preco_usd"]) for r in rows],
+            }
+
+    # Trade balance YTD
+    current_year = datetime.now().year
+    balanca = None
+    comex_rows = _safe_query(
+        """
+        SELECT fluxo, SUM(valor_fob_usd) AS total
+        FROM v_comex_mineracao
+        WHERE ano = ?
+        GROUP BY fluxo
+        """,
+        [current_year],
+    )
+    if comex_rows:
+        export_val = sum(r["total"] for r in comex_rows if r["fluxo"] == "Exportação")
+        import_val = sum(r["total"] for r in comex_rows if r["fluxo"] == "Importação")
+        balance = export_val - import_val
+
+        # Previous year for delta
+        prev_rows = _safe_query(
+            """
+            SELECT fluxo, SUM(valor_fob_usd) AS total
+            FROM v_comex_mineracao
+            WHERE ano = ?
+            GROUP BY fluxo
+            """,
+            [current_year - 1],
+        )
+        prev_balance = 0
+        if prev_rows:
+            prev_exp = sum(r["total"] for r in prev_rows if r["fluxo"] == "Exportação")
+            prev_imp = sum(r["total"] for r in prev_rows if r["fluxo"] == "Importação")
+            prev_balance = prev_exp - prev_imp
+
+        delta = (balance - prev_balance) / abs(prev_balance) if prev_balance else 0
+
+        # Sparkline: yearly balances
+        yearly = _safe_query(
+            """
+            SELECT ano,
+                   SUM(CASE WHEN fluxo = 'Exportação' THEN valor_fob_usd ELSE 0 END) -
+                   SUM(CASE WHEN fluxo = 'Importação' THEN valor_fob_usd ELSE 0 END) AS balance
+            FROM v_comex_mineracao
+            GROUP BY ano ORDER BY ano
+            """
+        )
+        balanca = {
+            "valor_usd": balance,
+            "delta_yoy": round(delta, 4),
+            "sparkline": [r["balance"] for r in yearly],
+        }
+
+    # CFEM YTD
+    cfem_ytd = None
+    cfem_rows = _safe_query(
+        f"""
+        SELECT Ano as ano,
+               SUM({_CFEM_VALUE_EXPR}) AS total
+        FROM v_cfem
+        WHERE Ano >= ? - 1
+        GROUP BY Ano
+        ORDER BY Ano
+        """,
+        [current_year],
+    )
+    if cfem_rows:
+        current = next((r for r in cfem_rows if r["ano"] == current_year), None)
+        previous = next((r for r in cfem_rows if r["ano"] == current_year - 1), None)
+        current_val = current["total"] if current else 0
+        prev_val = previous["total"] if previous else 0
+        delta = (current_val - prev_val) / prev_val if prev_val else 0
+
+        # Sparkline: yearly totals
+        yearly_cfem = _safe_query(
+            f"""
+            SELECT Ano as ano, SUM({_CFEM_VALUE_EXPR}) AS total
+            FROM v_cfem
+            GROUP BY Ano ORDER BY Ano
+            """
+        )
+        cfem_ytd = {
+            "valor_brl": current_val,
+            "delta_yoy": round(delta, 4),
+            "sparkline": [r["total"] for r in yearly_cfem],
+        }
+
+    # Freshness from metadata
+    freshness = {}
+    for key, source_key in [("ptax", "bcb_ptax"), ("cfem", "anm_cfem"), ("comex", "comex_mineracao")]:
+        if source_key in meta:
+            freshness[key] = meta[source_key].get("collected_at", "")[:10]
+
+    return {
+        "usd_brl": usd_brl,
+        "ferro": ferro,
+        "balanca_ytd": balanca,
+        "cfem_ytd": cfem_ytd,
+        "freshness": freshness,
+    }
+
+
+# ── CFEM Time-Series ──
+
+
+@router.get("/intelligence/cfem/time-series")
+def get_cfem_time_series(
+    ano_min: int = Query(2022, ge=2010, le=2030),
+    ano_max: int = Query(2026, ge=2010, le=2030),
+    substancia: str | None = Query(None),
+    municipio: str | None = Query(None),
+):
+    """Série temporal CFEM mensal com filtros opcionais."""
+    conditions = ["Ano BETWEEN ? AND ?"]
+    params: list = [ano_min, ano_max]
+
+    if substancia:
+        conditions.append('"Substância" = ?')
+        params.append(substancia)
+    if municipio:
+        conditions.append('"Município" = ?')
+        params.append(municipio)
+
+    where = " AND ".join(conditions)
+    rows = _safe_query(
+        f"""
+        SELECT Ano AS ano, "Mês" AS mes,
+               SUM({_CFEM_VALUE_EXPR}) AS total
+        FROM v_cfem
+        WHERE {where}
+        GROUP BY Ano, "Mês"
+        ORDER BY Ano, "Mês"
+        """,
+        params,
+    )
+    return {"rows": rows}
+
+
+# ── COMEX by Country ──
+
+
+@router.get("/intelligence/comex/by-country")
+def get_comex_by_country(
+    fluxo: str = Query("Exportação", pattern="^(Exportação|Importação)$"),
+    limit: int = Query(10, ge=1, le=30),
+):
+    """Top países por comércio exterior mineral."""
+    rows = _safe_query(
+        """
+        SELECT pais, SUM(valor_fob_usd) AS valor_fob_usd,
+               SUM(peso_kg) AS peso_kg
+        FROM v_comex_mineracao
+        WHERE fluxo = ?
+        GROUP BY pais
+        ORDER BY valor_fob_usd DESC
+        LIMIT ?
+        """,
+        [fluxo, limit],
+    )
+    return {"fluxo": fluxo, "rows": rows}
+
+
+# ── COMEX Monthly Time-Series ──
+
+
+@router.get("/intelligence/comex/monthly")
+def get_comex_monthly(
+    ano_min: int = Query(2021, ge=2010, le=2030),
+    ano_max: int = Query(2026, ge=2010, le=2030),
+):
+    """Série temporal mensal de comércio exterior."""
+    rows = _safe_query(
+        """
+        SELECT ano, mes, fluxo,
+               SUM(valor_fob_usd) AS valor_fob_usd,
+               SUM(peso_kg) AS peso_kg
+        FROM v_comex_mineracao
+        WHERE ano BETWEEN ? AND ?
+        GROUP BY ano, mes, fluxo
+        ORDER BY ano, mes, fluxo
+        """,
+        [ano_min, ano_max],
+    )
+    return {"rows": rows}
+
+
+# ── RAL by Substance with Value ──
+
+
+@router.get("/intelligence/ral/top-substancias-value")
+def get_ral_top_substancias_value(limit: int = Query(10, ge=1, le=50)):
+    """Top substâncias RAL por valor de venda e produção."""
+    rows = _safe_query(
+        """
+        SELECT "Substância Mineral" AS substancia,
+               SUM(TRY_CAST(REPLACE(REPLACE("Valor Venda (R$)", '.', ''), ',', '.') AS DOUBLE)) AS valor_venda,
+               SUM(TRY_CAST(REPLACE(REPLACE("Quantidade Produção - Minério ROM (t)", '.', ''), ',', '.') AS DOUBLE)) AS qtd_producao
+        FROM v_ral
+        WHERE "Substância Mineral" IS NOT NULL
+        GROUP BY "Substância Mineral"
+        ORDER BY valor_venda DESC NULLS LAST
+        LIMIT ?
+        """,
+        [limit],
+    )
+    return {"rows": rows}
+
+
+# ── Strategic Minerals ──
+
+
+@router.get("/intelligence/minerals/strategic")
+def get_strategic_minerals():
+    """Retorna classificação de substâncias minerais (referência)."""
+    csv_path = REFERENCE_DIR / "substancias_classificacao.csv"
+    if not csv_path.exists():
+        return {"rows": []}
+
+    with open(csv_path, encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+
+    return {"rows": rows}
+
+
+# ── AI Summary ──
+
+
+class AISummaryRequest(BaseModel):
+    """Payload para geração de resumo AI."""
+    context: dict
+
+
+_AI_SYSTEM_PROMPT = """Você é um analista sênior de inteligência mineral no Summo Quartile.
+Seu papel é analisar dados do setor minerário brasileiro e gerar insights acionáveis para investidores.
+
+Diretrizes:
+- Responda sempre em português brasileiro
+- Cite números específicos dos dados fornecidos
+- Formate números no padrão brasileiro (1.234,56)
+- Gere 3-5 bullets de insights concisos
+- Destaque tendências, anomalias e riscos
+- Mencione fontes de dados (ANM, BCB, CFEM, Comex Stat)
+- Seja objetivo e direto — sem introduções genéricas
+- Se os dados são insuficientes para uma análise robusta, diga isso claramente
+"""
+
+
+@router.get("/intelligence/ai-status")
+def get_ai_status():
+    """Verifica se a API de AI está disponível."""
+    available = bool(os.environ.get("ANTHROPIC_API_KEY"))
+    return {"available": available}
+
+
+@router.post("/intelligence/ai-summary/stream")
+async def stream_ai_summary(request: AISummaryRequest):
+    """Streaming de resumo de inteligência mineral via SSE."""
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise HTTPException(
+            status_code=503,
+            detail="ANTHROPIC_API_KEY não configurada",
+        )
+
+    context_json = json.dumps(request.context, ensure_ascii=False, default=str)
+    user_message = f"Analise os seguintes dados de inteligência mineral e gere um resumo executivo:\n\n{context_json}"
+
+    client = anthropic.Anthropic(api_key=api_key)
+
+    def generate():
+        try:
+            with client.messages.stream(
+                model="claude-sonnet-4-20250514",
+                max_tokens=1024,
+                system=_AI_SYSTEM_PROMPT,
+                messages=[{"role": "user", "content": user_message}],
+            ) as stream:
+                for text in stream.text_stream:
+                    yield f"data: {text}\n\n"
+            yield "data: [DONE]\n\n"
+        except anthropic.APIError as e:
+            logger.error("AI summary API error: %s", e)
+            yield f"data: [ERROR] {e.message}\n\n"
+        except Exception as e:
+            logger.error("AI summary stream error: %s", e)
+            yield "data: [ERROR] Erro interno\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )

@@ -891,6 +891,110 @@ export function fetchAnmStats() {
   return apiFetch<{ total_records: number }>("/intelligence/anm/stats");
 }
 
+/* ── Intelligence v2 (KPI, Time-Series, AI) ── */
+
+export interface KpiItem {
+  latest: number;
+  delta: number;
+  sparkline: number[];
+  date?: string;
+  unit?: string;
+  valor_usd?: number;
+  valor_brl?: number;
+  delta_yoy?: number;
+}
+
+export interface KpiSummaryResponse {
+  usd_brl: KpiItem | null;
+  ferro: KpiItem | null;
+  balanca_ytd: KpiItem | null;
+  cfem_ytd: KpiItem | null;
+  freshness: Record<string, string>;
+}
+
+export function fetchKpiSummary() {
+  return apiFetch<KpiSummaryResponse>("/intelligence/kpi-summary");
+}
+
+export interface CfemTimeRow {
+  ano: number;
+  mes: number;
+  total: number;
+}
+
+export function fetchCfemTimeSeries(params?: {
+  ano_min?: number;
+  ano_max?: number;
+  substancia?: string;
+  municipio?: string;
+}) {
+  const qs = new URLSearchParams();
+  if (params?.ano_min) qs.set("ano_min", String(params.ano_min));
+  if (params?.ano_max) qs.set("ano_max", String(params.ano_max));
+  if (params?.substancia) qs.set("substancia", params.substancia);
+  if (params?.municipio) qs.set("municipio", params.municipio);
+  const q = qs.toString();
+  return apiFetch<{ rows: CfemTimeRow[] }>(`/intelligence/cfem/time-series${q ? `?${q}` : ""}`);
+}
+
+export function fetchComexByCountry(fluxo = "Exportação", limit = 10) {
+  return apiFetch<{ fluxo: string; rows: { pais: string; valor_fob_usd: number; peso_kg: number }[] }>(
+    `/intelligence/comex/by-country?fluxo=${encodeURIComponent(fluxo)}&limit=${limit}`
+  );
+}
+
+export function fetchComexMonthly(ano_min = 2021, ano_max = 2026) {
+  return apiFetch<{ rows: { ano: number; mes: number; fluxo: string; valor_fob_usd: number }[] }>(
+    `/intelligence/comex/monthly?ano_min=${ano_min}&ano_max=${ano_max}`
+  );
+}
+
+export function fetchRalTopSubstanciasValue(limit = 10) {
+  return apiFetch<{ rows: { substancia: string; valor_venda: number; qtd_producao: number }[] }>(
+    `/intelligence/ral/top-substancias-value?limit=${limit}`
+  );
+}
+
+export function fetchStrategicMinerals() {
+  return apiFetch<{ rows: { substancia: string; categoria: string; valor_relativo: string; estrategico: string }[] }>(
+    "/intelligence/minerals/strategic"
+  );
+}
+
+export function fetchAiStatus() {
+  return apiFetch<{ available: boolean }>("/intelligence/ai-status");
+}
+
+export function streamMarketSummary(
+  context: Record<string, unknown>,
+  onChunk: (text: string) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  return fetch(`${API_BASE}/intelligence/ai-summary/stream`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ context }),
+    signal,
+  }).then(async (res) => {
+    if (!res.ok) throw new Error(`AI summary API ${res.status}`);
+    const reader = res.body?.getReader();
+    if (!reader) return;
+    const decoder = new TextDecoder();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value, { stream: true });
+      for (const line of chunk.split("\n")) {
+        if (line.startsWith("data: ") && line !== "data: [DONE]") {
+          const payload = line.slice(6);
+          if (payload.startsWith("[ERROR]")) throw new Error(payload);
+          onChunk(payload);
+        }
+      }
+    }
+  });
+}
+
 /* ── Simulator (Mineradora Modelo) ── */
 
 export interface SimKPI {
