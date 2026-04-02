@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -13,6 +13,7 @@ import {
   Info,
   Landmark,
   Map,
+  RotateCcw,
   ShieldCheck,
   TrendingUp,
 } from "lucide-react";
@@ -24,6 +25,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/stat-card";
 import {
   fetchOverviewStats,
@@ -73,15 +75,35 @@ const PLATFORM_MAP = [
 
 /* ── Page ── */
 
+function relativeTime(dateStr: string): string {
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const diffMs = Date.now() - d.getTime();
+    const diffH = Math.floor(diffMs / 3_600_000);
+    if (diffH < 1) return "agora";
+    if (diffH < 24) return `${diffH}h atrás`;
+    const diffD = Math.floor(diffH / 24);
+    if (diffD === 1) return "ontem";
+    if (diffD < 30) return `${diffD}d atrás`;
+    return dateStr;
+  } catch { return dateStr; }
+}
+
 export default function HomePage() {
   const [stats, setStats] = useState<OverviewStats | null>(null);
   const [sources, setSources] = useState<SourceMeta[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadData = useCallback(() => {
+    setError(null);
     fetchOverviewStats().then(setStats).catch((e) => setError(e.message));
     fetchMetaSources().then(setSources).catch((e) => { console.error("sources:", e); });
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   return (
     <div className="space-y-8">
@@ -114,9 +136,15 @@ export default function HomePage() {
       {/* Error state */}
       {error && (
         <Card className="border-destructive/30">
-          <CardContent className="p-6 text-sm text-destructive">
-            Erro ao carregar dados: {error}.
-            <span className="text-muted-foreground"> Verifique se a API está rodando.</span>
+          <CardContent className="flex items-center justify-between gap-4 p-6">
+            <p className="text-sm text-destructive">
+              Erro ao carregar dados: {error}.
+              <span className="text-muted-foreground"> Verifique se a API está rodando.</span>
+            </p>
+            <Button variant="outline" size="sm" onClick={loadData}>
+              <RotateCcw className="mr-2 h-3.5 w-3.5" />
+              Tentar novamente
+            </Button>
           </CardContent>
         </Card>
       )}
@@ -165,7 +193,7 @@ export default function HomePage() {
         </p>
         <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {PLATFORM_MAP.map((group) => (
-            <Card key={group.section} className={`border ${group.borderColor}`}>
+            <Card key={group.section} className={`border ${group.borderColor} transition-shadow hover:shadow-md`}>
               <CardHeader className="pb-3">
                 <CardTitle className={`text-sm font-semibold uppercase tracking-wide ${group.color}`}>
                   {group.section}
@@ -231,8 +259,8 @@ export default function HomePage() {
                       <td className="py-2 pr-4 text-right tabular-nums">
                         {src.records != null ? fmtNumber(src.records) : <span className="text-muted-foreground">—</span>}
                       </td>
-                      <td className="py-2 pr-4 text-muted-foreground tabular-nums">
-                        {src.last_collected ?? "—"}
+                      <td className="py-2 pr-4 text-muted-foreground tabular-nums" title={src.last_collected ?? undefined}>
+                        {src.last_collected ? relativeTime(src.last_collected) : "—"}
                       </td>
                       <td className="py-2">
                         {src.url ? (

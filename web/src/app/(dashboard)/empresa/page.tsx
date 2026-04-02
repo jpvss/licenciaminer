@@ -12,6 +12,24 @@ export default function EmpresaPage() {
   const [cnpj, setCnpj] = useState("");
   const [activeCnpj, setActiveCnpj] = useState<string | null>(null);
 
+  function formatCnpjInput(raw: string): string {
+    const d = raw.replace(/\D/g, "").slice(0, 14);
+    if (d.length <= 2) return d;
+    if (d.length <= 5) return `${d.slice(0, 2)}.${d.slice(2)}`;
+    if (d.length <= 8) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5)}`;
+    if (d.length <= 12) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8)}`;
+    return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
+  }
+
+  function handleCnpjChange(raw: string) {
+    const digits = raw.replace(/\D/g, "");
+    if (digits.length <= 11) {
+      setCnpj(digits); // CPF: no mask
+    } else {
+      setCnpj(formatCnpjInput(raw));
+    }
+  }
+
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     const cleaned = cnpj.replace(/\D/g, "");
@@ -52,7 +70,7 @@ export default function EmpresaPage() {
               <Input
                 placeholder="CNPJ (14 dígitos) ou CPF (11 dígitos)"
                 value={cnpj}
-                onChange={(e) => setCnpj(e.target.value)}
+                onChange={(e) => handleCnpjChange(e.target.value)}
                 className="pl-10"
               />
             </div>

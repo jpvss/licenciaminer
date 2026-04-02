@@ -622,7 +622,18 @@ export interface ConcessoesResponse {
   rows: Record<string, unknown>[];
 }
 
-function concessoesQS(params?: ConcessoesFilters): string {
+/** Shared QS builder for mining filter endpoints (concessoes, geo, prospeccao). */
+function miningFilterQS(params?: {
+  search?: string;
+  regime?: string[];
+  categoria?: string[];
+  substancia?: string[];
+  municipio?: string[];
+  cfem_status?: string;
+  estrategico?: boolean;
+  limit?: number;
+  offset?: number;
+}): string {
   if (!params) return "";
   const qs = new URLSearchParams();
   if (params.search) qs.set("search", params.search);
@@ -636,6 +647,10 @@ function concessoesQS(params?: ConcessoesFilters): string {
   if (params.offset) qs.set("offset", String(params.offset));
   const q = qs.toString();
   return q ? `?${q}` : "";
+}
+
+function concessoesQS(params?: ConcessoesFilters): string {
+  return miningFilterQS(params);
 }
 
 export function fetchConcessoesFilters() {
@@ -655,17 +670,7 @@ export function fetchConcessaoDetail(processo: string) {
 }
 
 export function concessoesExportUrl(params?: ConcessoesFilters): string {
-  const base = `${API_BASE}/concessoes/export.csv`;
-  const qs = new URLSearchParams();
-  if (params?.search) qs.set("search", params.search);
-  params?.regime?.forEach((v) => qs.append("regime", v));
-  params?.categoria?.forEach((v) => qs.append("categoria", v));
-  params?.substancia?.forEach((v) => qs.append("substancia", v));
-  params?.municipio?.forEach((v) => qs.append("municipio", v));
-  if (params?.cfem_status) qs.set("cfem_status", params.cfem_status);
-  if (params?.estrategico != null) qs.set("estrategico", String(params.estrategico));
-  const q = qs.toString();
-  return q ? `${base}?${q}` : base;
+  return `${API_BASE}/concessoes/export.csv${miningFilterQS(params)}`;
 }
 
 /* ── Prospecção ── */
@@ -813,16 +818,7 @@ function geoQS(params?: {
   estrategico?: boolean;
   limit?: number;
 }): string {
-  if (!params) return "";
-  const qs = new URLSearchParams();
-  params.regime?.forEach((v) => qs.append("regime", v));
-  params.categoria?.forEach((v) => qs.append("categoria", v));
-  params.substancia?.forEach((v) => qs.append("substancia", v));
-  if (params.cfem_status) qs.set("cfem_status", params.cfem_status);
-  if (params.estrategico != null) qs.set("estrategico", String(params.estrategico));
-  if (params.limit) qs.set("limit", String(params.limit));
-  const q = qs.toString();
-  return q ? `?${q}` : "";
+  return miningFilterQS(params);
 }
 
 export function fetchGeoConcessoes(params?: Parameters<typeof geoQS>[0]) {

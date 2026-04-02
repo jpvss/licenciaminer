@@ -213,6 +213,7 @@ export function ChatSidebar() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Pergunte algo..."
+              aria-label="Mensagem para o assistente"
               rows={1}
               className="flex-1 resize-none rounded-lg border bg-background px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus:ring-1 focus:ring-brand-orange"
             />

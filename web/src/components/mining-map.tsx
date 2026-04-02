@@ -53,7 +53,6 @@ export function MiningMap({
 }: MiningMapProps) {
   const mapRef = useRef<MapRef>(null);
   const [popup, setPopup] = useState<PopupInfo | null>(null);
-  const [hoverFeatureId, setHoverFeatureId] = useState<string | null>(null);
 
   const getColorExpression = useCallback((): string | unknown[] => {
     const palette =
@@ -227,14 +226,24 @@ export function MiningMap({
                 Área: {fmtHa(Number(popup.properties.AREA_HA))}
               </p>
             )}
-            {popup.properties.processo_norm != null && (
-              <Link
-                href={`/concessoes?search=${encodeURIComponent(str(popup.properties.processo_norm))}`}
-                className="mt-1 inline-block text-[10px] text-brand-teal hover:underline"
-              >
-                Ver detalhes →
-              </Link>
-            )}
+            <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
+              {popup.properties.processo_norm != null && (
+                <Link
+                  href={`/concessoes?search=${encodeURIComponent(str(popup.properties.processo_norm))}`}
+                  className="text-[10px] text-brand-teal hover:underline"
+                >
+                  Ver detalhes →
+                </Link>
+              )}
+              {popup.properties.cpf_cnpj_do_titular != null && String(popup.properties.cpf_cnpj_do_titular).replace(/\D/g, "").length >= 11 && (
+                <Link
+                  href={`/empresa?cnpj=${encodeURIComponent(String(popup.properties.cpf_cnpj_do_titular).replace(/\D/g, ""))}`}
+                  className="text-[10px] text-brand-orange hover:underline"
+                >
+                  Abrir Dossiê →
+                </Link>
+              )}
+            </div>
           </div>
         </Popup>
       )}

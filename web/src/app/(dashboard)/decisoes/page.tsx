@@ -93,6 +93,7 @@ const CHART_TOOLTIP_STYLE = {
 };
 
 export default function DecisoesPage() {
+  const [activeTab, setActiveTab] = useState("visao-geral");
   const [rejectionTrend, setRejectionTrend] = useState<RejectionTrend[] | null>(null);
   const [regionalRigor, setRegionalRigor] = useState<RegionalRigor[] | null>(null);
   const [modalidade, setModalidade] = useState<Record<string, unknown>[] | null>(null);
@@ -108,21 +109,44 @@ export default function DecisoesPage() {
   const [overviewInsights, setOverviewInsights] = useState<Insight[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Lazy-load: fetch only when the relevant tab is selected (or for KPI row).
+  // Each dataset fetches once and caches in state.
+  const lazyFetch = useCallback(<T,>(
+    current: T | null,
+    setter: (v: T) => void,
+    fetcher: () => Promise<T>,
+  ) => {
+    if (current !== null) return;
+    fetcher().then(setter).catch((e) => console.error(e));
+  }, []);
+
+  // Always load KPI row data + overview tab data on mount
   useEffect(() => {
     fetchRejectionTrend().then(setRejectionTrend).catch((e) => setError(e.message));
-    fetchRegionalRigor().then(setRegionalRigor).catch((e) => { console.error("regionalRigor:", e); });
-    fetchDecisionsByModalidade().then(setModalidade).catch((e) => { console.error("modalidade:", e); });
-    fetchApprovalRates().then(setApprovalRates).catch((e) => { console.error("approvalRates:", e); });
-    fetchInfractionBands().then(setInfractionBands).catch((e) => { console.error("infractionBands:", e); });
-    fetchInfractionsVsApproval().then(setInfractionsVsApproval).catch((e) => { console.error("infractionsVsApproval:", e); });
-    fetchActivityClassHeatmap().then(setHeatmapData).catch((e) => { console.error("heatmap:", e); });
-    fetchCfemVsApproval().then(setCfemVsApproval).catch((e) => { console.error("cfem:", e); });
-    fetchRecidivism().then(setRecidivism).catch((e) => { console.error("recidivism:", e); });
-    fetchShelvingAnalysis().then(setShelvingData).catch((e) => { console.error("shelving:", e); });
-    fetchOverviewStats().then(setOverviewStats).catch((e) => { console.error("overviewStats:", e); });
-    fetchOverviewTrend().then(setOverviewTrend).catch((e) => { console.error("overviewTrend:", e); });
-    fetchOverviewInsights().then(setOverviewInsights).catch((e) => { console.error("overviewInsights:", e); });
+    fetchRegionalRigor().then(setRegionalRigor).catch((e) => console.error("regionalRigor:", e));
+    fetchOverviewStats().then(setOverviewStats).catch((e) => console.error("overviewStats:", e));
+    fetchOverviewTrend().then(setOverviewTrend).catch((e) => console.error("overviewTrend:", e));
+    fetchOverviewInsights().then(setOverviewInsights).catch((e) => console.error("overviewInsights:", e));
   }, []);
+
+  // Load data lazily per tab
+  useEffect(() => {
+    switch (activeTab) {
+      case "trend": /* uses rejectionTrend, loaded at mount */ break;
+      case "regional": /* uses regionalRigor, loaded at mount */ break;
+      case "modalidade": lazyFetch(modalidade, setModalidade, fetchDecisionsByModalidade); break;
+      case "yearly": lazyFetch(approvalRates, setApprovalRates, fetchApprovalRates); break;
+      case "risco":
+        lazyFetch(heatmapData, setHeatmapData, fetchActivityClassHeatmap);
+        lazyFetch(infractionBands, setInfractionBands, fetchInfractionBands);
+        lazyFetch(infractionsVsApproval, setInfractionsVsApproval, fetchInfractionsVsApproval);
+        lazyFetch(cfemVsApproval, setCfemVsApproval, fetchCfemVsApproval);
+        lazyFetch(recidivism, setRecidivism, fetchRecidivism);
+        lazyFetch(shelvingData, setShelvingData, fetchShelvingAnalysis);
+        break;
+      case "copam": /* fetched inside its own section */ break;
+    }
+  }, [activeTab, lazyFetch, modalidade, approvalRates, heatmapData, infractionBands, infractionsVsApproval, cfemVsApproval, recidivism, shelvingData]);
 
   // Aggregate modalidade data for stacked view
   const modalidadeAgg = modalidade
@@ -256,7 +280,7 @@ export default function DecisoesPage() {
       ) : null}
 
       {/* Charts */}
-      <Tabs defaultValue="visao-geral" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="flex-wrap">
           <TabsTrigger value="visao-geral">Visão Geral</TabsTrigger>
           <TabsTrigger value="trend">Tendência Temporal</TabsTrigger>

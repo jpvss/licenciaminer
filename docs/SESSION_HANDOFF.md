@@ -1,134 +1,105 @@
-# Session Handoff — 2026-03-23
+# Session Handoff — 2026-04-01
 
 ## Current State
 
-**Data collection: COMPLETE.** 10/12 sources, ~1 million records, all enriched.
-**App: FUNCTIONAL but needs UI/UX overhaul.** 3 tabs working, needs design polish + LLM chat + reports.
+**Data collection: COMPLETE.** 16+ sources, ~1 million records, all enriched.
+**Next.js frontend: DEPLOYED on Vercel.** 10 functional pages + 2 placeholders.
+**FastAPI backend: DEPLOYED on Railway.** 13 routers, ~55 endpoints.
+**Streamlit app: RETAINED as internal tool.** 15 pages, runs locally via `uv run streamlit run app/app.py`.
 
-## What Exists
-
-### Data (all parquet, all collected)
-
-| Source | File | Records |
-|--------|------|---------|
-| MG SEMAD decisions | mg_semad_licencas.parquet | 42,758 |
-| MG SEMAD PDF text | (in mg_semad_licencas) | 6,968 with text |
-| MG SEMAD PDF links | (in mg_semad_licencas) | 8,045 with links |
-| IBAMA licenses | ibama_licencas.parquet | 1,115 |
-| ANM processes (MG) | anm_processos.parquet | 50,723 |
-| IBAMA infractions | ibama_infracoes.parquet | 702,280 |
-| ANM CFEM royalties | anm_cfem.parquet | 91,026 |
-| ANM RAL production | anm_ral.parquet | 1,013 |
-| CNPJ profiles | cnpj_empresas.parquet | 21,572 |
-| Spatial overlaps | anm_spatial_overlaps.parquet | 50,725 |
-| COPAM CMI meetings | copam_cmi_reunioes.parquet | 135 |
-| Reference shapefiles | data/reference/*.parquet | UCs, TIs, biomas, ANM geo |
-
-Blocked: CECAV caves (URL 404), ANA water rights (portal 504)
-
-### App (Streamlit, 3 tabs)
+## Architecture
 
 ```
-app/
-├── app.py                     # Landing page + CSS
-├── pages/
-│   ├── 1_visao_geral.py      # Metrics, trend chart, sources, insights
-│   ├── 2_explorar_dados.py   # Data explorer with click-to-detail
-│   └── 3_consulta.py         # Intelligence query by project/CNPJ
-├── components/
-│   ├── __init__.py
-│   └── data_loader.py        # DuckDB with @st.cache_resource
-└── __init__.py
+┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐
+│   Next.js 16     │────▶│   FastAPI         │────▶│   DuckDB         │
+│   (Vercel)       │     │   (Railway)       │     │   (parquet)      │
+│   10 pages       │     │   13 routers      │     │   16+ sources    │
+└──────────────────┘     └──────────────────┘     └──────────────────┘
 ```
 
-Run: `uv run streamlit run app/app.py`
+- **Frontend**: `web/` — Next.js App Router, Tailwind v4, shadcn/ui, Recharts, MapLibre
+- **Backend**: `api/` — FastAPI, DuckDB, 13 routers (~2,933 LOC)
+- **Data pipeline**: `src/licenciaminer/` — Python collectors, processors, CLI
+- **Streamlit**: `app/` — Internal tool, 15 pages
 
-### Code Stats
-- 32 commits on main
-- 30+ source files
-- 39 tests passing (ruff clean, mypy strict)
-- 15 CLI commands for data collection
-- 9 DuckDB views, 10+ analytical queries
-- Incremental refresh pipeline
+## What Was Done This Session (Quality Review)
 
-### Documentation
-- [DATA_REGISTRY.md](DATA_REGISTRY.md) — every source with refresh commands
-- [plans/feat-product-app-final.md](../plans/feat-product-app-final.md) — full product plan
-- [plans/product-layer.md](../plans/product-layer.md) — 3-shape product strategy
-- [research/](research/) — 5 research documents (competitors, other states, data sources, data map, APIs)
+Systematic page-by-page review of the Next.js app:
+- **Phase 1**: Full app map — 12 pages, 14 components, 13 API routers, 9 DuckDB views, 8 user flows, 48 enhancement items ranked by impact × feasibility
+- **Phase 2**: Implemented 12 items (net zero LOC change: +143/−143)
+- **Phase 3**: Documentation consolidation (this file, README, CHANGELOG, plan updates)
 
-## Next Session: UI/UX Overhaul + LLM Features
+### Key Changes
+- Global error boundary (`error.tsx`)
+- Lazy tab loading on Decisoes (13→5 API calls on mount)
+- Extracted shared ParecerAccordion component
+- Extracted shared `miningFilterQS()` helper
+- Fixed memory leak in sidebar fetchFreshness
+- CNPJ auto-formatting mask
+- Retry button on error states
+- Relative timestamps on data sources
+- Cross-page links (Concessoes → Mapa)
+- KPI progress bars (Mineradora Modelo)
+- Chat sidebar accessibility (`aria-label`)
 
-### Priority 1: UI Redesign (all 3 tabs)
-- Run frontend-design skill for premium aesthetic
-- Current app is functional but visually plain — needs to look like a premium data product
-- Design direction decided: industrial/utilitarian with amber accents
-- Key UX: click-to-detail works but overall experience is underwhelming
+## Next Session Priority
 
-### Priority 2: Phase 5E — LLM Chat + Reports
-- `build_llm_context()` — structured dict from all sources for a CNPJ
-- Sidebar chat with Claude API (optional, needs ANTHROPIC_API_KEY)
-- PDF due diligence report generator
-- "Gerado por IA" banner on all LLM outputs
+### 1. URL-based filter persistence (G.3)
+Filters reset on navigation across explorar, concessoes, mapa, prospeccao. Implement `useSearchParams` pattern reusable across all four pages.
 
-### Priority 3: Deploy
-- Streamlit Cloud deployment
-- Share URL with stakeholders
+### 2. Due Diligence UX (5.1 + 5.2)
+Add stepper progress indicator and sessionStorage persistence for the compliance wizard.
+
+### 3. Data Opportunities
+- Enrich Prospeccao scores with RAL production data
+- Flag spatial overlaps (UC/TI) in Concessoes table
+- Show filiais in empresa dossier
+
+### 4. Remaining Quick Wins
+See plan file: `.claude/plans/crispy-growing-thunder.md` — 12 low-priority quick wins skipped during Phase 2.
 
 ## Known Issues
 
-### UX
-- App feels "underwhelming" vs the intelligence platform vision
-- Filters cause full page re-render (Streamlit limitation)
-- "explorar dados" click-to-detail works but needs visual polish
-- Landing page is bare
-
-### Technical
-- SQL injection partially fixed (search sanitized, CNPJ parameterized) but some f-string queries remain in consulta.py
-- `query_similar_cases()` imported but not used (inline query instead)
-- `collection_metadata.json` doesn't track all sources
-- Cross-source queries defined in queries.py but not wired into reports.py `analyze` command
+### Frontend
+- Filters reset on navigation (no URL-based state)
+- Chat messages lost on page reload
+- Decisoes page is 1,398 LOC (functional but could be split)
+- No request deduplication (no SWR/React Query)
 
 ### Data
 - 13.4% of mining PDFs are scanned (no extractable text) — mostly pre-2020
-- CNPJ data: ~30% invalid CNPJs from source (handled gracefully)
-- ANM join to SEMAD via CNPJ has 37.6% match rate (company names differ)
+- ~30% invalid CNPJs from source (handled gracefully)
+- ANM↔SEMAD join via CNPJ: 37.6% match rate
+- CECAV caves: shapefile URL 404 (blocked externally)
+- ANA water rights: portal returning 504 (blocked externally)
 
-## Key Findings (from real data, validated)
+## Key Files
 
-- Mining approval rate MG: **63%** (vs 78.3% all activities)
-- Classe 5: **39.4%** approval
-- Zona da Mata: **48.5%** (hardest regional)
-- Companies with 6+ infractions: **73.7%** (larger companies navigate better)
-- CFEM small payers (<R$10K): **70.3%** best; large (>R$1M): **56.7%** worst
-- Trend improving: 54.3% (2019) → 75.8% (2025)
-- No direct competitor in this space (TAM: R$15-75M/year)
+| File | Purpose |
+|------|---------|
+| `web/README.md` | Frontend setup, architecture, patterns |
+| `docs/DATA_REGISTRY.md` | Every data source with refresh commands |
+| `CLAUDE.md` | Project context for Claude Code |
+| `.claude/plans/crispy-growing-thunder.md` | Full app map + enhancement plan with Phase 2 status |
+| `plans/feat-streamlit-parity-next.md` | Streamlit→Next.js parity audit |
 
 ## CLI Reference
 
 ```bash
+# Frontend
+cd web && npm run dev              # Dev server
+cd web && npm run build            # Production build
+
+# Backend
+uv run uvicorn api.main:app --reload   # FastAPI dev
+
 # Data collection
-licenciaminer collect mg --scrape --all-activities    # Incremental
-licenciaminer collect mg-docs --mining-only            # PDF links
-licenciaminer collect mg-textos --mining-only           # PDF text
-licenciaminer collect ibama                             # Federal licenses
-licenciaminer collect infracoes                         # IBAMA infractions
-licenciaminer collect cfem                              # CFEM royalties
-licenciaminer collect ral                               # RAL production
-licenciaminer collect cnpj                              # CNPJ profiles
-licenciaminer collect copam                             # COPAM meetings
-licenciaminer collect anm --uf MG                      # ANM processes
-licenciaminer collect spatial --layer all               # Spatial data
-
-# App
-uv run streamlit run app/app.py
-
-# Analysis
-licenciaminer analyze
-licenciaminer analyze -o results.json
+uv run python -m licenciaminer collect --all
+uv run python -m licenciaminer collect mg --scrape --all-activities
+uv run python -m licenciaminer collect anm --uf MG
 
 # Quality
-uv run pytest tests/
-uv run ruff check src/ app/
-uv run mypy src/
+cd web && npx eslint src/          # Frontend lint
+uv run pytest tests/               # Backend tests
+uv run ruff check src/ app/        # Python lint
 ```

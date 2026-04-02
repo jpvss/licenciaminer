@@ -228,7 +228,18 @@ function KPICard({ kpi }: { kpi: SimKPI }) {
           <DeltaIcon className="h-3 w-3" />
           {isPositive ? "+" : ""}{fmtBR(kpi.delta, 2)} vs. mês anterior
         </div>
-        <p className="mt-1.5 text-[10px] text-muted-foreground/60">
+        <div className="mt-1.5 flex items-center gap-2">
+          <div className="h-1.5 flex-1 rounded-full bg-muted">
+            <div
+              className="h-1.5 rounded-full bg-brand-teal transition-all"
+              style={{ width: `${Math.min(100, Math.max(0, (kpi.current / kpi.target) * 100))}%` }}
+            />
+          </div>
+          <span className="text-[10px] font-tabular text-muted-foreground">
+            {fmtBR((kpi.current / kpi.target) * 100, 0)}%
+          </span>
+        </div>
+        <p className="mt-1 text-[10px] text-muted-foreground/60">
           Meta: {fmtBR(kpi.target, 1)} | Mín: {fmtBR(kpi.min_val, 1)} | Máx: {fmtBR(kpi.max_val, 1)}
         </p>
       </CardContent>

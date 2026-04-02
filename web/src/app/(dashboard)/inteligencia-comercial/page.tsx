@@ -255,6 +255,7 @@ function ComexTab() {
                 <Bar dataKey="Importação" fill="var(--brand-orange)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
+            <p className="mt-2 text-[10px] text-muted-foreground/60">Fonte: Comex Stat / MDIC — NCM Cap. 26 (Minérios)</p>
           </CardContent>
         </Card>
       )}
@@ -328,6 +329,7 @@ function ArrecadacaoTab() {
                 <Bar dataKey="total" fill="var(--brand-gold)" radius={[0, 4, 4, 0]} name="CFEM (R$)" />
               </BarChart>
             </ResponsiveContainer>
+            <p className="mt-2 text-[10px] text-muted-foreground/60">Fonte: ANM — CFEM Arrecadação</p>
           </CardContent>
         </Card>
       )}
@@ -349,6 +351,7 @@ function ArrecadacaoTab() {
                 <Bar dataKey="total" fill="var(--brand-orange)" radius={[0, 4, 4, 0]} name="CFEM (R$)" />
               </BarChart>
             </ResponsiveContainer>
+            <p className="mt-2 text-[10px] text-muted-foreground/60">Fonte: ANM — CFEM Arrecadação</p>
           </CardContent>
         </Card>
       )}
@@ -432,6 +435,7 @@ function TerritorioTab() {
                 <Bar dataKey="n" fill="var(--brand-teal)" radius={[0, 4, 4, 0]} name="Processos" />
               </BarChart>
             </ResponsiveContainer>
+            <p className="mt-2 text-[10px] text-muted-foreground/60">Fonte: ANM / SIGMINE</p>
           </CardContent>
         </Card>
       )}

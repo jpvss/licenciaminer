@@ -81,30 +81,64 @@ const STEPS = [
   { num: 4, label: "Resultado" },
 ];
 
+const SESSION_KEY = "dd-wizard-state";
+
+interface WizardState {
+  step: number;
+  selectedLicense: string;
+  selectedAtividade: string;
+  selectedClasse: string;
+  cnpj: string;
+  docStatus: Record<string, string>;
+  evaluations: Record<string, string>;
+}
+
+function saveWizardState(state: WizardState) {
+  try {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(state));
+  } catch { /* quota exceeded or SSR */ }
+}
+
+function loadWizardState(): Partial<WizardState> {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
 export default function DueDiligencePage() {
-  const [step, setStep] = useState(1);
+  const saved = useMemo(() => loadWizardState(), []);
+
+  const [step, setStep] = useState(saved.step ?? 1);
 
   // Step 1
   const [licenseTypes, setLicenseTypes] = useState<LicenseType[] | null>(null);
-  const [selectedLicense, setSelectedLicense] = useState("");
-  const [selectedAtividade, setSelectedAtividade] = useState("A-02");
-  const [selectedClasse, setSelectedClasse] = useState("4");
-  const [cnpj, setCnpj] = useState("");
+  const [selectedLicense, setSelectedLicense] = useState(saved.selectedLicense ?? "");
+  const [selectedAtividade, setSelectedAtividade] = useState(saved.selectedAtividade ?? "A-02");
+  const [selectedClasse, setSelectedClasse] = useState(saved.selectedClasse ?? "4");
+  const [cnpj, setCnpj] = useState(saved.cnpj ?? "");
 
   // Step 2
   const [documents, setDocuments] = useState<DDDocument[] | null>(null);
-  const [docStatus, setDocStatus] = useState<Record<string, string>>({});
+  const [docStatus, setDocStatus] = useState<Record<string, string>>(saved.docStatus ?? {});
   const [loadingDocs, setLoadingDocs] = useState(false);
 
   // Step 3
   const [requirements, setRequirements] = useState<DDRequirement[]>([]);
-  const [evaluations, setEvaluations] = useState<Record<string, string>>({});
+  const [evaluations, setEvaluations] = useState<Record<string, string>>(saved.evaluations ?? {});
   const [loadingReqs, setLoadingReqs] = useState(false);
 
   // Step 4
   const [result, setResult] = useState<DDScoreResult | null>(null);
   const [scoring, setScoring] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
+
+  // Auto-save wizard state to sessionStorage
+  useEffect(() => {
+    saveWizardState({ step, selectedLicense, selectedAtividade, selectedClasse, cnpj, docStatus, evaluations });
+  }, [step, selectedLicense, selectedAtividade, selectedClasse, cnpj, docStatus, evaluations]);
 
   // Load license types
   useEffect(() => {
@@ -854,6 +888,7 @@ export default function DueDiligencePage() {
                 setRequirements([]);
                 setEvaluations({});
                 setResult(null);
+                try { sessionStorage.removeItem(SESSION_KEY); } catch { /* noop */ }
               }}
             >
               Nova Avaliação

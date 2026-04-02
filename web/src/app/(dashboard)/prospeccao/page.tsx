@@ -322,6 +322,7 @@ export default function ProspeccaoPage() {
                         <TableHead className="text-xs">Regime</TableHead>
                         <TableHead className="text-xs text-right">Área</TableHead>
                         <TableHead className="text-xs">Motivo</TableHead>
+                        <TableHead className="text-xs w-8"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -356,6 +357,15 @@ export default function ProspeccaoPage() {
                           </TableCell>
                           <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate" title={opp.motivo}>
                             {opp.motivo}
+                          </TableCell>
+                          <TableCell>
+                            <Link
+                              href={`/mapa?search=${encodeURIComponent(opp.processo_norm)}`}
+                              className="text-muted-foreground hover:text-brand-teal"
+                              title="Ver no Mapa"
+                            >
+                              <MapPin className="h-3.5 w-3.5" />
+                            </Link>
                           </TableCell>
                         </TableRow>
                       ))}

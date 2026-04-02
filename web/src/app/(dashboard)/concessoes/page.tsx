@@ -1,9 +1,11 @@
 "use client";
 
 import { Suspense, useEffect, useState, useCallback, useMemo } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
   FileSearch,
+  Map,
   Search,
   Loader2,
   MapPin,
@@ -72,15 +74,15 @@ function ConcessoesContent() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
 
-  // Filters — pre-fill from URL search params (cross-page nav)
+  // Filters — restore from URL search params
   const [search, setSearch] = useState(params.get("search") ?? "");
   const [searchInput, setSearchInput] = useState(params.get("search") ?? "");
-  const [regime, setRegime] = useState<string[]>([]);
-  const [categoria, setCategoria] = useState<string[]>([]);
-  const [substancia, setSubstancia] = useState<string[]>([]);
-  const [municipio, setMunicipio] = useState<string[]>([]);
-  const [cfemStatus, setCfemStatus] = useState("");
-  const [estrategicoOnly, setEstrategicoOnly] = useState(false);
+  const [regime, setRegime] = useState<string[]>(params.getAll("regime"));
+  const [categoria, setCategoria] = useState<string[]>(params.getAll("categoria"));
+  const [substancia, setSubstancia] = useState<string[]>(params.getAll("substancia"));
+  const [municipio, setMunicipio] = useState<string[]>(params.getAll("municipio"));
+  const [cfemStatus, setCfemStatus] = useState(params.get("cfem_status") ?? "");
+  const [estrategicoOnly, setEstrategicoOnly] = useState(params.get("estrategico") === "1");
 
   // Detail
   const [selectedProcesso, setSelectedProcesso] = useState<string | null>(null);
@@ -106,6 +108,20 @@ function ConcessoesContent() {
     }),
     [search, regime, categoria, substancia, municipio, cfemStatus, estrategicoOnly]
   );
+
+  // Sync filters to URL (no re-render)
+  useEffect(() => {
+    const qs = new URLSearchParams();
+    if (search) qs.set("search", search);
+    regime.forEach((v) => qs.append("regime", v));
+    categoria.forEach((v) => qs.append("categoria", v));
+    substancia.forEach((v) => qs.append("substancia", v));
+    municipio.forEach((v) => qs.append("municipio", v));
+    if (cfemStatus) qs.set("cfem_status", cfemStatus);
+    if (estrategicoOnly) qs.set("estrategico", "1");
+    const q = qs.toString();
+    window.history.replaceState(null, "", `${window.location.pathname}${q ? `?${q}` : ""}`);
+  }, [search, regime, categoria, substancia, municipio, cfemStatus, estrategicoOnly]);
 
   const loadData = useCallback(
     (pg: number) => {
@@ -506,17 +522,23 @@ function ConcessoesContent() {
                   <Field label="Estratégico" value={detailRecord.estrategico === "sim" ? "Sim" : "Não"} />
                 </dl>
 
-                {detailRecord.scm_url != null && (
-                  <>
-                    <Separator />
+                <Separator />
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href={`/mapa?search=${encodeURIComponent(str(detailRecord.processo_norm ?? detailRecord.processo))}`}>
+                      <Map className="mr-2 h-3.5 w-3.5" />
+                      Ver no Mapa
+                    </Link>
+                  </Button>
+                  {detailRecord.scm_url != null && (
                     <Button variant="outline" size="sm" asChild>
                       <a href={String(detailRecord.scm_url)} target="_blank" rel="noopener noreferrer">
                         <ExternalLink className="mr-2 h-3.5 w-3.5" />
                         Pesquisar no SCM/ANM
                       </a>
                     </Button>
-                  </>
-                )}
+                  )}
+                </div>
               </div>
             )}
           </CardContent>

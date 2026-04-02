@@ -81,9 +81,11 @@ export function SidebarNav() {
   const [freshness, setFreshness] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     fetchFreshness()
-      .then((r) => setFreshness(r.last_updated))
+      .then((r) => { if (!cancelled) setFreshness(r.last_updated); })
       .catch(() => {});
+    return () => { cancelled = true; };
   }, []);
 
   return (

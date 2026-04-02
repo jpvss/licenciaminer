@@ -113,15 +113,15 @@ function ExploradorContent() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
 
-  // Filters — pre-fill from URL search params (cross-page nav)
+  // Filters — restore from URL search params
   const [search, setSearch] = useState(params.get("search") ?? "");
   const [searchInput, setSearchInput] = useState(params.get("search") ?? "");
-  const [decisao, setDecisao] = useState<string>("");
-  const [classe, setClasse] = useState<string>("");
-  const [anoMin, setAnoMin] = useState<string>("");
-  const [anoMax, setAnoMax] = useState<string>("");
-  const [miningOnly, setMiningOnly] = useState(false);
-  const [uf, setUf] = useState<string>("");
+  const [decisao, setDecisao] = useState<string>(params.get("decisao") ?? "");
+  const [classe, setClasse] = useState<string>(params.get("classe") ?? "");
+  const [anoMin, setAnoMin] = useState<string>(params.get("ano_min") ?? "");
+  const [anoMax, setAnoMax] = useState<string>(params.get("ano_max") ?? "");
+  const [miningOnly, setMiningOnly] = useState(params.get("mining") === "1");
+  const [uf, setUf] = useState<string>(params.get("uf") ?? "");
 
   // Detail panel
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
@@ -133,7 +133,7 @@ function ExploradorContent() {
       .then((ds) => {
         setDatasets(ds);
         const entries = Object.entries(ds);
-        // Try URL param first (e.g. ?dataset=mg_semad → v_mg_semad)
+        // Try URL param first (exact match or prefixed with v_)
         const match = urlDataset
           ? Object.values(ds).find((v) => v === urlDataset || v === `v_${urlDataset}`)
           : null;
@@ -158,6 +158,21 @@ function ExploradorContent() {
     }),
     [search, decisao, classe, anoMin, anoMax, miningOnly, uf]
   );
+
+  // Sync filters to URL (no re-render)
+  useEffect(() => {
+    const qs = new URLSearchParams();
+    if (selectedDataset) qs.set("dataset", selectedDataset);
+    if (search) qs.set("search", search);
+    if (decisao) qs.set("decisao", decisao);
+    if (classe) qs.set("classe", classe);
+    if (anoMin) qs.set("ano_min", anoMin);
+    if (anoMax) qs.set("ano_max", anoMax);
+    if (miningOnly) qs.set("mining", "1");
+    if (uf) qs.set("uf", uf);
+    const q = qs.toString();
+    window.history.replaceState(null, "", `${window.location.pathname}${q ? `?${q}` : ""}`);
+  }, [selectedDataset, search, decisao, classe, anoMin, anoMax, miningOnly, uf]);
 
   const loadData = useCallback(
     (ds: string, pg: number) => {

@@ -11,18 +11,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import {
-  fetchExplorerRecord,
-  fetchExplorerRecordText,
-} from "@/lib/api";
+import { fetchExplorerRecord } from "@/lib/api";
 import { fmtDate } from "@/lib/format";
 import { DocumentLinks } from "./document-links";
+import { ParecerAccordion } from "./parecer-accordion";
 
 interface InlineRecordDetailProps {
   dataset: string;
@@ -184,43 +176,6 @@ function Field({ label, value, mono }: { label: string; value: string; mono?: bo
       <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd className={mono ? "font-mono text-xs mt-0.5" : "text-sm mt-0.5"}>{value}</dd>
     </div>
-  );
-}
-
-function ParecerAccordion({ dataset, recordId }: { dataset: string; recordId: string }) {
-  const [text, setText] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [loaded, setLoaded] = useState(false);
-
-  const load = () => {
-    if (loaded) return;
-    setLoading(true);
-    fetchExplorerRecordText(dataset, recordId)
-      .then((r) => {
-        setText(r.text || "(Sem texto)");
-        setLoaded(true);
-      })
-      .catch(() => setText("Erro ao carregar texto."))
-      .finally(() => setLoading(false));
-  };
-
-  return (
-    <Accordion type="single" collapsible>
-      <AccordionItem value="parecer" className="border-none">
-        <AccordionTrigger className="text-xs font-medium py-2" onClick={load}>
-          <span className="flex items-center gap-2">
-            <FileText className="h-3.5 w-3.5" />
-            Texto do Parecer
-            {loading && <Loader2 className="h-3 w-3 animate-spin" />}
-          </span>
-        </AccordionTrigger>
-        <AccordionContent>
-          <pre className="whitespace-pre-wrap text-xs text-muted-foreground max-h-80 overflow-y-auto rounded bg-muted/30 p-3">
-            {text || "Carregando..."}
-          </pre>
-        </AccordionContent>
-      </AccordionItem>
-    </Accordion>
   );
 }
 

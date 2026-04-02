@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { Suspense, useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import {
   Map as MapIcon,
@@ -56,23 +57,47 @@ const COLOR_BY_LABELS: Record<ColorBy, string> = {
 };
 
 export default function MapaPage() {
+  return (
+    <Suspense>
+      <MapaContent />
+    </Suspense>
+  );
+}
+
+function MapaContent() {
+  const params = useSearchParams();
   const [geojson, setGeojson] = useState<GeoJSON.FeatureCollection | null>(null);
   const [stats, setStats] = useState<GeoStats | null>(null);
   const [filterOptions, setFilterOptions] = useState<GeoFilterOptions | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Filters
-  const [regime, setRegime] = useState<string[]>([]);
-  const [categoria, setCategoria] = useState<string[]>([]);
-  const [substancia, setSubstancia] = useState<string[]>([]);
-  const [colorBy, setColorBy] = useState<ColorBy>("categoria");
+  // Filters — restore from URL
+  const [regime, setRegime] = useState<string[]>(params.getAll("regime"));
+  const [categoria, setCategoria] = useState<string[]>(params.getAll("categoria"));
+  const [substancia, setSubstancia] = useState<string[]>(params.getAll("substancia"));
+  const [colorBy, setColorBy] = useState<ColorBy>(
+    (params.get("colorBy") as ColorBy) || "categoria"
+  );
 
-  // Restriction layers
-  const [showUCs, setShowUCs] = useState(false);
-  const [showTIs, setShowTIs] = useState(false);
+  // Restriction layers — restore from URL
+  const [showUCs, setShowUCs] = useState(params.get("ucs") === "1");
+  const [showTIs, setShowTIs] = useState(params.get("tis") === "1");
   const [ucsGeojson, setUcsGeojson] = useState<GeoJSON.FeatureCollection | null>(null);
   const [tisGeojson, setTisGeojson] = useState<GeoJSON.FeatureCollection | null>(null);
+
+  // Sync filters to URL (no re-render)
+  useEffect(() => {
+    const qs = new URLSearchParams();
+    regime.forEach((v) => qs.append("regime", v));
+    categoria.forEach((v) => qs.append("categoria", v));
+    substancia.forEach((v) => qs.append("substancia", v));
+    if (colorBy !== "categoria") qs.set("colorBy", colorBy);
+    if (showUCs) qs.set("ucs", "1");
+    if (showTIs) qs.set("tis", "1");
+    const q = qs.toString();
+    window.history.replaceState(null, "", `${window.location.pathname}${q ? `?${q}` : ""}`);
+  }, [regime, categoria, substancia, colorBy, showUCs, showTIs]);
 
   // Load filter options on mount
   useEffect(() => {
@@ -298,7 +323,14 @@ export default function MapaPage() {
           {/* Legend */}
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-heading">Legenda</CardTitle>
+              <CardTitle className="text-sm font-heading flex items-center justify-between">
+                Legenda
+                {geojson && (
+                  <Badge variant="secondary" className="text-[10px] font-tabular ml-2">
+                    {fmtBR(geojson.features.length)} polígonos
+                  </Badge>
+                )}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-1">
