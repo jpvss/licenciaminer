@@ -46,6 +46,7 @@ export default function MineradoraModeloPage() {
   const [loading, setLoading] = useState(true);
   const [setorLoading, setSetorLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [setorError, setSetorError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchSimSetores()
@@ -63,9 +64,10 @@ export default function MineradoraModeloPage() {
   useEffect(() => {
     if (!activeSetor) return;
     setSetorLoading(true);
+    setSetorError(null);
     fetchSimSetor(activeSetor)
       .then(setSetorData)
-      .catch((e) => { console.error("setor:", e); })
+      .catch((e) => { setSetorError(e.message ?? "Erro ao carregar setor"); })
       .finally(() => setSetorLoading(false));
   }, [activeSetor]);
 
@@ -116,9 +118,13 @@ export default function MineradoraModeloPage() {
                 DADOS SIMULADOS — {s}
               </div>
 
-              {setorLoading ? (
-                <KPISkeleton />
-              ) : setorData?.setor === s ? (
+              {setorError && !setorLoading ? (
+                <Card className="border-destructive/30">
+                  <CardContent className="p-6 text-sm text-destructive">
+                    Erro ao carregar dados do setor: {setorError}
+                  </CardContent>
+                </Card>
+              ) : setorData?.setor === s && !setorLoading ? (
                 <div className="space-y-6">
                   {/* KPI cards grid */}
                   <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -132,7 +138,9 @@ export default function MineradoraModeloPage() {
                     <KPIChart key={kpi.nome} kpi={kpi} />
                   ))}
                 </div>
-              ) : null}
+              ) : (
+                <KPISkeleton />
+              )}
             </TabsContent>
           ))}
         </Tabs>
