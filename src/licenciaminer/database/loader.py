@@ -36,13 +36,19 @@ def create_views(
                 read_expr = f"read_parquet([{path_list}], union_by_name=true)"
                 display_name = ", ".join(parquet_spec)
             else:
-                # Fallback: try single file (e.g. ibama_infracoes.parquet)
-                # Derive name from first part: "xxx_part1.parquet" → "xxx.parquet"
+                # Fallback chain: try single full file, then slim _api.parquet
+                # "xxx_part1.parquet" → "xxx.parquet" → "xxx_api.parquet"
                 base_name = parquet_spec[0].replace("_part1", "")
+                api_name = base_name.replace(".parquet", "_api.parquet")
                 single_path = processed_dir / base_name
+                api_path = processed_dir / api_name
                 if single_path.exists():
                     read_expr = f"read_parquet('{single_path}')"
                     display_name = base_name
+                    all_exist = True
+                elif api_path.exists():
+                    read_expr = f"read_parquet('{api_path}')"
+                    display_name = f"{api_name} (slim)"
                     all_exist = True
                 else:
                     display_name = ", ".join(parquet_spec)
