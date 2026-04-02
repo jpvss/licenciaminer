@@ -147,6 +147,9 @@ def get_dataset_options() -> dict[str, str]:
             if not exists:
                 base_name = parquet_spec[0].replace("_part1", "")
                 exists = (processed / base_name).exists()
+            if not exists:
+                api_name = parquet_spec[0].replace("_part1", "").replace(".parquet", "_api.parquet")
+                exists = (processed / api_name).exists()
         else:
             exists = (processed / parquet_spec).exists()
 
