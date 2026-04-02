@@ -261,16 +261,58 @@ interface ParsedSection {
   content: string;
 }
 
+/** Known section titles to detect even when inline with text */
+const KNOWN_SECTIONS = [
+  "Cenário Atual",
+  "Cenario Atual",
+  "Sinais de Mercado",
+  "Riscos e Oportunidades",
+];
+
 function parseSections(text: string): ParsedSection[] {
+  // Strategy 1: split by known section headers using regex
+  // This handles both "**Title**\ncontent" and "**Title** content on same line"
+  const sectionPattern = new RegExp(
+    `\\*\\*(${KNOWN_SECTIONS.join("|")})\\*\\*\\s*[:—–\\-]?\\s*`,
+    "gi"
+  );
+
+  const matches: { title: string; index: number; afterLength: number }[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = sectionPattern.exec(text)) !== null) {
+    matches.push({ title: m[1], index: m.index, afterLength: m[0].length });
+  }
+
+  // If we found known sections, split by them
+  if (matches.length >= 2) {
+    const sections: ParsedSection[] = [];
+
+    // Content before first section (preamble — skip if empty)
+    const preamble = text.slice(0, matches[0].index).trim();
+    if (preamble) {
+      sections.push({ title: "", content: preamble });
+    }
+
+    for (let i = 0; i < matches.length; i++) {
+      const start = matches[i].index + matches[i].afterLength;
+      const end = i + 1 < matches.length ? matches[i + 1].index : text.length;
+      sections.push({
+        title: matches[i].title.trim(),
+        content: text.slice(start, end).trim(),
+      });
+    }
+    return sections;
+  }
+
+  // Strategy 2: fallback — split by **Title** at start of line (any title)
   const lines = text.split("\n");
   const sections: ParsedSection[] = [];
   let currentTitle = "";
   let currentLines: string[] = [];
 
   for (const line of lines) {
-    // Match section headers: **Title**, **Title**:, **Title** —, ## Title, ### Title
     const headerMatch =
-      line.match(/^\s*\*\*(.+?)\*\*\s*[:—–-]?\s*$/) ||
+      line.match(/^\s*\*\*(.+?)\*\*\s*[:—–\-]?\s*$/) ||
       line.match(/^\s*#{2,3}\s+(.+?)\s*$/);
     if (headerMatch) {
       if (currentTitle || currentLines.length > 0) {
