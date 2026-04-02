@@ -7,10 +7,12 @@ baseados em referências da indústria de mineração de ferro.
 IMPORTANTE: 100% dados fictícios — ferramenta de demonstração comercial.
 """
 
-from dataclasses import dataclass
+from __future__ import annotations
 
-import numpy as np
-import pandas as pd
+import math
+import random
+from dataclasses import dataclass
+from datetime import date, timedelta
 
 SEED = 42
 MONTHS = 24
@@ -67,48 +69,60 @@ SETORES: dict[str, list[KPI]] = {
         KPI("Lead Time Médio", "dias", 35.0, 15.0, 60.0, -0.3, 3.0, 0.05),
         KPI("Demurrage", "R$ mil", 150.0, 0.0, 500.0, -2.0, 30.0, 0.10),
     ],
-    "SSMA / ESG": [
+    "SSMA-ESG": [
         KPI("TRIFR", "por mi h", 1.5, 0.5, 3.0, -0.02, 0.2, 0.08),
         KPI("Investimento Social", "R$ mil", 800.0, 100.0, 2000.0, 5.0, 100.0, 0.06),
     ],
 }
 
 
-def gerar_serie_kpi(kpi: KPI, rng: np.random.Generator) -> pd.DataFrame:
-    """Gera série temporal de 24 meses para um KPI."""
-    t = np.arange(MONTHS)
+def _month_start_dates(n: int) -> list[str]:
+    """Gera n datas mensais (1º dia do mês) terminando no mês atual."""
+    today = date.today().replace(day=1)
+    dates: list[str] = []
+    for i in range(n - 1, -1, -1):
+        # Subtract i months
+        year = today.year
+        month = today.month - i
+        while month <= 0:
+            month += 12
+            year -= 1
+        dates.append(date(year, month, 1).isoformat())
+    return dates
 
-    # Base + tendência + sazonalidade + ruído
-    base = kpi.target + kpi.trend * t
-    seasonal = kpi.seasonality * np.sin(2 * np.pi * t / 12)
-    noise = rng.normal(0, kpi.noise * kpi.target, MONTHS)
 
-    values = base + seasonal + noise
-    values = np.clip(values, kpi.min_val, kpi.max_val)
+def gerar_serie_kpi(kpi: KPI, rng: random.Random) -> dict:
+    """Gera série temporal de 24 meses para um KPI.
 
-    # Datas mensais
-    dates = pd.date_range(
-        end=pd.Timestamp.now().normalize(),
-        periods=MONTHS,
-        freq="MS",
-    )
+    Returns:
+        Dict com chaves: data, valor, target, min, max (todas listas).
+    """
+    dates = _month_start_dates(MONTHS)
+    valores: list[float] = []
+    for t in range(MONTHS):
+        base = kpi.target + kpi.trend * t
+        seasonal = kpi.seasonality * math.sin(2 * math.pi * t / 12)
+        noise_val = rng.gauss(0, kpi.noise * kpi.target)
+        val = base + seasonal + noise_val
+        val = max(kpi.min_val, min(kpi.max_val, val))
+        valores.append(round(val, 2))
 
-    return pd.DataFrame({
+    return {
         "data": dates,
-        "valor": values,
-        "target": kpi.target,
-        "min": kpi.min_val,
-        "max": kpi.max_val,
-    })
+        "valor": valores,
+        "target": [kpi.target] * MONTHS,
+        "min": [kpi.min_val] * MONTHS,
+        "max": [kpi.max_val] * MONTHS,
+    }
 
 
-def gerar_todos_os_dados() -> dict[str, dict[str, pd.DataFrame]]:
+def gerar_todos_os_dados() -> dict[str, dict[str, dict]]:
     """Gera dados simulados para todos os setores.
 
     Returns:
-        Dict {setor: {nome_kpi: DataFrame}}.
+        Dict {setor: {nome_kpi: dict com data/valor/target/min/max}}.
     """
-    rng = np.random.default_rng(SEED)
+    rng = random.Random(SEED)
     result = {}
     for setor, kpis in SETORES.items():
         result[setor] = {kpi.nome: gerar_serie_kpi(kpi, rng) for kpi in kpis}

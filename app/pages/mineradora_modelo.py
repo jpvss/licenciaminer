@@ -71,9 +71,9 @@ for tab, setor in zip(tabs, setor_names, strict=False):
         cols = st.columns(n_cols)
 
         for i, kpi in enumerate(kpi_infos):
-            df = kpi_data[kpi.nome]
-            current = df["valor"].iloc[-1]
-            previous = df["valor"].iloc[-2]
+            series = kpi_data[kpi.nome]
+            current = series["valor"][-1]
+            previous = series["valor"][-2]
             delta = current - previous
 
             with cols[i % n_cols]:
@@ -116,13 +116,13 @@ for tab, setor in zip(tabs, setor_names, strict=False):
 
         # Gráficos
         for kpi in kpi_infos:
-            df = kpi_data[kpi.nome]
+            series = kpi_data[kpi.nome]
 
             fig = go.Figure()
 
             # Faixa target
             fig.add_trace(go.Scatter(
-                x=df["data"], y=df["target"],
+                x=series["data"], y=series["target"],
                 mode="lines",
                 name="Target",
                 line={"color": "#F39C12", "width": 1, "dash": "dash"},
@@ -130,7 +130,7 @@ for tab, setor in zip(tabs, setor_names, strict=False):
 
             # Valor real
             fig.add_trace(go.Scatter(
-                x=df["data"], y=df["valor"],
+                x=series["data"], y=series["valor"],
                 mode="lines+markers",
                 name="Realizado",
                 line={"color": "#27AE60", "width": 2},
@@ -139,14 +139,14 @@ for tab, setor in zip(tabs, setor_names, strict=False):
 
             # Faixas min/max
             fig.add_trace(go.Scatter(
-                x=df["data"], y=df["max"],
+                x=series["data"], y=series["max"],
                 mode="lines",
                 name="Máximo",
                 line={"color": "rgba(196,91,82,0.3)", "width": 1},
                 showlegend=False,
             ))
             fig.add_trace(go.Scatter(
-                x=df["data"], y=df["min"],
+                x=series["data"], y=series["min"],
                 mode="lines",
                 name="Mínimo",
                 line={"color": "rgba(196,91,82,0.3)", "width": 1},

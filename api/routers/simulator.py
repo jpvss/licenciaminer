@@ -26,19 +26,7 @@ def _get_all_data() -> dict:
     """Retorna dados simulados cacheados."""
     global _sim_cache
     if _sim_cache is None:
-        raw = gerar_todos_os_dados()
-        # Converter DataFrames para dicts serializáveis
-        _sim_cache = {}
-        for setor, kpis in raw.items():
-            _sim_cache[setor] = {}
-            for nome, df in kpis.items():
-                _sim_cache[setor][nome] = {
-                    "data": df["data"].dt.strftime("%Y-%m-%d").tolist(),
-                    "valor": df["valor"].round(2).tolist(),
-                    "target": df["target"].iloc[0],
-                    "min": df["min"].iloc[0],
-                    "max": df["max"].iloc[0],
-                }
+        _sim_cache = gerar_todos_os_dados()
     return _sim_cache
 
 
@@ -96,7 +84,7 @@ def get_setor_data(setor: str):
             "current": round(current, 2),
             "previous": round(previous, 2),
             "delta": round(delta, 2),
-            "series": series,
+            "series": {"data": series["data"], "valor": series["valor"]},
         })
 
     return {
@@ -127,9 +115,9 @@ def get_kpi_detail(setor: str, nome: str):
         "setor": setor,
         "nome": nome,
         "unidade": kpi_info.unidade if kpi_info else "",
-        "target": series["target"],
-        "min_val": series["min"],
-        "max_val": series["max"],
-        "series": series,
+        "target": kpi_info.target if kpi_info else series["target"][0],
+        "min_val": kpi_info.min_val if kpi_info else series["min"][0],
+        "max_val": kpi_info.max_val if kpi_info else series["max"][0],
+        "series": {"data": series["data"], "valor": series["valor"]},
         "disclaimer": "DADOS SIMULADOS",
     }
