@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
 import { MultiSelect } from "@/components/multi-select";
 import { Separator } from "@/components/ui/separator";
 import { FilterChips } from "@/components/filter-chips";
@@ -35,6 +36,7 @@ import {
   fetchConcessoesStats,
   fetchConcessoesFilters,
   fetchConcessaoDetail,
+  concessoesExportUrl,
   type ConcessoesFilters,
   type ConcessoesStats,
   type ConcessoesFilterOptions,
@@ -78,11 +80,13 @@ function ConcessoesContent() {
   const [substancia, setSubstancia] = useState<string[]>([]);
   const [municipio, setMunicipio] = useState<string[]>([]);
   const [cfemStatus, setCfemStatus] = useState("");
+  const [estrategicoOnly, setEstrategicoOnly] = useState(false);
 
   // Detail
   const [selectedProcesso, setSelectedProcesso] = useState<string | null>(null);
   const [detailRecord, setDetailRecord] = useState<Record<string, unknown> | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchConcessoesFilters()
@@ -98,8 +102,9 @@ function ConcessoesContent() {
       substancia: substancia.length > 0 ? substancia : undefined,
       municipio: municipio.length > 0 ? municipio : undefined,
       cfem_status: (cfemStatus || undefined) as ConcessoesFilters["cfem_status"],
+      estrategico: estrategicoOnly || undefined,
     }),
-    [search, regime, categoria, substancia, municipio, cfemStatus]
+    [search, regime, categoria, substancia, municipio, cfemStatus, estrategicoOnly]
   );
 
   const loadData = useCallback(
@@ -144,21 +149,27 @@ function ConcessoesContent() {
     setSubstancia([]);
     setMunicipio([]);
     setCfemStatus("");
+    setEstrategicoOnly(false);
     setPage(0);
   };
 
-  const hasActiveFilters = !!(search || regime.length || categoria.length || substancia.length || municipio.length || cfemStatus);
+  const hasActiveFilters = !!(search || regime.length || categoria.length || substancia.length || municipio.length || cfemStatus || estrategicoOnly);
 
   // Detail panel
   useEffect(() => {
     if (!selectedProcesso) {
       setDetailRecord(null);
+      setDetailError(null);
       return;
     }
     setDetailLoading(true);
+    setDetailError(null);
     fetchConcessaoDetail(selectedProcesso)
       .then(setDetailRecord)
-      .catch(() => setDetailRecord(null))
+      .catch((e) => {
+        setDetailRecord(null);
+        setDetailError(e.message ?? "Erro ao carregar detalhes");
+      })
       .finally(() => setDetailLoading(false));
   }, [selectedProcesso]);
 
@@ -357,6 +368,17 @@ function ConcessoesContent() {
             </div>
           </div>
 
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="estrategico"
+              checked={estrategicoOnly}
+              onCheckedChange={(v) => { setEstrategicoOnly(!!v); setPage(0); }}
+            />
+            <label htmlFor="estrategico" className="text-xs cursor-pointer">
+              Apenas minerais estratégicos
+            </label>
+          </div>
+
           {hasActiveFilters && (
             <Button variant="ghost" size="sm" onClick={clearFilters}>
               <X className="mr-1 h-3 w-3" />
@@ -403,6 +425,7 @@ function ConcessoesContent() {
               page={page}
               onPageChange={setPage}
               onRowClick={handleRowClick}
+              exportUrl={concessoesExportUrl(filters)}
               loading={loading}
             />
           ) : !loading && !error ? (
@@ -446,6 +469,12 @@ function ConcessoesContent() {
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
+            )}
+
+            {detailError && !detailLoading && (
+              <p className="py-8 text-center text-sm text-destructive">
+                {detailError}
+              </p>
             )}
 
             {detailRecord && !detailLoading && (

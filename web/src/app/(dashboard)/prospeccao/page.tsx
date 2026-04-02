@@ -37,12 +37,15 @@ import {
   fetchEmpresaPortfolios,
   fetchMunicipioConcentration,
   fetchConcessoesFilters,
+  fetchEmpresaConcessoes,
+  fetchRalTopSubstancias,
   fmtNumber,
   type ProspeccaoResponse,
   type ProspeccaoOpportunity,
   type EmpresaPortfolio,
   type MunicipioConcentration,
   type ConcessoesFilterOptions,
+  type EmpresaConcessao,
 } from "@/lib/api";
 import { fmtBR, fmtHa, fmtReais, fmtPct } from "@/lib/format";
 
@@ -77,16 +80,32 @@ export default function ProspeccaoPage() {
   const [empresas, setEmpresas] = useState<EmpresaPortfolio[] | null>(null);
   const [empresasLoading, setEmpresasLoading] = useState(false);
   const [expandedEmpresa, setExpandedEmpresa] = useState<string | null>(null);
+  const [empresaConcessoes, setEmpresaConcessoes] = useState<EmpresaConcessao[]>([]);
+  const [empConcessoesLoading, setEmpConcessoesLoading] = useState(false);
 
   // Municipios tab
   const [municipios, setMunicipios] = useState<MunicipioConcentration[] | null>(null);
   const [municipiosLoading, setMunicipiosLoading] = useState(false);
 
+  // RAL context
+  const [ralSubstancias, setRalSubstancias] = useState<{ substancia: string; n: number }[] | null>(null);
+
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchConcessoesFilters().then(setFilterOptions).catch((e) => { console.error("filters:", e); });
+    fetchRalTopSubstancias().then((res) => setRalSubstancias(res.rows)).catch((e) => { console.error("ral:", e); });
   }, []);
+
+  // Load empresa concessões when expanded
+  useEffect(() => {
+    if (!expandedEmpresa) { setEmpresaConcessoes([]); return; }
+    setEmpConcessoesLoading(true);
+    fetchEmpresaConcessoes(expandedEmpresa)
+      .then((res) => setEmpresaConcessoes(res.rows))
+      .catch(() => setEmpresaConcessoes([]))
+      .finally(() => setEmpConcessoesLoading(false));
+  }, [expandedEmpresa]);
 
   const loadOpportunities = useCallback(
     (pg: number) => {
@@ -222,9 +241,9 @@ export default function ProspeccaoPage() {
                       max={100}
                       onChange={(e) => { setMinScore(Number(e.target.value)); setOppPage(0); }}
                     />
-                    <span className="group relative">
+                    <button type="button" className="group relative" aria-label="Detalhes do score">
                       <Info className="h-3.5 w-3.5 text-muted-foreground/50 cursor-help" />
-                      <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-56 rounded-md border bg-popover p-2.5 text-[10px] leading-relaxed text-popover-foreground shadow-md z-50">
+                      <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block group-focus:block w-56 rounded-md border bg-popover p-2.5 text-[10px] leading-relaxed text-popover-foreground shadow-md z-50">
                         <strong className="block mb-1">Composição do Score (0-100):</strong>
                         CFEM inativa: 30 pts<br />
                         Mineral estratégico: 25 pts<br />
@@ -232,7 +251,7 @@ export default function ProspeccaoPage() {
                         Sem receita CFEM: 15 pts<br />
                         Categoria alta: 8-15 pts
                       </span>
-                    </span>
+                    </button>
                   </div>
                 </div>
 
@@ -423,8 +442,14 @@ export default function ProspeccaoPage() {
                     </TableHeader>
                     <TableBody>
                       {empresas.map((emp, i) => (
-                        <TableRow key={i} className="cursor-pointer" onClick={() => setExpandedEmpresa(expandedEmpresa === emp.titular ? null : emp.titular)}>
+                        <>
+                        <TableRow key={i} className="cursor-pointer hover:bg-muted/50" onClick={() => setExpandedEmpresa(expandedEmpresa === emp.titular ? null : emp.titular)}>
                           <TableCell className="text-xs max-w-[250px] truncate font-medium" title={emp.titular}>
+                            {expandedEmpresa === emp.titular ? (
+                              <ChevronUp className="inline mr-1 h-3 w-3" />
+                            ) : (
+                              <ChevronDown className="inline mr-1 h-3 w-3" />
+                            )}
                             {emp.titular}
                           </TableCell>
                           <TableCell className="text-xs text-right tabular-nums">
@@ -448,6 +473,64 @@ export default function ProspeccaoPage() {
                             {fmtHa(emp.area_total)}
                           </TableCell>
                         </TableRow>
+                        {expandedEmpresa === emp.titular && (
+                          <TableRow key={`${i}-detail`}>
+                            <TableCell colSpan={7} className="bg-muted/30 p-0">
+                              {empConcessoesLoading ? (
+                                <div className="flex items-center gap-2 p-4 text-xs text-muted-foreground">
+                                  <Loader2 className="h-3 w-3 animate-spin" /> Carregando concessões...
+                                </div>
+                              ) : empresaConcessoes.length > 0 ? (
+                                <div className="overflow-x-auto">
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow className="text-[10px]">
+                                        <TableHead>Processo</TableHead>
+                                        <TableHead>Regime</TableHead>
+                                        <TableHead>Substância</TableHead>
+                                        <TableHead>Município</TableHead>
+                                        <TableHead className="text-right">Área</TableHead>
+                                        <TableHead className="text-right">CFEM</TableHead>
+                                        <TableHead>Status</TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {empresaConcessoes.map((c, j) => (
+                                        <TableRow key={j} className="text-[11px]">
+                                          <TableCell className="font-mono">
+                                            <Link
+                                              href={`/concessoes?search=${encodeURIComponent(c.processo_norm)}`}
+                                              className="text-brand-teal hover:underline"
+                                            >
+                                              {c.processo_norm}
+                                            </Link>
+                                          </TableCell>
+                                          <TableCell>{c.regime}</TableCell>
+                                          <TableCell>{c.substancia_principal}</TableCell>
+                                          <TableCell>{c.municipio_principal}</TableCell>
+                                          <TableCell className="text-right tabular-nums">
+                                            {c.AREA_HA != null ? fmtHa(c.AREA_HA) : "—"}
+                                          </TableCell>
+                                          <TableCell className="text-right tabular-nums">
+                                            {c.cfem_total != null ? fmtReais(c.cfem_total) : "—"}
+                                          </TableCell>
+                                          <TableCell>
+                                            <Badge variant={c.ativo_cfem ? "default" : "secondary"} className={`text-[9px] ${c.ativo_cfem ? "bg-success" : ""}`}>
+                                              {c.ativo_cfem ? "Ativa" : "Inativa"}
+                                            </Badge>
+                                          </TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
+                                </div>
+                              ) : (
+                                <p className="p-4 text-xs text-muted-foreground">Nenhuma concessão encontrada</p>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        )}
+                        </>
                       ))}
                     </TableBody>
                   </Table>
@@ -543,6 +626,30 @@ export default function ProspeccaoPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* RAL Context Section */}
+      {ralSubstancias && ralSubstancias.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm font-heading">
+              <BarChart3 className="h-4 w-4 text-brand-teal" />
+              Contexto de Produção Mineral — MG (RAL)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-3 text-xs text-muted-foreground">
+              Principais substâncias por registros no Relatório Anual de Lavra (ANM/RAL)
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {ralSubstancias.map((s) => (
+                <Badge key={s.substancia} variant="outline" className="text-xs font-normal">
+                  {s.substancia} <span className="ml-1 text-muted-foreground tabular-nums">({fmtNumber(s.n)})</span>
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

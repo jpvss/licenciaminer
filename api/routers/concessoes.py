@@ -1,8 +1,11 @@
 """Endpoints de concessões minerárias — decretos de lavra e instrumentos similares."""
 
+import csv
+import io
 import logging
 
-from fastapi import APIRouter, HTTPException, Path, Query
+from fastapi import APIRouter, HTTPException, Query
+from starlette.responses import StreamingResponse
 
 from api.services.database import run_query
 
@@ -179,11 +182,60 @@ def list_concessoes(
     }
 
 
-@router.get("/concessoes/{processo}")
-def get_concessao_detail(
-    processo: str = Path(..., min_length=3, max_length=30),
+@router.get("/concessoes/export.csv")
+def export_concessoes_csv(
+    search: str | None = Query(None, max_length=200),
+    regime: list[str] | None = Query(None),
+    categoria: list[str] | None = Query(None),
+    substancia: list[str] | None = Query(None),
+    municipio: list[str] | None = Query(None),
+    cfem_status: str | None = Query(None, pattern="^(ativo|inativo)$"),
+    estrategico: bool | None = Query(None),
 ):
-    """Retorna registro completo de uma concessão por processo_norm."""
+    """Exporta concessões filtradas como CSV (max 20.000 linhas)."""
+    view = _resolve_view()
+    where, params = _build_where(
+        view, search, regime, categoria, substancia, municipio, cfem_status, estrategico,
+    )
+
+    count_r = run_query(f"SELECT COUNT(*) AS total FROM {view} WHERE {where}", params)
+    total = count_r[0]["total"] if count_r else 0
+    if total > 20000:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Dataset muito grande ({total} registros). Aplique filtros para reduzir a menos de 20.000.",
+        )
+
+    cols = _get_columns(view)
+    select_sql = ", ".join(cols)
+    rows = run_query(
+        f"SELECT {select_sql} FROM {view} WHERE {where} ORDER BY processo_norm",
+        params,
+    )
+
+    output = io.StringIO()
+    if rows:
+        writer = csv.DictWriter(output, fieldnames=rows[0].keys())
+        writer.writeheader()
+        writer.writerows(rows)
+
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="concessoes.csv"'},
+    )
+
+
+@router.get("/concessoes/detail")
+def get_concessao_detail(
+    processo: str = Query(..., min_length=3, max_length=30),
+):
+    """Retorna registro completo de uma concessão por processo_norm.
+
+    Uses query param instead of path param because processo_norm contains '/'
+    (e.g. '000994/1940') which breaks URL path routing.
+    """
     view = _resolve_view()
     cols = _get_columns(view)
     select_sql = ", ".join(cols)

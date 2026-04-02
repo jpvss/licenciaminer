@@ -80,6 +80,33 @@ export function fetchOverviewTrend() {
   return apiFetch<TrendPoint[]>("/overview/trend");
 }
 
+export interface Insight {
+  title: string;
+  value: string;
+  detail: string;
+  tone: "positive" | "neutral" | "negative";
+}
+
+export function fetchOverviewInsights() {
+  return apiFetch<Insight[]>("/overview/insights");
+}
+
+export interface SourceMeta {
+  key: string;
+  name: string;
+  records: number | null;
+  last_collected: string | null;
+  url: string | null;
+}
+
+export function fetchMetaSources() {
+  return apiFetch<SourceMeta[]>("/meta/sources");
+}
+
+export function fetchFreshness() {
+  return apiFetch<{ last_updated: string | null }>("/meta/freshness");
+}
+
 /* ── Empresa ── */
 
 export interface EmpresaProfile {
@@ -244,6 +271,55 @@ export function fetchClassModalidade() {
   return apiFetch<ClassModalidade[]>("/decisions/class-modalidade");
 }
 
+export interface ActivityClassHeatmap {
+  atividade_code: string;
+  atividade_desc: string;
+  classe: number;
+  total: number;
+  deferidos: number;
+  indeferidos: number;
+  taxa_aprovacao: number;
+}
+
+export function fetchActivityClassHeatmap() {
+  return apiFetch<ActivityClassHeatmap[]>("/decisions/activity-class-heatmap");
+}
+
+export interface CfemVsApproval {
+  perfil_empresa: string;
+  total_decisoes: number;
+  deferidos: number;
+  indeferidos: number;
+  taxa_aprovacao: number;
+}
+
+export function fetchCfemVsApproval() {
+  return apiFetch<CfemVsApproval[]>("/decisions/cfem-vs-approval");
+}
+
+export interface RecidivismBand {
+  faixa: string;
+  empresas: number;
+  total_decisoes_grupo: number;
+  taxa_media_aprovacao: number;
+}
+
+export function fetchRecidivism() {
+  return apiFetch<RecidivismBand[]>("/decisions/recidivism");
+}
+
+export interface ShelvingAnalysis {
+  classe: number;
+  atividade_grupo: string;
+  total: number;
+  arquivamentos: number;
+  taxa_arquivamento: number;
+}
+
+export function fetchShelvingAnalysis() {
+  return apiFetch<ShelvingAnalysis[]>("/decisions/shelving-analysis");
+}
+
 /* ── Due Diligence ── */
 
 export interface LicenseType {
@@ -338,6 +414,7 @@ export interface ExplorerFilters {
   ano_min?: number;
   ano_max?: number;
   mining_only?: boolean;
+  uf?: string;
 }
 
 export interface RecordText {
@@ -360,6 +437,7 @@ export function fetchExplorerData(dataset: string, params?: ExplorerFilters) {
   if (params?.ano_min) qs.set("ano_min", String(params.ano_min));
   if (params?.ano_max) qs.set("ano_max", String(params.ano_max));
   if (params?.mining_only) qs.set("mining_only", "true");
+  if (params?.uf) qs.set("uf", params.uf);
   const q = qs.toString();
   return apiFetch<ExplorerResponse>(`/explorer/${dataset}${q ? `?${q}` : ""}`);
 }
@@ -384,6 +462,7 @@ export function explorerExportUrl(dataset: string, params?: ExplorerFilters): st
   if (params?.ano_min) qs.set("ano_min", String(params.ano_min));
   if (params?.ano_max) qs.set("ano_max", String(params.ano_max));
   if (params?.mining_only) qs.set("mining_only", "true");
+  if (params?.uf) qs.set("uf", params.uf);
   const q = qs.toString();
   return `${API_BASE}/explorer/${dataset}/export.csv${q ? `?${q}` : ""}`;
 }
@@ -572,7 +651,21 @@ export function fetchConcessoes(params?: ConcessoesFilters) {
 }
 
 export function fetchConcessaoDetail(processo: string) {
-  return apiFetch<Record<string, unknown>>(`/concessoes/${encodeURIComponent(processo)}`);
+  return apiFetch<Record<string, unknown>>(`/concessoes/detail?processo=${encodeURIComponent(processo)}`);
+}
+
+export function concessoesExportUrl(params?: ConcessoesFilters): string {
+  const base = `${API_BASE}/concessoes/export.csv`;
+  const qs = new URLSearchParams();
+  if (params?.search) qs.set("search", params.search);
+  params?.regime?.forEach((v) => qs.append("regime", v));
+  params?.categoria?.forEach((v) => qs.append("categoria", v));
+  params?.substancia?.forEach((v) => qs.append("substancia", v));
+  params?.municipio?.forEach((v) => qs.append("municipio", v));
+  if (params?.cfem_status) qs.set("cfem_status", params.cfem_status);
+  if (params?.estrategico != null) qs.set("estrategico", String(params.estrategico));
+  const q = qs.toString();
+  return q ? `${base}?${q}` : base;
 }
 
 /* ── Prospecção ── */
@@ -660,6 +753,23 @@ export function fetchMunicipioConcentration() {
 
 export function fetchScoreBreakdown() {
   return apiFetch<{ max_score: number; criteria: { criterion: string; points: number }[] }>("/prospeccao/score-breakdown");
+}
+
+export interface EmpresaConcessao {
+  processo_norm: string;
+  regime: string;
+  substancia_principal: string;
+  municipio_principal: string;
+  categoria: string;
+  AREA_HA: number | null;
+  ativo_cfem: boolean;
+  cfem_total: number | null;
+}
+
+export function fetchEmpresaConcessoes(titular: string) {
+  return apiFetch<{ titular: string; total: number; rows: EmpresaConcessao[] }>(
+    `/prospeccao/empresas/${encodeURIComponent(titular)}/concessoes`
+  );
 }
 
 /* ── Geospatial ── */
