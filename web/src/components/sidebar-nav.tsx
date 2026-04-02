@@ -6,12 +6,11 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   Building2,
-  Construction,
   Database,
   Factory,
   FileSearch,
   Globe,
-  LayoutDashboard,
+  Home,
   Map,
   Search,
   ShieldCheck,
@@ -27,29 +26,34 @@ interface NavItem {
   disabled?: boolean;
 }
 
-const NAV_SECTIONS: { label: string; color?: string; items: NavItem[] }[] = [
+const NAV_SECTIONS: { label: string; color?: string; standalone?: boolean; items: NavItem[] }[] = [
   {
-    label: "Summo Ambiental",
+    label: "",
+    standalone: true,
+    items: [
+      { href: "/", label: "Início", icon: Home },
+    ],
+  },
+  {
+    label: "Análise & Pesquisa",
     color: "text-brand-orange",
     items: [
-      { href: "/", label: "Painel Principal", icon: LayoutDashboard },
-      { href: "/explorar", label: "Explorar Dados", icon: Database },
       { href: "/empresa", label: "Consulta Empresa", icon: Building2 },
-      { href: "/decisoes", label: "Análise Decisões", icon: BarChart3 },
-      { href: "/due-diligence", label: "Due Diligence", icon: ShieldCheck },
+      { href: "/explorar", label: "Explorador", icon: Database },
+      { href: "/decisoes", label: "Análise de Decisões", icon: BarChart3 },
     ],
   },
   {
-    label: "Direitos e Concessões",
+    label: "Direitos Minerários",
     color: "text-brand-teal",
     items: [
-      { href: "/concessoes", label: "Base de Concessões", icon: FileSearch },
-      { href: "/mapa", label: "Mapa Geoespacial", icon: Map },
-      { href: "/prospeccao", label: "Prospecção", icon: TrendingUp },
+      { href: "/mapa", label: "Mapa Interativo", icon: Map },
+      { href: "/concessoes", label: "Concessões", icon: FileSearch },
+      { href: "/prospeccao", label: "Prospecção Mineral", icon: TrendingUp },
     ],
   },
   {
-    label: "Mineral Intelligence",
+    label: "Mercado & Inteligência",
     color: "text-brand-gold",
     items: [
       { href: "/inteligencia-comercial", label: "Inteligência Comercial", icon: Globe },
@@ -57,17 +61,17 @@ const NAV_SECTIONS: { label: string; color?: string; items: NavItem[] }[] = [
     ],
   },
   {
-    label: "SQ Solutions",
-    color: "text-brand-teal",
+    label: "Conformidade",
+    color: "text-brand-orange",
     items: [
-      { href: "/mineradora-modelo", label: "Mineradora Modelo", icon: Factory },
+      { href: "/due-diligence", label: "Due Diligence", icon: ShieldCheck },
     ],
   },
   {
-    label: "Gestão Interna",
+    label: "Simulação",
     color: "text-sidebar-foreground/40",
     items: [
-      { href: "/gestao-interna", label: "Gestão Interna", icon: Construction, disabled: true },
+      { href: "/mineradora-modelo", label: "Mineradora Modelo", icon: Factory },
     ],
   },
 ];
@@ -102,13 +106,15 @@ export function SidebarNav() {
       {/* Nav sections */}
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
         {NAV_SECTIONS.map((section) => (
-          <div key={section.label}>
-            <p className={cn(
-              "px-3 mb-2 text-[10px] font-semibold uppercase tracking-widest",
-              section.color ?? "text-sidebar-foreground/40"
-            )}>
-              {section.label}
-            </p>
+          <div key={section.label || "home"}>
+            {!section.standalone && (
+              <p className={cn(
+                "px-3 mb-2 text-[10px] font-semibold uppercase tracking-widest",
+                section.color ?? "text-sidebar-foreground/40"
+              )}>
+                {section.label}
+              </p>
+            )}
             <ul className="space-y-0.5">
               {section.items.map((item) => {
                 const isActive =

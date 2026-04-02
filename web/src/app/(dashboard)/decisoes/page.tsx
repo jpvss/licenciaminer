@@ -31,6 +31,8 @@ import {
   ZAxis,
   ReferenceLine,
 } from "recharts";
+import { TrendChart } from "../trend-chart";
+import { StatCard } from "@/components/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -60,8 +62,14 @@ import {
   fetchEmpresaDecisions,
   fetchTopEmpresas,
   fetchCopamMeetings,
+  fetchOverviewStats,
+  fetchOverviewTrend,
+  fetchOverviewInsights,
   fmtNumber,
   fmtPct,
+  type OverviewStats,
+  type TrendPoint,
+  type Insight,
   type RejectionTrend,
   type RegionalRigor,
   type InfractionBand,
@@ -95,6 +103,9 @@ export default function DecisoesPage() {
   const [cfemVsApproval, setCfemVsApproval] = useState<CfemVsApproval[] | null>(null);
   const [recidivism, setRecidivism] = useState<RecidivismBand[] | null>(null);
   const [shelvingData, setShelvingData] = useState<ShelvingAnalysis[] | null>(null);
+  const [overviewStats, setOverviewStats] = useState<OverviewStats | null>(null);
+  const [overviewTrend, setOverviewTrend] = useState<TrendPoint[] | null>(null);
+  const [overviewInsights, setOverviewInsights] = useState<Insight[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -108,6 +119,9 @@ export default function DecisoesPage() {
     fetchCfemVsApproval().then(setCfemVsApproval).catch((e) => { console.error("cfem:", e); });
     fetchRecidivism().then(setRecidivism).catch((e) => { console.error("recidivism:", e); });
     fetchShelvingAnalysis().then(setShelvingData).catch((e) => { console.error("shelving:", e); });
+    fetchOverviewStats().then(setOverviewStats).catch((e) => { console.error("overviewStats:", e); });
+    fetchOverviewTrend().then(setOverviewTrend).catch((e) => { console.error("overviewTrend:", e); });
+    fetchOverviewInsights().then(setOverviewInsights).catch((e) => { console.error("overviewInsights:", e); });
   }, []);
 
   // Aggregate modalidade data for stacked view
@@ -242,8 +256,9 @@ export default function DecisoesPage() {
       ) : null}
 
       {/* Charts */}
-      <Tabs defaultValue="trend" className="space-y-4">
+      <Tabs defaultValue="visao-geral" className="space-y-4">
         <TabsList className="flex-wrap">
+          <TabsTrigger value="visao-geral">Visão Geral</TabsTrigger>
           <TabsTrigger value="trend">Tendência Temporal</TabsTrigger>
           <TabsTrigger value="regional">Rigor Regional</TabsTrigger>
           <TabsTrigger value="modalidade">Por Modalidade</TabsTrigger>
@@ -252,6 +267,88 @@ export default function DecisoesPage() {
           <TabsTrigger value="caso">Caso Detalhado</TabsTrigger>
           <TabsTrigger value="copam">Deliberações CMI</TabsTrigger>
         </TabsList>
+
+        {/* Tab 0: Visão Geral — overview stats, trend chart, insights */}
+        <TabsContent value="visao-geral" className="space-y-6">
+          {overviewStats ? (
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <StatCard
+                label="Total Decisões"
+                value={fmtNumber(overviewStats.total_decisoes)}
+                subtitle="processos analisados · Fonte: SEMAD MG"
+                icon={BarChart3}
+              />
+              <StatCard
+                label="Aprovação Mineração"
+                value={fmtPct(overviewStats.taxa_aprovacao_mineracao)}
+                subtitle={`${fmtNumber(overviewStats.total_decisoes_mineracao)} decisões minerárias`}
+                icon={TrendingDown}
+                accentClass="bg-brand-teal"
+              />
+              <StatCard
+                label="Infrações IBAMA"
+                value={fmtNumber(overviewStats.total_infracoes)}
+                subtitle="infrações ambientais · Fonte: IBAMA"
+                icon={FileWarning}
+                accentClass="bg-brand-orange"
+              />
+              <StatCard
+                label="Processos ANM"
+                value={fmtNumber(overviewStats.total_processos_anm)}
+                subtitle="títulos minerários · Fonte: ANM SIGMINE"
+                icon={Building2}
+              />
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Card key={i}><CardContent className="flex items-start gap-4 p-5"><Skeleton className="h-10 w-10 rounded-lg" /><div className="flex-1 space-y-2"><Skeleton className="h-3 w-20" /><Skeleton className="h-7 w-24" /><Skeleton className="h-3 w-32" /></div></CardContent></Card>
+              ))}
+            </div>
+          )}
+
+          <div className="grid gap-6 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              {overviewTrend ? (
+                <Card className="h-full">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 font-heading">
+                      <BarChart3 className="h-4 w-4 text-brand-teal" />
+                      Tendência Anual de Decisões
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <TrendChart data={overviewTrend} />
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card><CardHeader><CardTitle>Tendência Anual</CardTitle></CardHeader><CardContent><Skeleton className="h-64 w-full" /></CardContent></Card>
+              )}
+            </div>
+
+            {overviewInsights ? (
+              <Card className="h-full">
+                <CardHeader>
+                  <CardTitle className="font-heading text-base">Insights Chave</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {overviewInsights.map((ins, i) => (
+                    <InsightCard key={i} tone={ins.tone} title={ins.title} value={ins.value} detail={ins.detail} />
+                  ))}
+                </CardContent>
+              </Card>
+            ) : overviewStats ? (
+              <Card className="h-full">
+                <CardHeader><CardTitle className="font-heading text-base">Insights Chave</CardTitle></CardHeader>
+                <CardContent className="space-y-3">
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-16 w-full" />
+                </CardContent>
+              </Card>
+            ) : null}
+          </div>
+        </TabsContent>
 
         {/* Tab 1: Rejection trend + insights */}
         <TabsContent value="trend">
@@ -1275,6 +1372,27 @@ function HeatmapGrid({ data }: { data: ActivityClassHeatmap[] }) {
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function InsightCard({ tone, title, value, detail }: {
+  tone: "positive" | "neutral" | "negative";
+  title?: string;
+  value?: string;
+  detail?: string;
+}) {
+  const toneClasses = {
+    positive: "border-l-success bg-success/5",
+    neutral: "border-l-muted-foreground bg-muted/30",
+    negative: "border-l-danger bg-danger/5",
+  };
+
+  return (
+    <div className={`rounded-r-md border-l-2 px-3 py-2.5 ${toneClasses[tone]}`}>
+      {title && <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{title}</p>}
+      {value && <p className="text-sm font-semibold">{value}</p>}
+      {detail && <p className="text-xs text-muted-foreground">{detail}</p>}
     </div>
   );
 }

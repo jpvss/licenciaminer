@@ -1,13 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
+  ArrowRight,
   BarChart3,
+  Building2,
   Database,
   ExternalLink,
-  FileWarning,
+  FileSearch,
+  Globe,
   Info,
   Landmark,
+  Map,
+  ShieldCheck,
   TrendingUp,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,29 +27,56 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StatCard } from "@/components/stat-card";
 import {
   fetchOverviewStats,
-  fetchOverviewTrend,
-  fetchOverviewInsights,
   fetchMetaSources,
   fmtNumber,
   fmtPct,
   type OverviewStats,
-  type TrendPoint,
-  type Insight,
   type SourceMeta,
 } from "@/lib/api";
-import { TrendChart } from "./trend-chart";
 
-export default function DashboardPage() {
+/* ── Platform map data ── */
+
+const PLATFORM_MAP = [
+  {
+    section: "Análise & Pesquisa",
+    color: "text-brand-orange",
+    borderColor: "border-brand-orange/20",
+    items: [
+      { href: "/empresa", icon: Building2, label: "Consulta Empresa", desc: "Dossier completo por CNPJ ou CPF" },
+      { href: "/explorar", icon: Database, label: "Explorador", desc: "Acesso direto a 16+ bases de dados públicas" },
+      { href: "/decisoes", icon: BarChart3, label: "Análise de Decisões", desc: "Tendências, fatores de risco, padrões regionais" },
+    ],
+  },
+  {
+    section: "Direitos Minerários",
+    color: "text-brand-teal",
+    borderColor: "border-brand-teal/20",
+    items: [
+      { href: "/mapa", icon: Map, label: "Mapa Interativo", desc: "Concessões, UCs e Terras Indígenas em camadas" },
+      { href: "/concessoes", icon: FileSearch, label: "Concessões", desc: "Base pesquisável com filtros e exportação CSV" },
+      { href: "/prospeccao", icon: TrendingUp, label: "Prospecção Mineral", desc: "Scoring de oportunidades por potencial" },
+    ],
+  },
+  {
+    section: "Mercado & Conformidade",
+    color: "text-brand-gold",
+    borderColor: "border-brand-gold/20",
+    items: [
+      { href: "/inteligencia-comercial", icon: Globe, label: "Inteligência Comercial", desc: "Câmbio, comércio exterior, CFEM, cotações" },
+      { href: "/due-diligence", icon: ShieldCheck, label: "Due Diligence", desc: "Avaliação estruturada de conformidade ambiental" },
+    ],
+  },
+];
+
+/* ── Page ── */
+
+export default function HomePage() {
   const [stats, setStats] = useState<OverviewStats | null>(null);
-  const [trend, setTrend] = useState<TrendPoint[] | null>(null);
-  const [insights, setInsights] = useState<Insight[] | null>(null);
   const [sources, setSources] = useState<SourceMeta[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchOverviewStats().then(setStats).catch((e) => setError(e.message));
-    fetchOverviewTrend().then(setTrend).catch((e) => { console.error("trend:", e); });
-    fetchOverviewInsights().then(setInsights).catch((e) => { console.error("insights:", e); });
     fetchMetaSources().then(setSources).catch((e) => { console.error("sources:", e); });
   }, []);
 
@@ -52,14 +85,27 @@ export default function DashboardPage() {
       {/* Hero */}
       <div>
         <h1 className="font-heading text-2xl font-bold tracking-tight lg:text-3xl">
-          Visão Geral
+          Summo Quartile
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Panorama consolidado do licenciamento ambiental minerário em Minas Gerais
+          Inteligência ambiental e mineral para mineração no Brasil
         </p>
-        <p className="mt-0.5 text-xs text-muted-foreground/60">
-          Fontes: SEMAD/MG, IBAMA, ANM/SIGMINE, CFEM, COPAM
-        </p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Link
+            href="/empresa"
+            className="inline-flex items-center gap-2 rounded-lg bg-brand-orange px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-orange/90"
+          >
+            <Building2 className="h-4 w-4" />
+            Consultar Empresa
+          </Link>
+          <Link
+            href="/mapa"
+            className="inline-flex items-center gap-2 rounded-lg border border-brand-teal/30 bg-brand-teal/5 px-4 py-2.5 text-sm font-medium text-brand-teal transition-colors hover:bg-brand-teal/10"
+          >
+            <Map className="h-4 w-4" />
+            Explorar Mapa
+          </Link>
+        </div>
       </div>
 
       {/* Error state */}
@@ -89,10 +135,10 @@ export default function DashboardPage() {
             accentClass="bg-brand-teal"
           />
           <StatCard
-            label="Licenças IBAMA"
+            label="Infrações IBAMA"
             value={fmtNumber(stats.total_infracoes)}
-            subtitle="licenças emitidas · Fonte: IBAMA SISLIC"
-            icon={FileWarning}
+            subtitle="infrações ambientais · Fonte: IBAMA"
+            icon={ShieldCheck}
             accentClass="bg-brand-orange"
           />
           <StatCard
@@ -106,126 +152,107 @@ export default function DashboardPage() {
         <KPISkeleton />
       ) : null}
 
-      {/* Insights panel alongside trend chart */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Trend chart (2 cols) */}
-        <div className="lg:col-span-2">
-          {trend ? (
-            <Card className="h-full">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 font-heading">
-                  <TrendingUp className="h-4 w-4 text-brand-teal" />
-                  Tendência Anual de Decisões
+      {/* Platform map — walkthrough */}
+      <div>
+        <h2 className="font-heading text-lg font-semibold tracking-tight">
+          Mapa da Plataforma
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Explore as ferramentas disponíveis por área de atuação
+        </p>
+        <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {PLATFORM_MAP.map((group) => (
+            <Card key={group.section} className={`border ${group.borderColor}`}>
+              <CardHeader className="pb-3">
+                <CardTitle className={`text-sm font-semibold uppercase tracking-wide ${group.color}`}>
+                  {group.section}
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <TrendChart data={trend} />
+              <CardContent className="space-y-1 pt-0">
+                {group.items.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="group flex items-start gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-muted/50"
+                  >
+                    <item.icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground group-hover:text-foreground" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium group-hover:text-foreground">
+                        {item.label}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {item.desc}
+                      </p>
+                    </div>
+                    <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/0 transition-all group-hover:text-muted-foreground/60 group-hover:translate-x-0.5" />
+                  </Link>
+                ))}
               </CardContent>
             </Card>
-          ) : !error ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Tendência Anual</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-64 w-full" />
-              </CardContent>
-            </Card>
-          ) : null}
+          ))}
         </div>
-
-        {/* Insights sidebar (1 col) */}
-        {insights ? (
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 font-heading text-base">
-                <Info className="h-4 w-4 text-brand-orange" />
-                Insights Chave
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {insights.map((ins, i) => (
-                <InsightCard key={i} tone={ins.tone} title={ins.title} value={ins.value} detail={ins.detail} />
-              ))}
-            </CardContent>
-          </Card>
-        ) : stats ? (
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 font-heading text-base">
-                <Info className="h-4 w-4 text-brand-orange" />
-                Insights Chave
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Skeleton className="h-16 w-full" />
-              <Skeleton className="h-16 w-full" />
-              <Skeleton className="h-16 w-full" />
-              <Skeleton className="h-16 w-full" />
-            </CardContent>
-          </Card>
-        ) : null}
       </div>
 
-      {/* Data sources + methodology */}
-      <Accordion type="multiple" className="space-y-3">
-        <AccordionItem value="sources" className="rounded-xl border bg-card shadow-sm">
-          <AccordionTrigger className="px-6 py-4 hover:no-underline">
-            <div className="flex items-center gap-2 font-heading text-base">
-              <Database className="h-4 w-4 text-brand-teal" />
-              Fontes de Dados
-            </div>
-          </AccordionTrigger>
-          <AccordionContent className="px-6 pb-4">
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="border-b text-left text-muted-foreground">
-                    <th className="pb-2 pr-4 font-medium">Fonte</th>
-                    <th className="pb-2 pr-4 text-right font-medium">Registros</th>
-                    <th className="pb-2 pr-4 font-medium">Atualização</th>
-                    <th className="pb-2 font-medium">Link</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {(sources ?? FALLBACK_SOURCES).map((src) => {
-                    const isFresh = !!src.last_collected;
-                    return (
-                      <tr key={src.key ?? src.name}>
-                        <td className="py-2 pr-4 font-medium">
-                          <span
-                            className="mr-2 inline-block h-1.5 w-1.5 rounded-full align-middle"
-                            style={{ background: isFresh ? "var(--success)" : "var(--danger)" }}
-                          />
-                          {src.name}
-                        </td>
-                        <td className="py-2 pr-4 text-right tabular-nums">
-                          {src.records != null ? fmtNumber(src.records) : <span className="text-muted-foreground">—</span>}
-                        </td>
-                        <td className="py-2 pr-4 text-muted-foreground tabular-nums">
-                          {src.last_collected ?? "—"}
-                        </td>
-                        <td className="py-2">
-                          {src.url ? (
-                            <a
-                              href={src.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-brand-teal hover:underline"
-                            >
-                              verificar <ExternalLink className="h-3 w-3" />
-                            </a>
-                          ) : null}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </AccordionContent>
-        </AccordionItem>
+      {/* Data sources — ALWAYS VISIBLE */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 font-heading text-base">
+            <Database className="h-4 w-4 text-brand-teal" />
+            Fontes de Dados
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b text-left text-muted-foreground">
+                  <th className="pb-2 pr-4 font-medium">Fonte</th>
+                  <th className="pb-2 pr-4 text-right font-medium">Registros</th>
+                  <th className="pb-2 pr-4 font-medium">Atualização</th>
+                  <th className="pb-2 font-medium">Link</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {(sources ?? FALLBACK_SOURCES).map((src) => {
+                  const isFresh = !!src.last_collected;
+                  return (
+                    <tr key={src.key ?? src.name}>
+                      <td className="py-2 pr-4 font-medium">
+                        <span
+                          className="mr-2 inline-block h-1.5 w-1.5 rounded-full align-middle"
+                          style={{ background: isFresh ? "var(--success)" : "var(--danger)" }}
+                        />
+                        {src.name}
+                      </td>
+                      <td className="py-2 pr-4 text-right tabular-nums">
+                        {src.records != null ? fmtNumber(src.records) : <span className="text-muted-foreground">—</span>}
+                      </td>
+                      <td className="py-2 pr-4 text-muted-foreground tabular-nums">
+                        {src.last_collected ?? "—"}
+                      </td>
+                      <td className="py-2">
+                        {src.url ? (
+                          <a
+                            href={src.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-brand-teal hover:underline"
+                          >
+                            verificar <ExternalLink className="h-3 w-3" />
+                          </a>
+                        ) : null}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
 
+      {/* Methodology — expandable */}
+      <Accordion type="single" collapsible>
         <AccordionItem value="methodology" className="rounded-xl border bg-card shadow-sm">
           <AccordionTrigger className="px-6 py-4 hover:no-underline">
             <div className="flex items-center gap-2 font-heading text-base">
@@ -275,27 +302,6 @@ const FALLBACK_SOURCES: SourceMeta[] = [
   { key: "copam_cmi", name: "COPAM CMI Reuniões", records: null, last_collected: null, url: "https://sistemas.meioambiente.mg.gov.br/reunioes/reuniao-copam/index-externo" },
   { key: "icmbio_ucs", name: "ICMBio Unidades Conservação", records: null, last_collected: null, url: "https://www.gov.br/icmbio/pt-br/assuntos/dados_geoespaciais/" },
 ];
-
-function InsightCard({ tone, title, value, detail }: {
-  tone: "positive" | "neutral" | "negative";
-  title?: string;
-  value?: string;
-  detail?: string;
-}) {
-  const toneClasses = {
-    positive: "border-l-success bg-success/5",
-    neutral: "border-l-muted-foreground bg-muted/30",
-    negative: "border-l-danger bg-danger/5",
-  };
-
-  return (
-    <div className={`rounded-r-md border-l-2 px-3 py-2.5 ${toneClasses[tone]}`}>
-      {title && <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{title}</p>}
-      {value && <p className="text-sm font-semibold">{value}</p>}
-      {detail && <p className="text-xs text-muted-foreground">{detail}</p>}
-    </div>
-  );
-}
 
 function KPISkeleton() {
   return (
