@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {
   BarChart3,
   Database,
+  ExternalLink,
   FileWarning,
   Info,
   Landmark,
@@ -21,21 +22,29 @@ import { StatCard } from "@/components/stat-card";
 import {
   fetchOverviewStats,
   fetchOverviewTrend,
+  fetchOverviewInsights,
+  fetchMetaSources,
   fmtNumber,
   fmtPct,
   type OverviewStats,
   type TrendPoint,
+  type Insight,
+  type SourceMeta,
 } from "@/lib/api";
 import { TrendChart } from "./trend-chart";
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<OverviewStats | null>(null);
   const [trend, setTrend] = useState<TrendPoint[] | null>(null);
+  const [insights, setInsights] = useState<Insight[] | null>(null);
+  const [sources, setSources] = useState<SourceMeta[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchOverviewStats().then(setStats).catch((e) => setError(e.message));
     fetchOverviewTrend().then(setTrend).catch((e) => { console.error("trend:", e); });
+    fetchOverviewInsights().then(setInsights).catch((e) => { console.error("insights:", e); });
+    fetchMetaSources().then(setSources).catch((e) => { console.error("sources:", e); });
   }, []);
 
   return (
@@ -126,34 +135,36 @@ export default function DashboardPage() {
         </div>
 
         {/* Insights sidebar (1 col) */}
-        {stats && (
+        {insights ? (
           <Card className="h-full">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 font-heading text-base">
                 <Info className="h-4 w-4 text-brand-orange" />
-                Principais Indicadores
+                Insights Chave
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <InsightCard
-                tone={stats.taxa_aprovacao_mineracao >= 70 ? "positive" : stats.taxa_aprovacao_mineracao >= 50 ? "neutral" : "negative"}
-                text={`Taxa de aprovação minerária: ${fmtPct(stats.taxa_aprovacao_mineracao)}`}
-              />
-              <InsightCard
-                tone="neutral"
-                text={`${fmtNumber(stats.total_decisoes_mineracao)} decisões de mineração no banco`}
-              />
-              <InsightCard
-                tone={stats.total_infracoes > 0 ? "positive" : "neutral"}
-                text={`${fmtNumber(stats.total_infracoes)} licenças IBAMA emitidas para MG`}
-              />
-              <InsightCard
-                tone="neutral"
-                text={`${fmtNumber(stats.total_processos_anm)} processos minerários ANM ativos`}
-              />
+              {insights.map((ins, i) => (
+                <InsightCard key={i} tone={ins.tone} title={ins.title} value={ins.value} detail={ins.detail} />
+              ))}
             </CardContent>
           </Card>
-        )}
+        ) : stats ? (
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 font-heading text-base">
+                <Info className="h-4 w-4 text-brand-orange" />
+                Insights Chave
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+            </CardContent>
+          </Card>
+        ) : null}
       </div>
 
       {/* Data sources + methodology */}
@@ -171,18 +182,44 @@ export default function DashboardPage() {
                 <thead>
                   <tr className="border-b text-left text-muted-foreground">
                     <th className="pb-2 pr-4 font-medium">Fonte</th>
-                    <th className="pb-2 pr-4 font-medium">Tipo</th>
-                    <th className="pb-2 font-medium">Cobertura</th>
+                    <th className="pb-2 pr-4 text-right font-medium">Registros</th>
+                    <th className="pb-2 pr-4 font-medium">Atualização</th>
+                    <th className="pb-2 font-medium">Link</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {DATA_SOURCES.map((src) => (
-                    <tr key={src.name}>
-                      <td className="py-2 pr-4 font-medium">{src.name}</td>
-                      <td className="py-2 pr-4 text-muted-foreground">{src.type}</td>
-                      <td className="py-2 text-muted-foreground">{src.coverage}</td>
-                    </tr>
-                  ))}
+                  {(sources ?? FALLBACK_SOURCES).map((src) => {
+                    const isFresh = !!src.last_collected;
+                    return (
+                      <tr key={src.key ?? src.name}>
+                        <td className="py-2 pr-4 font-medium">
+                          <span
+                            className="mr-2 inline-block h-1.5 w-1.5 rounded-full align-middle"
+                            style={{ background: isFresh ? "var(--success)" : "var(--danger)" }}
+                          />
+                          {src.name}
+                        </td>
+                        <td className="py-2 pr-4 text-right tabular-nums">
+                          {src.records != null ? fmtNumber(src.records) : <span className="text-muted-foreground">—</span>}
+                        </td>
+                        <td className="py-2 pr-4 text-muted-foreground tabular-nums">
+                          {src.last_collected ?? "—"}
+                        </td>
+                        <td className="py-2">
+                          {src.url ? (
+                            <a
+                              href={src.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-brand-teal hover:underline"
+                            >
+                              verificar <ExternalLink className="h-3 w-3" />
+                            </a>
+                          ) : null}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -227,19 +264,24 @@ export default function DashboardPage() {
   );
 }
 
-const DATA_SOURCES = [
-  { name: "SEMAD MG", type: "Web scraper / Excel", coverage: "Decisões de licenciamento MG" },
-  { name: "IBAMA SISLIC", type: "JSON API", coverage: "Licenças federais emitidas" },
-  { name: "ANM SIGMINE", type: "ArcGIS REST", coverage: "Títulos minerários nacional" },
-  { name: "CFEM", type: "CSV / ANM", coverage: "Arrecadação compensação mineral" },
-  { name: "COPAM CMI", type: "Web scraper", coverage: "Deliberações conselho ambiental" },
-  { name: "RAL", type: "CSV / ANM", coverage: "Relatório Anual de Lavra" },
-  { name: "BCB PTAX", type: "OData API", coverage: "Câmbio USD/BRL" },
-  { name: "Comex Stat", type: "REST API", coverage: "Comércio exterior mineral" },
-  { name: "CNPJ (Receita)", type: "REST API", coverage: "Dados cadastrais de empresas" },
+const FALLBACK_SOURCES: SourceMeta[] = [
+  { key: "mg_semad", name: "MG SEMAD Decisões", records: null, last_collected: null, url: "https://sistemas.meioambiente.mg.gov.br/licenciamento/site/consulta-licenca" },
+  { key: "ibama_licencas", name: "IBAMA Licenças Federais", records: null, last_collected: null, url: "https://dadosabertos.ibama.gov.br/dados/SISLIC/sislic-licencas.json" },
+  { key: "anm_processos", name: "ANM SIGMINE Processos", records: null, last_collected: null, url: "https://geo.anm.gov.br/arcgis/rest/services/SIGMINE/dados_anm/FeatureServer/0" },
+  { key: "ibama_infracoes", name: "IBAMA Infrações Ambientais", records: null, last_collected: null, url: "https://dadosabertos.ibama.gov.br/dataset/fiscalizacao-auto-de-infracao" },
+  { key: "anm_cfem", name: "ANM CFEM Royalties", records: null, last_collected: null, url: "https://app.anm.gov.br/dadosabertos/ARRECADACAO/" },
+  { key: "anm_ral", name: "ANM RAL Produção", records: null, last_collected: null, url: "https://app.anm.gov.br/dadosabertos/AMB/" },
+  { key: "receita_federal_cnpj", name: "Receita Federal CNPJ", records: null, last_collected: null, url: "https://brasilapi.com.br/api/cnpj/v1/" },
+  { key: "copam_cmi", name: "COPAM CMI Reuniões", records: null, last_collected: null, url: "https://sistemas.meioambiente.mg.gov.br/reunioes/reuniao-copam/index-externo" },
+  { key: "icmbio_ucs", name: "ICMBio Unidades Conservação", records: null, last_collected: null, url: "https://www.gov.br/icmbio/pt-br/assuntos/dados_geoespaciais/" },
 ];
 
-function InsightCard({ tone, text }: { tone: "positive" | "neutral" | "negative"; text: string }) {
+function InsightCard({ tone, title, value, detail }: {
+  tone: "positive" | "neutral" | "negative";
+  title?: string;
+  value?: string;
+  detail?: string;
+}) {
   const toneClasses = {
     positive: "border-l-success bg-success/5",
     neutral: "border-l-muted-foreground bg-muted/30",
@@ -247,8 +289,10 @@ function InsightCard({ tone, text }: { tone: "positive" | "neutral" | "negative"
   };
 
   return (
-    <div className={`rounded-r-md border-l-2 px-3 py-2 text-xs ${toneClasses[tone]}`}>
-      {text}
+    <div className={`rounded-r-md border-l-2 px-3 py-2.5 ${toneClasses[tone]}`}>
+      {title && <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{title}</p>}
+      {value && <p className="text-sm font-semibold">{value}</p>}
+      {detail && <p className="text-xs text-muted-foreground">{detail}</p>}
     </div>
   );
 }

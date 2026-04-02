@@ -52,6 +52,10 @@ import {
   fetchRegionalRigor,
   fetchInfractionBands,
   fetchInfractionsVsApproval,
+  fetchActivityClassHeatmap,
+  fetchCfemVsApproval,
+  fetchRecidivism,
+  fetchShelvingAnalysis,
   fetchEmpresa,
   fetchEmpresaDecisions,
   fetchTopEmpresas,
@@ -62,6 +66,10 @@ import {
   type RegionalRigor,
   type InfractionBand,
   type InfractionsVsApproval,
+  type ActivityClassHeatmap,
+  type CfemVsApproval,
+  type RecidivismBand,
+  type ShelvingAnalysis,
   type EmpresaProfile,
   type Decision,
   type TopEmpresa,
@@ -83,6 +91,10 @@ export default function DecisoesPage() {
   const [approvalRates, setApprovalRates] = useState<Record<string, unknown>[] | null>(null);
   const [infractionBands, setInfractionBands] = useState<InfractionBand[] | null>(null);
   const [infractionsVsApproval, setInfractionsVsApproval] = useState<InfractionsVsApproval[] | null>(null);
+  const [heatmapData, setHeatmapData] = useState<ActivityClassHeatmap[] | null>(null);
+  const [cfemVsApproval, setCfemVsApproval] = useState<CfemVsApproval[] | null>(null);
+  const [recidivism, setRecidivism] = useState<RecidivismBand[] | null>(null);
+  const [shelvingData, setShelvingData] = useState<ShelvingAnalysis[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -92,6 +104,10 @@ export default function DecisoesPage() {
     fetchApprovalRates().then(setApprovalRates).catch((e) => { console.error("approvalRates:", e); });
     fetchInfractionBands().then(setInfractionBands).catch((e) => { console.error("infractionBands:", e); });
     fetchInfractionsVsApproval().then(setInfractionsVsApproval).catch((e) => { console.error("infractionsVsApproval:", e); });
+    fetchActivityClassHeatmap().then(setHeatmapData).catch((e) => { console.error("heatmap:", e); });
+    fetchCfemVsApproval().then(setCfemVsApproval).catch((e) => { console.error("cfem:", e); });
+    fetchRecidivism().then(setRecidivism).catch((e) => { console.error("recidivism:", e); });
+    fetchShelvingAnalysis().then(setShelvingData).catch((e) => { console.error("shelving:", e); });
   }, []);
 
   // Aggregate modalidade data for stacked view
@@ -486,87 +502,167 @@ export default function DecisoesPage() {
 
         {/* Tab 5: Risk Factors */}
         <TabsContent value="risco">
-          <div className="grid gap-6 lg:grid-cols-2">
-            {/* Infraction bands vs approval */}
+          <div className="space-y-6">
+            {/* Row 1: Heatmap Atividade × Classe */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 font-heading text-sm">
-                  <FileWarning className="h-4 w-4 text-danger" />
-                  Infrações IBAMA vs. Aprovação
+                  <Activity className="h-4 w-4 text-brand-teal" />
+                  Taxa de Aprovação: Atividade × Classe
                 </CardTitle>
+                <p className="text-xs text-muted-foreground">Classe 1 = menor impacto · Classe 6 = maior impacto</p>
               </CardHeader>
               <CardContent>
-                {infractionBands ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={infractionBands}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                      <XAxis dataKey="faixa_infracoes" tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} />
-                      <YAxis unit="%" domain={[0, 100]} tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} />
-                      <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v) => [`${Number(v).toFixed(1)}%`]} />
-                      <Bar dataKey="taxa_aprovacao" name="Taxa Aprovação" radius={[4, 4, 0, 0]}>
-                        {infractionBands.map((entry, i) => (
-                          <Cell
-                            key={i}
-                            fill={entry.taxa_aprovacao >= 70 ? "var(--success)" : entry.taxa_aprovacao >= 50 ? "var(--warning)" : "var(--danger)"}
-                          />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <Skeleton className="h-[300px] w-full" />
-                )}
+                {heatmapData ? <HeatmapGrid data={heatmapData} /> : <Skeleton className="h-[300px] w-full" />}
               </CardContent>
             </Card>
 
-            {/* Infractions scatter */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 font-heading text-sm">
-                  <Activity className="h-4 w-4 text-brand-orange" />
-                  Dispersão: Infrações × Aprovação
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {infractionsVsApproval ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <ScatterChart>
+            {/* Row 2: Infractions + Scatter */}
+            <div className="grid gap-6 lg:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-heading text-sm">
+                    <FileWarning className="h-4 w-4 text-danger" />
+                    Infrações IBAMA vs. Aprovação
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {infractionBands ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={infractionBands}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                        <XAxis dataKey="faixa_infracoes" tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} />
+                        <YAxis unit="%" domain={[0, 100]} tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} />
+                        <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v) => [`${Number(v).toFixed(1)}%`]} />
+                        <Bar dataKey="taxa_aprovacao" name="Taxa Aprovação" radius={[4, 4, 0, 0]}>
+                          {infractionBands.map((entry, i) => (
+                            <Cell
+                              key={i}
+                              fill={entry.taxa_aprovacao >= 70 ? "var(--success)" : entry.taxa_aprovacao >= 50 ? "var(--warning)" : "var(--danger)"}
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <Skeleton className="h-[300px] w-full" />
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-heading text-sm">
+                    <Activity className="h-4 w-4 text-brand-orange" />
+                    Dispersão: Infrações × Aprovação
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {infractionsVsApproval ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <ScatterChart>
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                        <XAxis type="number" dataKey="total_infracoes" name="Infrações" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} label={{ value: "Infrações", position: "bottom", fontSize: 11 }} />
+                        <YAxis type="number" dataKey="taxa_aprovacao" name="Aprovação" unit="%" domain={[0, 100]} tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
+                        <ZAxis type="number" dataKey="total_decisoes" range={[20, 400]} />
+                        <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v, name) => [name === "Aprovação" ? `${Number(v).toFixed(1)}%` : String(v), String(name)]} />
+                        <Scatter data={infractionsVsApproval} fill="var(--brand-orange)" fillOpacity={0.6} />
+                      </ScatterChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <Skeleton className="h-[300px] w-full" />
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Row 3: CFEM profile + Reincidência */}
+            <div className="grid gap-6 lg:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-heading text-sm">
+                    <BarChart3 className="h-4 w-4 text-brand-gold" />
+                    Perfil CFEM vs. Aprovação
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {cfemVsApproval ? (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {cfemVsApproval.map((row) => {
+                        const tone = row.taxa_aprovacao >= 70 ? "success" : row.taxa_aprovacao >= 50 ? "warning" : "danger";
+                        return (
+                          <div key={row.perfil_empresa} className={`rounded-lg border-l-4 p-4 ${tone === "success" ? "border-l-success bg-success/5" : tone === "warning" ? "border-l-warning bg-warning/5" : "border-l-danger bg-danger/5"}`}>
+                            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{row.perfil_empresa}</p>
+                            <p className="text-2xl font-bold">{row.taxa_aprovacao}%</p>
+                            <p className="text-xs text-muted-foreground">{fmtNumber(row.total_decisoes)} decisões · {fmtNumber(row.deferidos)} deferidos</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <Skeleton className="h-[160px] w-full" />
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-heading text-sm">
+                    <Building2 className="h-4 w-4 text-brand-teal" />
+                    Reincidência: Decisões por Empresa
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {recidivism ? (
+                    <div className="grid gap-3">
+                      {recidivism.map((row) => {
+                        const tone = row.taxa_media_aprovacao >= 70 ? "success" : row.taxa_media_aprovacao >= 50 ? "warning" : "danger";
+                        return (
+                          <div key={row.faixa} className={`rounded-lg border-l-4 p-3 ${tone === "success" ? "border-l-success bg-success/5" : tone === "warning" ? "border-l-warning bg-warning/5" : "border-l-danger bg-danger/5"}`}>
+                            <div className="flex items-center justify-between">
+                              <p className="text-sm font-medium">{row.faixa}</p>
+                              <p className="text-lg font-bold">{row.taxa_media_aprovacao}%</p>
+                            </div>
+                            <p className="text-xs text-muted-foreground">{fmtNumber(row.empresas)} empresas · {fmtNumber(row.total_decisoes_grupo)} decisões</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <Skeleton className="h-[160px] w-full" />
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Row 4: Arquivamento top combos */}
+            {shelvingData && shelvingData.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-heading text-sm">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    Top Combinações por Arquivamento
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground">Classe × Atividade com maior taxa de arquivamento (N ≥ 10)</p>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={Math.max(200, shelvingData.slice(0, 10).length * 36)}>
+                    <BarChart data={shelvingData.slice(0, 10)} layout="vertical">
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                      <XAxis
-                        type="number"
-                        dataKey="total_infracoes"
-                        name="Infrações"
-                        tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                        label={{ value: "Infrações", position: "bottom", fontSize: 11 }}
-                      />
+                      <XAxis type="number" unit="%" domain={[0, 100]} tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
                       <YAxis
-                        type="number"
-                        dataKey="taxa_aprovacao"
-                        name="Aprovação"
-                        unit="%"
-                        domain={[0, 100]}
-                        tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                        type="category"
+                        dataKey={(row: ShelvingAnalysis) => `C${row.classe} · ${row.atividade_grupo}`}
+                        width={120}
+                        tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
                       />
-                      <ZAxis type="number" dataKey="total_decisoes" range={[20, 400]} />
-                      <Tooltip
-                        contentStyle={CHART_TOOLTIP_STYLE}
-                        formatter={(v, name) => [
-                          name === "Aprovação" ? `${Number(v).toFixed(1)}%` : String(v),
-                          String(name),
-                        ]}
-                      />
-                      <Scatter
-                        data={infractionsVsApproval}
-                        fill="var(--brand-orange)"
-                        fillOpacity={0.6}
-                      />
-                    </ScatterChart>
+                      <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v) => [`${Number(v).toFixed(1)}%`, "Arquivamento"]} />
+                      <Bar dataKey="taxa_arquivamento" radius={[0, 4, 4, 0]} fill="var(--muted-foreground)" fillOpacity={0.5} />
+                    </BarChart>
                   </ResponsiveContainer>
-                ) : (
-                  <Skeleton className="h-[300px] w-full" />
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </TabsContent>
 
@@ -1118,6 +1214,67 @@ function InsightItem({ tone, text }: { tone: "positive" | "neutral" | "negative"
   return (
     <div className={`rounded-r-md border-l-2 px-3 py-2 text-xs ${toneClasses[tone]}`}>
       {text}
+    </div>
+  );
+}
+
+/* ── Heatmap (Atividade × Classe) ── */
+function HeatmapGrid({ data }: { data: ActivityClassHeatmap[] }) {
+  // Build matrix: rows = atividade codes, cols = classes 1-6
+  const atividades = [...new Set(data.map((d) => d.atividade_code))].sort();
+  const classes = [1, 2, 3, 4, 5, 6];
+
+  const lookup = new Map<string, ActivityClassHeatmap>();
+  for (const d of data) lookup.set(`${d.atividade_code}|${d.classe}`, d);
+
+  const rateColor = (rate: number | null) => {
+    if (rate == null) return "bg-muted/30";
+    if (rate >= 80) return "bg-success/70 text-success-foreground";
+    if (rate >= 65) return "bg-success/30";
+    if (rate >= 50) return "bg-warning/40";
+    if (rate >= 30) return "bg-danger/30";
+    return "bg-danger/60 text-white";
+  };
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-xs">
+        <thead>
+          <tr>
+            <th className="py-2 pr-3 text-left font-medium text-muted-foreground">Atividade</th>
+            {classes.map((c) => (
+              <th key={c} className="px-2 py-2 text-center font-medium text-muted-foreground w-16">
+                Classe {c}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {atividades.map((atv) => (
+            <tr key={atv} className="border-t border-border/50">
+              <td className="py-1.5 pr-3 font-mono text-muted-foreground">{atv}</td>
+              {classes.map((c) => {
+                const cell = lookup.get(`${atv}|${c}`);
+                return (
+                  <td key={c} className="px-1 py-1.5 text-center">
+                    {cell ? (
+                      <span
+                        className={`inline-block w-full rounded px-1.5 py-1 tabular-nums ${rateColor(cell.taxa_aprovacao)}`}
+                        title={`${cell.taxa_aprovacao}% · N=${cell.total}`}
+                      >
+                        {cell.taxa_aprovacao}%
+                        <span className="block text-[9px] opacity-60">N={cell.total}</span>
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground/30">—</span>
+                    )}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

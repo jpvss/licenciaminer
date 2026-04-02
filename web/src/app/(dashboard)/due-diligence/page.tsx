@@ -14,9 +14,11 @@ import {
   Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import {
   Collapsible,
   CollapsibleContent,
@@ -63,6 +65,14 @@ const ATIVIDADES = [
 ];
 
 const CLASSES = [1, 2, 3, 4, 5, 6] as const;
+
+const CONFORMIDADE_SCALE = [
+  { label: "Alta aderência", range: "90–100%", min: 90, max: 100, color: "#27AE60", description: "Processo em conformidade com a legislação" },
+  { label: "Sob controle", range: "80–90%", min: 80, max: 89.9, color: "#2ECC71", description: "Processo pode melhorar em pontos específicos" },
+  { label: "Melhorias pontuais", range: "65–80%", min: 65, max: 79.9, color: "#F39C12", description: "Requer ajustes em áreas identificadas" },
+  { label: "Melhorias significativas", range: "50–65%", min: 50, max: 64.9, color: "#FF5F00", description: "Requer atenção imediata em múltiplas áreas" },
+  { label: "Não conforme", range: "0–50%", min: 0, max: 49.9, color: "#E74C3C", description: "Ações imediatas necessárias para regularização" },
+];
 
 const STEPS = [
   { num: 1, label: "Configuração" },
@@ -392,7 +402,19 @@ export default function DueDiligencePage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Summary */}
+            {/* Summary + progress bar */}
+            {documents && (
+              <div className="space-y-2">
+                <Progress
+                  value={documents.length > 0
+                    ? ((Object.values(docStatus).filter((v) => v === "Apresentado").length +
+                        Object.values(docStatus).filter((v) => v === "Parcial").length) /
+                       documents.length) * 100
+                    : 0}
+                  className="h-2"
+                />
+              </div>
+            )}
             {documents && (
               <div className="flex gap-4 text-sm">
                 <span className="text-success">
@@ -661,76 +683,161 @@ export default function DueDiligencePage() {
             </CardContent>
           </Card>
 
-          {/* KPI cards */}
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <ResultKPI
-              icon={CheckCircle2}
-              label="Atende"
-              value={result.atende}
-              color="text-success"
-            />
-            <ResultKPI
-              icon={AlertTriangle}
-              label="Atende Parcialmente"
-              value={result.atende_parcial}
-              color="text-warning"
-            />
-            <ResultKPI
-              icon={XCircle}
-              label="Não Atende"
-              value={result.nao_atende}
-              color="text-danger"
-            />
-            <ResultKPI
-              icon={FileText}
-              label="Não Aplica"
-              value={result.nao_aplica}
-              color="text-muted-foreground"
-            />
-          </div>
+          {/* Tabbed result detail */}
+          <Tabs defaultValue="overview">
+            <TabsList>
+              <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+              <TabsTrigger value="by-doc">Por Documento</TabsTrigger>
+              <TabsTrigger value="recs">Recomendações</TabsTrigger>
+              <TabsTrigger value="scale">Escala</TabsTrigger>
+            </TabsList>
 
-          {/* Recommendations */}
-          {result.recomendacoes.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 font-heading">
-                  <AlertTriangle className="h-4 w-4 text-brand-orange" />
-                  Recomendações ({result.recomendacoes.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {result.recomendacoes.map((rec, i) => (
-                  <div
-                    key={i}
-                    className="rounded-lg border p-3"
-                  >
-                    <div className="flex items-start gap-3">
-                      <Badge
-                        variant={
-                          rec.prioridade === "Alta" ? "destructive" : "secondary"
-                        }
-                        className="mt-0.5 shrink-0"
-                      >
-                        {rec.prioridade}
-                      </Badge>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium">{rec.tipo}</p>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          {rec.documento} · {rec.topico}
-                        </p>
-                        <p className="mt-1 text-sm">{rec.teste}</p>
-                        {rec.evidencia && (
-                          <p className="mt-1 text-xs text-muted-foreground italic">
-                            Evidência esperada: {rec.evidencia}
-                          </p>
-                        )}
-                      </div>
+            {/* Tab: Visão Geral */}
+            <TabsContent value="overview" className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <ResultKPI icon={CheckCircle2} label="Atende" value={result.atende} color="text-success" />
+                <ResultKPI icon={AlertTriangle} label="Atende Parcialmente" value={result.atende_parcial} color="text-warning" />
+                <ResultKPI icon={XCircle} label="Não Atende" value={result.nao_atende} color="text-danger" />
+                <ResultKPI icon={FileText} label="Não Aplica" value={result.nao_aplica} color="text-muted-foreground" />
+              </div>
+
+              {/* Breakdown by evaluation */}
+              <Card>
+                <CardContent className="p-4">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <p className="text-xs font-medium uppercase text-muted-foreground mb-2">Resultado por Avaliação</p>
+                      {[
+                        { label: "Atende", count: result.atende, color: "bg-success" },
+                        { label: "Parcial", count: result.atende_parcial, color: "bg-warning" },
+                        { label: "Não Atende", count: result.nao_atende, color: "bg-danger" },
+                        { label: "N/A", count: result.nao_aplica, color: "bg-muted-foreground" },
+                      ].map((item) => (
+                        <div key={item.label} className="flex items-center gap-2 py-1">
+                          <span className={`h-2.5 w-2.5 rounded-full ${item.color}`} />
+                          <span className="text-sm flex-1">{item.label}</span>
+                          <span className="text-sm font-bold tabular-nums">{item.count}</span>
+                          <span className="text-xs text-muted-foreground w-10 text-right tabular-nums">
+                            {result.requisitos_aplicaveis > 0 ? `${Math.round((item.count / result.requisitos_aplicaveis) * 100)}%` : "—"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase text-muted-foreground mb-2">Escala de Conformidade</p>
+                      {CONFORMIDADE_SCALE.map((band) => (
+                        <div key={band.label} className="flex items-center gap-2 py-1">
+                          <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: band.color }} />
+                          <span className="text-xs flex-1">{band.label}</span>
+                          <span className="text-xs text-muted-foreground tabular-nums">{band.range}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Tab: Por Documento */}
+            <TabsContent value="by-doc" className="space-y-3">
+              {documents && documents.map((doc) => {
+                const docReqs = requirements.filter((r) => r.documento === doc.documento);
+                const docEvals = docReqs.map((r) => evaluations[r.requisito_id]).filter(Boolean);
+                const docAtende = docEvals.filter((e) => e === "Atende").length;
+                const docParcial = docEvals.filter((e) => e === "Parcial").length;
+                const docNao = docEvals.filter((e) => e === "Não Atende").length;
+                const docNA = docEvals.filter((e) => e === "N/A").length;
+                const applicable = docAtende + docParcial + docNao;
+                const docScore = applicable > 0 ? Math.round(((docAtende + docParcial * 0.5) / applicable) * 100) : null;
+                const scoreColor = docScore == null ? "text-muted-foreground" : docScore >= 80 ? "text-success" : docScore >= 50 ? "text-warning" : "text-danger";
+
+                return (
+                  <div key={doc.documento} className="flex items-center gap-4 rounded-lg border p-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{doc.documento}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {docAtende} atende · {docParcial} parcial · {docNao} não atende · {docNA} N/A
+                      </p>
+                    </div>
+                    <span className={`text-lg font-bold tabular-nums ${scoreColor}`}>
+                      {docScore != null ? `${docScore}%` : "—"}
+                    </span>
+                  </div>
+                );
+              })}
+            </TabsContent>
+
+            {/* Tab: Recomendações */}
+            <TabsContent value="recs" className="space-y-4">
+              {result.recomendacoes.length === 0 ? (
+                <Card>
+                  <CardContent className="flex flex-col items-center gap-2 py-8">
+                    <CheckCircle2 className="h-8 w-8 text-success" />
+                    <p className="text-sm font-medium">Nenhuma recomendação pendente</p>
+                    <p className="text-xs text-muted-foreground">Todos os requisitos foram atendidos</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <>
+                  {["Alta", "Média"].map((prio) => {
+                    const recs = result.recomendacoes.filter((r) => r.prioridade === prio);
+                    if (recs.length === 0) return null;
+                    return (
+                      <Card key={prio}>
+                        <CardHeader className="pb-3">
+                          <CardTitle className="flex items-center gap-2 text-sm font-heading">
+                            <Badge variant={prio === "Alta" ? "destructive" : "secondary"}>{prio}</Badge>
+                            {recs.length} {recs.length === 1 ? "recomendação" : "recomendações"}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                          {recs.slice(0, 20).map((rec, i) => (
+                            <div key={i} className="rounded border p-2.5 text-sm">
+                              <p className="font-medium">{rec.tipo}</p>
+                              <p className="text-xs text-muted-foreground">{rec.documento} · {rec.topico}</p>
+                              <p className="mt-1 text-xs">{rec.teste}</p>
+                            </div>
+                          ))}
+                          {recs.length > 20 && (
+                            <p className="text-xs text-muted-foreground text-center">...e mais {recs.length - 20}</p>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </>
+              )}
+            </TabsContent>
+
+            {/* Tab: Escala de Conformidade */}
+            <TabsContent value="scale">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="space-y-3">
+                    {CONFORMIDADE_SCALE.map((band) => {
+                      const isActive =
+                        result.conformidade_nao_ponderada * 100 >= band.min &&
+                        result.conformidade_nao_ponderada * 100 <= band.max;
+                      return (
+                        <div
+                          key={band.label}
+                          className={`flex items-center gap-4 rounded-lg border p-3 transition-colors ${isActive ? "ring-2 ring-offset-2" : "opacity-60"}`}
+                          style={isActive ? { borderColor: band.color, boxShadow: `0 0 0 2px ${band.color}40` } : undefined}
+                        >
+                          <span className="h-4 w-4 rounded-full shrink-0" style={{ backgroundColor: band.color }} />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{band.label}</p>
+                            <p className="text-xs text-muted-foreground">{band.description}</p>
+                          </div>
+                          <span className="text-xs font-mono text-muted-foreground">{band.range}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
 
           {/* Start over */}
           <div className="flex justify-center">

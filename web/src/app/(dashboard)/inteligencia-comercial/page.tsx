@@ -28,6 +28,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StatCard } from "@/components/stat-card";
 import {
   fetchPtax,
+  fetchCommodities,
   fetchComexYearly,
   fetchComexByUF,
   fetchCfemTopMunicipios,
@@ -37,6 +38,7 @@ import {
   fetchAnmBySubstancia,
   fetchAnmStats,
   type PtaxResponse,
+  type CommodityResponse,
 } from "@/lib/api";
 import { fmtBR, fmtReais, fmtCompact } from "@/lib/format";
 
@@ -97,12 +99,15 @@ export default function InteligenciaComercialPage() {
 
 function MercadoTab() {
   const [ptax, setPtax] = useState<PtaxResponse | null>(null);
+  const [commodities, setCommodities] = useState<CommodityResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchPtax()
-      .then(setPtax)
+    Promise.all([
+      fetchPtax().then(setPtax),
+      fetchCommodities().then(setCommodities).catch(() => {}),
+    ])
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
@@ -167,6 +172,37 @@ function MercadoTab() {
           <p className="mt-2 text-[10px] text-muted-foreground/60">Fonte: BCB PTAX</p>
         </CardContent>
       </Card>
+
+      {/* Commodity Prices */}
+      {commodities && commodities.latest && Object.keys(commodities.latest).length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">
+              Cotações de Minerais
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {Object.entries(commodities.latest).map(([mineral, data]) => (
+                <div key={mineral} className="rounded-lg border p-3">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    {mineral}
+                  </p>
+                  <p className="mt-1 text-lg font-bold tabular-nums">
+                    {data.preco ?? data.price ?? Object.values(data).find((v) => typeof v === "string" && /[\d.,]/.test(v)) ?? "—"}
+                  </p>
+                  {(data.unidade ?? data.unit) && (
+                    <p className="text-[10px] text-muted-foreground">{data.unidade ?? data.unit}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+            <p className="mt-3 text-[10px] text-muted-foreground/60">
+              Fonte: commodity_prices.csv (referência manual)
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

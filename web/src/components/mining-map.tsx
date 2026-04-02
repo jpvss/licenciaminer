@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useCallback, useState } from "react";
 import Map, {
   Source,
@@ -225,6 +226,14 @@ export function MiningMap({
               <p className="tabular-nums">
                 Área: {fmtHa(Number(popup.properties.AREA_HA))}
               </p>
+            )}
+            {popup.properties.processo_norm != null && (
+              <Link
+                href={`/concessoes?search=${encodeURIComponent(str(popup.properties.processo_norm))}`}
+                className="mt-1 inline-block text-[10px] text-brand-teal hover:underline"
+              >
+                Ver detalhes →
+              </Link>
             )}
           </div>
         </Popup>
