@@ -961,6 +961,49 @@ export function fetchStrategicMinerals() {
   );
 }
 
+export function fetchCommodityTimeSeries(mineral?: string) {
+  const qs = mineral ? `?mineral=${encodeURIComponent(mineral)}` : "";
+  return apiFetch<{
+    rows: Record<string, unknown>[];
+    minerals: string[];
+  }>(`/intelligence/commodities/time-series${qs}`);
+}
+
+export interface RegulatorySignal {
+  key: string;
+  label: string;
+  value: number;
+  unit?: string;
+  total?: number;
+  year?: number;
+  delta_pct?: number | null;
+  fonte: string;
+}
+
+export function fetchRegulatoryPulse() {
+  return apiFetch<{ signals: RegulatorySignal[] }>(
+    "/intelligence/regulatory-pulse"
+  );
+}
+
+export function fetchIbamaInfracoesTrend() {
+  return apiFetch<{ rows: { ano: number; total: number }[] }>(
+    "/intelligence/ibama/infracoes-trend"
+  );
+}
+
+export function fetchSemadLicensingTrend() {
+  return apiFetch<{
+    rows: {
+      ano: number;
+      total: number;
+      aprovados: number;
+      indeferidos: number;
+      taxa_aprovacao: number;
+    }[];
+  }>("/intelligence/semad/licensing-trend");
+}
+
 export function fetchAiStatus() {
   return apiFetch<{ available: boolean }>("/intelligence/ai-status");
 }

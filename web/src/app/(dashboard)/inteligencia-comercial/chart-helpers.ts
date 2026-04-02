@@ -71,6 +71,46 @@ export const MERCADO_PRESETS: PresetConfig[] = [
     fonte: "Fonte: BCB PTAX",
   },
   {
+    id: "commodity-ferro",
+    label: "Ferro 62% Fe CFR",
+    mode: "composed",
+    xKey: "data",
+    series: [
+      { key: "preco", label: "Ferro 62% Fe", type: "line", yAxisId: "left", color: COLORS.danger, format: fmtUSD },
+    ],
+    fonte: "Fonte: Investing.com — CFR Tianjin",
+  },
+  {
+    id: "commodity-ouro",
+    label: "Ouro (USD/oz)",
+    mode: "composed",
+    xKey: "data",
+    series: [
+      { key: "preco", label: "Ouro", type: "line", yAxisId: "left", color: COLORS.gold, format: fmtUSD },
+    ],
+    fonte: "Fonte: Investing.com",
+  },
+  {
+    id: "commodity-cobre",
+    label: "Cobre LME (USD/t)",
+    mode: "composed",
+    xKey: "data",
+    series: [
+      { key: "preco", label: "Cobre LME", type: "line", yAxisId: "left", color: COLORS.chart3, format: fmtUSD },
+    ],
+    fonte: "Fonte: LME / Trading Economics",
+  },
+  {
+    id: "commodity-litio",
+    label: "Lítio Li₂CO₃ (USD/t)",
+    mode: "composed",
+    xKey: "data",
+    series: [
+      { key: "preco", label: "Lítio Carbonato", type: "line", yAxisId: "left", color: COLORS.chart4, format: fmtUSD },
+    ],
+    fonte: "Fonte: Fastmarkets",
+  },
+  {
     id: "comex-anual",
     label: "Comércio Exterior (Anual)",
     mode: "bar-v",
@@ -150,6 +190,28 @@ export const PRODUCAO_PRESETS: PresetConfig[] = [
       { key: "valor_venda", label: "Valor Venda (R$)", type: "bar", yAxisId: "left", color: COLORS.teal, format: fmtReais },
     ],
     fonte: "Fonte: ANM — Relatório Anual de Lavra",
+  },
+  {
+    id: "ibama-infracoes",
+    label: "Infrações IBAMA (Anual)",
+    mode: "bar-v",
+    xKey: "ano",
+    series: [
+      { key: "total", label: "Infrações", type: "bar", yAxisId: "left", color: COLORS.danger, format: (v) => fmtBR(v) },
+    ],
+    fonte: "Fonte: IBAMA — Infrações Ambientais",
+  },
+  {
+    id: "semad-licenciamento",
+    label: "Licenciamento SEMAD (Anual)",
+    mode: "composed",
+    xKey: "ano",
+    series: [
+      { key: "aprovados", label: "Aprovados", type: "bar", yAxisId: "left", color: COLORS.success, format: (v) => fmtBR(v) },
+      { key: "indeferidos", label: "Indeferidos", type: "bar", yAxisId: "left", color: COLORS.danger, format: (v) => fmtBR(v) },
+      { key: "taxa_aprovacao", label: "Taxa Aprovação (%)", type: "line", yAxisId: "right", color: COLORS.gold, format: (v) => `${fmtBR(v, 1)}%` },
+    ],
+    fonte: "Fonte: SEMAD/MG — Decisões de Licenciamento",
   },
 ];
 

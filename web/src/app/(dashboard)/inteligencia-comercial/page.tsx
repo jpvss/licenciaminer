@@ -14,6 +14,7 @@ import { MercadoTab } from "./tab-mercado";
 import { ProducaoTab } from "./tab-producao";
 import { TerritorioTab } from "./tab-territorio";
 import { AiPanel } from "./ai-panel";
+import { RegulatoryPulse } from "./regulatory-pulse";
 import { PRESETS_BY_TAB } from "./chart-helpers";
 
 const TAB_ICONS = {
@@ -97,7 +98,13 @@ function InteligenciaContent() {
       {/* KPI Strip */}
       <KpiStrip />
 
-      {/* Tabs + AI Panel */}
+      {/* AI Briefing — full-width, above tabs */}
+      <AiPanel context={aiContext} />
+
+      {/* Regulatory Pulse — signal badges */}
+      <RegulatoryPulse />
+
+      {/* Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
         <TabsList className="flex flex-wrap h-auto gap-1">
           {TAB_KEYS.map((key) => {
@@ -111,39 +118,29 @@ function InteligenciaContent() {
           })}
         </TabsList>
 
-        {/* Layout: chart area + AI panel */}
-        <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-          <div>
-            <TabsContent value="mercado" className="mt-0">
-              <MercadoTab
-                activeMetric={activeMetric}
-                onMetricChange={setActiveMetric}
-              />
-            </TabsContent>
-            <TabsContent value="producao" className="mt-0">
-              <ProducaoTab
-                activeMetric={activeMetric}
-                onMetricChange={setActiveMetric}
-              />
-            </TabsContent>
-            <TabsContent value="territorio" className="mt-0">
-              <TerritorioTab
-                activeMetric={activeMetric}
-                onMetricChange={setActiveMetric}
-              />
-            </TabsContent>
-          </div>
-
-          {/* AI Panel — responsive: side on desktop, below on mobile */}
-          <div className="order-last">
-            <AiPanel context={aiContext} />
-          </div>
-        </div>
+        <TabsContent value="mercado" className="mt-0">
+          <MercadoTab
+            activeMetric={activeMetric}
+            onMetricChange={setActiveMetric}
+          />
+        </TabsContent>
+        <TabsContent value="producao" className="mt-0">
+          <ProducaoTab
+            activeMetric={activeMetric}
+            onMetricChange={setActiveMetric}
+          />
+        </TabsContent>
+        <TabsContent value="territorio" className="mt-0">
+          <TerritorioTab
+            activeMetric={activeMetric}
+            onMetricChange={setActiveMetric}
+          />
+        </TabsContent>
       </Tabs>
 
       {/* Footer */}
       <p className="text-[10px] text-muted-foreground/50 text-center">
-        Fontes: BCB PTAX, ANM (CFEM, RAL, SIGMINE), Comex Stat / MDIC, IBRAM
+        Fontes: BCB PTAX, ANM (CFEM, RAL, SIGMINE), Comex Stat / MDIC, IBAMA, SEMAD/MG, COPAM, Investing.com, LME
       </p>
     </div>
   );

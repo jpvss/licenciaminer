@@ -11,9 +11,69 @@ data,mineral,preco_usd,unidade,fonte
 2024-10-01,Minerio de Ferro (62% Fe CFR),108.90,USD/t,Investing.com
 2024-11-01,Minerio de Ferro (62% Fe CFR),104.10,USD/t,Investing.com
 2024-12-01,Minerio de Ferro (62% Fe CFR),105.40,USD/t,Investing.com
+2025-01-01,Minerio de Ferro (62% Fe CFR),104.80,USD/t,Investing.com
+2025-02-01,Minerio de Ferro (62% Fe CFR),106.20,USD/t,Investing.com
+2025-03-01,Minerio de Ferro (62% Fe CFR),103.50,USD/t,Investing.com
+2025-04-01,Minerio de Ferro (62% Fe CFR),100.30,USD/t,Investing.com
+2025-05-01,Minerio de Ferro (62% Fe CFR),102.80,USD/t,Investing.com
+2025-06-01,Minerio de Ferro (62% Fe CFR),108.40,USD/t,Investing.com
+2025-07-01,Minerio de Ferro (62% Fe CFR),110.50,USD/t,Investing.com
+2025-08-01,Minerio de Ferro (62% Fe CFR),113.00,USD/t,Investing.com
+2025-09-01,Minerio de Ferro (62% Fe CFR),109.20,USD/t,Investing.com
+2025-10-01,Minerio de Ferro (62% Fe CFR),107.60,USD/t,Investing.com
+2025-11-01,Minerio de Ferro (62% Fe CFR),105.90,USD/t,Investing.com
+2025-12-01,Minerio de Ferro (62% Fe CFR),108.30,USD/t,Investing.com
+2026-01-01,Minerio de Ferro (62% Fe CFR),100.80,USD/t,Investing.com
+2026-02-01,Minerio de Ferro (62% Fe CFR),104.50,USD/t,Investing.com
+2026-03-01,Minerio de Ferro (62% Fe CFR),107.50,USD/t,Investing.com
 2024-01-02,Ouro,2062.00,USD/oz,Investing.com
+2024-03-01,Ouro,2160.00,USD/oz,Investing.com
 2024-06-01,Ouro,2326.00,USD/oz,Investing.com
+2024-09-01,Ouro,2500.00,USD/oz,Investing.com
 2024-12-01,Ouro,2638.00,USD/oz,Investing.com
+2025-01-01,Ouro,2624.00,USD/oz,Investing.com
+2025-03-01,Ouro,2870.00,USD/oz,Investing.com
+2025-06-01,Ouro,3320.00,USD/oz,Investing.com
+2025-09-01,Ouro,3850.00,USD/oz,Investing.com
+2025-12-01,Ouro,4534.00,USD/oz,Investing.com
+2026-01-01,Ouro,4580.00,USD/oz,Investing.com
+2026-03-01,Ouro,4626.00,USD/oz,Investing.com
 2024-01-02,Niobio (FeNb),44.00,USD/kg,IndexMundi
 2024-06-01,Niobio (FeNb),44.00,USD/kg,IndexMundi
 2024-12-01,Niobio (FeNb),43.50,USD/kg,IndexMundi
+2025-03-01,Niobio (FeNb),43.80,USD/kg,IndexMundi
+2025-06-01,Niobio (FeNb),44.20,USD/kg,IndexMundi
+2025-09-01,Niobio (FeNb),44.50,USD/kg,IndexMundi
+2025-12-01,Niobio (FeNb),45.00,USD/kg,IndexMundi
+2026-01-01,Niobio (FeNb),45.20,USD/kg,IndexMundi
+2026-03-01,Niobio (FeNb),45.50,USD/kg,IndexMundi
+2024-01-02,Cobre (LME),8490.00,USD/t,LME/Trading Economics
+2024-03-01,Cobre (LME),8850.00,USD/t,LME/Trading Economics
+2024-06-01,Cobre (LME),9800.00,USD/t,LME/Trading Economics
+2024-09-01,Cobre (LME),9280.00,USD/t,LME/Trading Economics
+2024-12-01,Cobre (LME),8950.00,USD/t,LME/Trading Economics
+2025-01-01,Cobre (LME),8880.00,USD/t,LME/Trading Economics
+2025-03-01,Cobre (LME),9650.00,USD/t,LME/Trading Economics
+2025-06-01,Cobre (LME),10800.00,USD/t,LME/Trading Economics
+2025-09-01,Cobre (LME),11400.00,USD/t,LME/Trading Economics
+2025-12-01,Cobre (LME),12470.00,USD/t,LME/Trading Economics
+2026-01-01,Cobre (LME),13950.00,USD/t,LME/Trading Economics
+2026-03-01,Cobre (LME),12270.00,USD/t,LME/Trading Economics
+2024-01-02,Litio (Li2CO3),13500.00,USD/t,Fastmarkets
+2024-06-01,Litio (Li2CO3),12800.00,USD/t,Fastmarkets
+2024-12-01,Litio (Li2CO3),10200.00,USD/t,Fastmarkets
+2025-03-01,Litio (Li2CO3),10500.00,USD/t,Fastmarkets
+2025-06-01,Litio (Li2CO3),11200.00,USD/t,Fastmarkets
+2025-09-01,Litio (Li2CO3),14800.00,USD/t,Fastmarkets
+2025-12-01,Litio (Li2CO3),17380.00,USD/t,Fastmarkets
+2026-01-01,Litio (Li2CO3),18500.00,USD/t,Fastmarkets
+2026-03-01,Litio (Li2CO3),20000.00,USD/t,Fastmarkets
+2024-01-02,Manganes (44% Mn),4.80,USD/dmtu,Asian Metal
+2024-06-01,Manganes (44% Mn),4.50,USD/dmtu,Asian Metal
+2024-12-01,Manganes (44% Mn),4.30,USD/dmtu,Asian Metal
+2025-03-01,Manganes (44% Mn),4.48,USD/dmtu,Asian Metal
+2025-06-01,Manganes (44% Mn),4.21,USD/dmtu,Asian Metal
+2025-09-01,Manganes (44% Mn),4.35,USD/dmtu,Asian Metal
+2025-12-01,Manganes (44% Mn),4.60,USD/dmtu,Asian Metal
+2026-01-01,Manganes (44% Mn),4.75,USD/dmtu,Asian Metal
+2026-03-01,Manganes (44% Mn),4.65,USD/dmtu,Asian Metal

@@ -1,18 +1,26 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   fetchPtax,
   fetchCommodities,
   fetchComexYearly,
   fetchComexByUF,
   fetchComexByCountry,
+  fetchCommodityTimeSeries,
   type PtaxResponse,
   type CommodityResponse,
 } from "@/lib/api";
 import { MetricChart } from "./metric-chart";
 import { MERCADO_PRESETS } from "./chart-helpers";
+
+/** Mineral name mapping for filtering commodity time-series by preset ID */
+const COMMODITY_MINERAL_MAP: Record<string, string> = {
+  "commodity-ferro": "Minerio de Ferro (62% Fe CFR)",
+  "commodity-ouro": "Ouro",
+  "commodity-cobre": "Cobre (LME)",
+  "commodity-litio": "Litio (Li2CO3)",
+};
 
 interface MercadoTabProps {
   activeMetric: string;
@@ -25,14 +33,24 @@ export function MercadoTab({ activeMetric, onMetricChange }: MercadoTabProps) {
   const [comexYearly, setComexYearly] = useState<Record<string, unknown>[] | null>(null);
   const [comexByUF, setComexByUF] = useState<Record<string, unknown>[] | null>(null);
   const [comexByCountry, setComexByCountry] = useState<Record<string, unknown>[] | null>(null);
+  const [commodityByMineral, setCommodityByMineral] = useState<
+    Record<string, Record<string, unknown>[]>
+  >({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Fetch all commodity minerals in parallel
+    const mineralFetches = Object.entries(COMMODITY_MINERAL_MAP).map(
+      ([presetId, mineralName]) =>
+        fetchCommodityTimeSeries(mineralName)
+          .then((r) => ({ presetId, rows: r.rows }))
+          .catch(() => ({ presetId, rows: [] }))
+    );
+
     Promise.all([
       fetchPtax().then(setPtax),
       fetchCommodities().then(setCommodities).catch(() => {}),
       fetchComexYearly().then((r) => {
-        // Pivot by year
         const pivot: Record<number, Record<string, unknown>> = {};
         for (const row of r.rows) {
           if (!pivot[row.ano]) pivot[row.ano] = { ano: row.ano };
@@ -42,12 +60,18 @@ export function MercadoTab({ activeMetric, onMetricChange }: MercadoTabProps) {
       }),
       fetchComexByUF().then((r) => setComexByUF(r.rows)),
       fetchComexByCountry().then((r) => setComexByCountry(r.rows)),
+      Promise.all(mineralFetches).then((results) => {
+        const byMineral: Record<string, Record<string, unknown>[]> = {};
+        for (const { presetId, rows } of results) {
+          byMineral[presetId] = rows as Record<string, unknown>[];
+        }
+        setCommodityByMineral(byMineral);
+      }),
     ])
       .catch((e) => console.error("mercado:", e))
       .finally(() => setLoading(false));
   }, []);
 
-  // Select the right data based on active preset
   const chartData = useCallback((): Record<string, unknown>[] | null => {
     switch (activeMetric) {
       case "cambio": {
@@ -57,6 +81,11 @@ export function MercadoTab({ activeMetric, onMetricChange }: MercadoTabProps) {
           .filter((_, i) => i % step === 0 || i === ptax.rows.length - 1)
           .map((r) => ({ data: r.data, valor: Number(r.cotacao_venda) }));
       }
+      case "commodity-ferro":
+      case "commodity-ouro":
+      case "commodity-cobre":
+      case "commodity-litio":
+        return commodityByMineral[activeMetric] ?? null;
       case "comex-anual":
         return comexYearly;
       case "comex-pais":
@@ -66,7 +95,7 @@ export function MercadoTab({ activeMetric, onMetricChange }: MercadoTabProps) {
       default:
         return null;
     }
-  }, [activeMetric, ptax, comexYearly, comexByCountry, comexByUF]);
+  }, [activeMetric, ptax, commodityByMineral, comexYearly, comexByCountry, comexByUF]);
 
   return (
     <div className="space-y-4">
@@ -78,33 +107,23 @@ export function MercadoTab({ activeMetric, onMetricChange }: MercadoTabProps) {
         loading={loading}
       />
 
-      {/* Commodity price cards */}
+      {/* Commodity price summary cards */}
       {commodities && commodities.latest && Object.keys(commodities.latest).length > 0 && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Cotações de Minerais</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {Object.entries(commodities.latest).map(([mineral, data]) => (
-                <div key={mineral} className="rounded-lg border p-3">
-                  <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                    {mineral}
-                  </p>
-                  <p className="mt-1 text-lg font-bold tabular-nums">
-                    {data.preco_usd ?? "—"}
-                  </p>
-                  {data.unidade && (
-                    <p className="text-[10px] text-muted-foreground">{data.unidade}</p>
-                  )}
-                </div>
-              ))}
+        <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
+          {Object.entries(commodities.latest).map(([mineral, data]) => (
+            <div key={mineral} className="rounded-lg border p-2.5">
+              <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground truncate">
+                {mineral.split("(")[0].trim()}
+              </p>
+              <p className="mt-0.5 text-sm font-bold tabular-nums">
+                {data.preco_usd ?? "—"}
+              </p>
+              <p className="text-[9px] text-muted-foreground">
+                {data.unidade} · {data.data?.slice(0, 7)}
+              </p>
             </div>
-            <p className="mt-3 text-[10px] text-muted-foreground/60">
-              Fonte: commodity_prices.csv (referência manual — dados 2024)
-            </p>
-          </CardContent>
-        </Card>
+          ))}
+        </div>
       )}
     </div>
   );

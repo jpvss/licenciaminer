@@ -6,6 +6,8 @@ import {
   fetchCfemTopMunicipios,
   fetchCfemTopSubstancias,
   fetchRalTopSubstanciasValue,
+  fetchIbamaInfracoesTrend,
+  fetchSemadLicensingTrend,
   type CfemTimeRow,
 } from "@/lib/api";
 import { MetricChart } from "./metric-chart";
@@ -21,12 +23,13 @@ export function ProducaoTab({ activeMetric, onMetricChange }: ProducaoTabProps) 
   const [cfemMun, setCfemMun] = useState<Record<string, unknown>[] | null>(null);
   const [cfemSub, setCfemSub] = useState<Record<string, unknown>[] | null>(null);
   const [ralValue, setRalValue] = useState<Record<string, unknown>[] | null>(null);
+  const [ibamaInfracoes, setIbamaInfracoes] = useState<Record<string, unknown>[] | null>(null);
+  const [semadTrend, setSemadTrend] = useState<Record<string, unknown>[] | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
       fetchCfemTimeSeries().then((r) => {
-        // Format as "YYYY-MM" for chart xKey
         setCfemTime(
           r.rows.map((row: CfemTimeRow) => ({
             ...row,
@@ -37,6 +40,12 @@ export function ProducaoTab({ activeMetric, onMetricChange }: ProducaoTabProps) 
       fetchCfemTopMunicipios().then((r) => setCfemMun(r.rows)),
       fetchCfemTopSubstancias().then((r) => setCfemSub(r.rows)),
       fetchRalTopSubstanciasValue().then((r) => setRalValue(r.rows)),
+      fetchIbamaInfracoesTrend()
+        .then((r) => setIbamaInfracoes(r.rows))
+        .catch(() => setIbamaInfracoes([])),
+      fetchSemadLicensingTrend()
+        .then((r) => setSemadTrend(r.rows))
+        .catch(() => setSemadTrend([])),
     ])
       .catch((e) => console.error("producao:", e))
       .finally(() => setLoading(false));
@@ -52,10 +61,14 @@ export function ProducaoTab({ activeMetric, onMetricChange }: ProducaoTabProps) 
         return cfemSub;
       case "ral-producao":
         return ralValue;
+      case "ibama-infracoes":
+        return ibamaInfracoes;
+      case "semad-licenciamento":
+        return semadTrend;
       default:
         return null;
     }
-  }, [activeMetric, cfemTime, cfemMun, cfemSub, ralValue]);
+  }, [activeMetric, cfemTime, cfemMun, cfemSub, ralValue, ibamaInfracoes, semadTrend]);
 
   return (
     <MetricChart

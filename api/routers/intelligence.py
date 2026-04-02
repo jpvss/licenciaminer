@@ -518,6 +518,191 @@ def get_strategic_minerals():
     return {"rows": rows}
 
 
+# ── Commodity Time-Series (pivoted by mineral) ──
+
+
+@router.get("/intelligence/commodities/time-series")
+def get_commodity_time_series(mineral: str | None = Query(None)):
+    """Retorna série temporal de cotações pivotada por mineral."""
+    commodity_csv = REFERENCE_DIR / "commodity_prices.csv"
+    if not commodity_csv.exists():
+        return {"rows": [], "minerals": []}
+
+    with open(commodity_csv, encoding="utf-8") as f:
+        raw = list(csv.DictReader(f))
+
+    minerals = sorted({r["mineral"] for r in raw})
+
+    if mineral:
+        filtered = [r for r in raw if r["mineral"] == mineral]
+        rows = [
+            {"data": r["data"], "preco": float(r["preco_usd"]), "mineral": r["mineral"]}
+            for r in filtered
+        ]
+    else:
+        # Pivot: one row per date, one column per mineral
+        by_date: dict[str, dict] = {}
+        for r in raw:
+            d = r["data"]
+            if d not in by_date:
+                by_date[d] = {"data": d}
+            # Sanitize mineral name for JSON key
+            key = r["mineral"].split("(")[0].strip().lower().replace(" ", "_")
+            by_date[d][key] = float(r["preco_usd"])
+        rows = sorted(by_date.values(), key=lambda x: x["data"])
+
+    return {"rows": rows, "minerals": minerals}
+
+
+# ── Regulatory Pulse ──
+
+
+@router.get("/intelligence/regulatory-pulse")
+def get_regulatory_pulse():
+    """Sinais regulatórios consolidados para o dashboard."""
+    current_year = datetime.now().year
+    signals = []
+
+    # IBAMA infractions
+    ibama = _safe_query(
+        """
+        SELECT
+            EXTRACT(YEAR FROM TRY_CAST(dat_hora_auto_infracao AS TIMESTAMP)) AS ano,
+            COUNT(*) AS total
+        FROM v_ibama_infracoes
+        WHERE dat_hora_auto_infracao IS NOT NULL
+          AND EXTRACT(YEAR FROM TRY_CAST(dat_hora_auto_infracao AS TIMESTAMP)) >= ?
+        GROUP BY ano ORDER BY ano
+        """,
+        [current_year - 1],
+    )
+    if ibama:
+        current = next((r for r in ibama if r.get("ano") == current_year), None)
+        previous = next((r for r in ibama if r.get("ano") == current_year - 1), None)
+        if current:
+            delta = None
+            if previous and previous["total"]:
+                delta = round((current["total"] - previous["total"]) / previous["total"] * 100, 1)
+            signals.append({
+                "key": "ibama_infracoes",
+                "label": "IBAMA Infrações",
+                "value": current["total"],
+                "year": current_year,
+                "delta_pct": delta,
+                "fonte": "IBAMA",
+            })
+
+    # SEMAD approval rate
+    semad = _safe_query(
+        """
+        SELECT
+            COUNT(*) AS total,
+            SUM(CASE WHEN LOWER(decisao) LIKE '%%deferid%%'
+                     AND LOWER(decisao) NOT LIKE '%%indefer%%' THEN 1 ELSE 0 END) AS aprovados
+        FROM v_mg_semad
+        WHERE ano = ?
+        """,
+        [current_year],
+    )
+    if semad and semad[0].get("total"):
+        taxa = round(semad[0]["aprovados"] / semad[0]["total"] * 100, 1) if semad[0]["total"] else 0
+        signals.append({
+            "key": "semad_aprovacao",
+            "label": "SEMAD Aprovação",
+            "value": taxa,
+            "unit": "%",
+            "total": semad[0]["total"],
+            "year": current_year,
+            "fonte": "SEMAD/MG",
+        })
+
+    # ANM new processes (current year)
+    anm = _safe_query(
+        "SELECT COUNT(*) AS n FROM v_anm WHERE ANO = ?",
+        [current_year],
+    )
+    if anm and anm[0].get("n"):
+        signals.append({
+            "key": "anm_processos",
+            "label": "ANM Novos Processos",
+            "value": anm[0]["n"],
+            "year": current_year,
+            "fonte": "ANM/SIGMINE",
+        })
+
+    # COPAM meetings (last 90 days)
+    copam = _safe_query(
+        """
+        SELECT COUNT(*) AS n
+        FROM v_copam
+        WHERE data IS NOT NULL
+          AND TRY_CAST(data AS DATE) >= CURRENT_DATE - INTERVAL '90 days'
+        """
+    )
+    if copam and copam[0].get("n"):
+        signals.append({
+            "key": "copam_reunioes",
+            "label": "COPAM Reuniões (90d)",
+            "value": copam[0]["n"],
+            "fonte": "COPAM/CMI",
+        })
+
+    return {"signals": signals}
+
+
+# ── IBAMA Infractions Trend ──
+
+
+@router.get("/intelligence/ibama/infracoes-trend")
+def get_ibama_infracoes_trend():
+    """Infrações IBAMA por ano."""
+    rows = _safe_query(
+        """
+        SELECT
+            EXTRACT(YEAR FROM TRY_CAST(dat_hora_auto_infracao AS TIMESTAMP)) AS ano,
+            COUNT(*) AS total
+        FROM v_ibama_infracoes
+        WHERE dat_hora_auto_infracao IS NOT NULL
+        GROUP BY ano
+        HAVING ano IS NOT NULL
+        ORDER BY ano
+        """
+    )
+    return {"rows": [{"ano": int(r["ano"]), "total": r["total"]} for r in rows if r.get("ano")]}
+
+
+# ── SEMAD Licensing Trend ──
+
+
+@router.get("/intelligence/semad/licensing-trend")
+def get_semad_licensing_trend():
+    """Tendência de licenciamento SEMAD MG por ano."""
+    rows = _safe_query(
+        """
+        SELECT ano,
+               COUNT(*) AS total,
+               SUM(CASE WHEN LOWER(decisao) LIKE '%%deferid%%'
+                        AND LOWER(decisao) NOT LIKE '%%indefer%%' THEN 1 ELSE 0 END) AS aprovados,
+               SUM(CASE WHEN LOWER(decisao) LIKE '%%indefer%%' THEN 1 ELSE 0 END) AS indeferidos
+        FROM v_mg_semad
+        WHERE ano IS NOT NULL
+        GROUP BY ano
+        ORDER BY ano
+        """
+    )
+    result = []
+    for r in rows:
+        taxa = round(r["aprovados"] / r["total"] * 100, 1) if r["total"] else 0
+        result.append({
+            "ano": r["ano"],
+            "total": r["total"],
+            "aprovados": r["aprovados"],
+            "indeferidos": r["indeferidos"],
+            "taxa_aprovacao": taxa,
+        })
+    return {"rows": result}
+
+
 # ── AI Summary ──
 
 
@@ -530,33 +715,35 @@ _AI_SYSTEM_PROMPT = """Você é um sócio sênior de estratégia mineral no Summ
 
 Seu papel: analisar os dados quantitativos fornecidos E cruzar com seu conhecimento profundo do setor para entregar uma narrativa estratégica — não apenas números, mas O QUE SIGNIFICAM para quem está investindo ou operando no setor mineral brasileiro.
 
-## Estrutura do Briefing
+## Estrutura OBRIGATÓRIA do Briefing
 
-Escreva em formato de briefing executivo com estas seções:
+Você DEVE usar EXATAMENTE estas 3 seções, cada uma com seu cabeçalho em negrito em linha própria:
 
-**Cenário Atual** (2-3 parágrafos)
-Cruze os dados fornecidos com o contexto macroeconômico e setorial. Mencione:
-- Tendências de preço de commodities minerais (ferro, ouro, nióbio) e drivers globais (China, transição energética)
-- Câmbio USD/BRL e impacto na competitividade das exportações minerais
-- Movimentos regulatórios recentes (ANM, IBAMA, COPAM, legislação ambiental)
-- Eventos relevantes do setor nos últimos meses (fusões, acidentes, novas concessões, decisões judiciais)
+**Cenário Atual**
+2-3 parágrafos cruzando dados com contexto macro e setorial:
+- Preço de commodities (ferro, ouro, nióbio, cobre) e drivers globais (China, transição energética)
+- Câmbio USD/BRL e impacto na competitividade mineral
+- Ambiente regulatório: taxas de aprovação SEMAD, infrações IBAMA, atividade COPAM
+- Movimentos recentes do setor (fusões, decisões judiciais, novas concessões)
 
-**Sinais de Mercado** (bullets)
-- 3-5 indicadores-chave dos dados com interpretação estratégica
-- Compare com benchmarks ou períodos anteriores quando possível
+**Sinais de Mercado**
+- 4-6 bullets com indicadores-chave dos dados e interpretação estratégica
+- Compare com períodos anteriores quando disponível
+- Inclua: CFEM (arrecadação), balança comercial mineral, processos ANM, taxa de aprovação ambiental
 
 **Riscos e Oportunidades**
-- 2-3 riscos concretos (regulatório, ambiental, preço, câmbio)
-- 2-3 oportunidades que os dados sugerem
+- 2-3 riscos concretos (regulatório, ambiental, preço, câmbio, compliance)
+- 2-3 oportunidades concretas que os dados sugerem
 
 ## Diretrizes de Estilo
 - Português brasileiro, tom executivo (nem acadêmico, nem informal)
-- Cite números específicos dos dados — use formato brasileiro (1.234,56)
-- Referencie fontes: BCB PTAX, ANM/CFEM, Comex Stat/MDIC, SIGMINE
+- Cite números específicos — formato brasileiro (1.234,56)
+- Referencie fontes: BCB PTAX, ANM/CFEM, Comex Stat/MDIC, SIGMINE, IBAMA, SEMAD/MG
 - Conecte dados locais com tendências globais
-- Seja assertivo nas análises — investidores querem perspectiva, não disclaimers
-- NÃO comece com "Com base nos dados fornecidos..." — vá direto ao cenário
-- Máximo ~400 palavras
+- Seja assertivo — investidores querem perspectiva, não disclaimers
+- NÃO comece com "Com base nos dados..." — vá direto ao cenário
+- Cada seção deve ser substancial mas concisa. Máximo ~450 palavras total.
+- CRÍTICO: cada cabeçalho (**Cenário Atual**, **Sinais de Mercado**, **Riscos e Oportunidades**) deve estar em linha própria, sem texto antes ou depois na mesma linha.
 """
 
 
@@ -666,10 +853,67 @@ def _build_data_context() -> str:
         for mineral, data in latest_by.items():
             sections.append(f"{mineral}: {data['preco_usd']} {data.get('unidade', '')} (ref. {data['data']})")
 
+    # IBAMA infractions trend
+    ibama_trend = _safe_query(
+        """
+        SELECT
+            EXTRACT(YEAR FROM TRY_CAST(dat_hora_auto_infracao AS TIMESTAMP)) AS ano,
+            COUNT(*) AS total
+        FROM v_ibama_infracoes
+        WHERE dat_hora_auto_infracao IS NOT NULL
+        GROUP BY ano
+        ORDER BY ano DESC
+        LIMIT 3
+        """
+    )
+    if ibama_trend:
+        parts = [f"{int(r['ano'])}: {r['total']:,} infrações" for r in ibama_trend if r.get("ano")]
+        if parts:
+            sections.append(f"IBAMA infrações ambientais: {'; '.join(parts)}")
+
+    # SEMAD licensing approval rate
+    semad_rate = _safe_query(
+        """
+        SELECT ano,
+               COUNT(*) AS total,
+               SUM(CASE WHEN LOWER(decisao) LIKE '%deferid%'
+                        AND LOWER(decisao) NOT LIKE '%indefer%' THEN 1 ELSE 0 END) AS aprovados,
+               SUM(CASE WHEN LOWER(decisao) LIKE '%indefer%' THEN 1 ELSE 0 END) AS indeferidos
+        FROM v_mg_semad
+        WHERE ano IS NOT NULL AND ano >= ?
+        GROUP BY ano ORDER BY ano DESC
+        """,
+        [current_year - 1],
+    )
+    if semad_rate:
+        for r in semad_rate:
+            taxa = (r["aprovados"] / r["total"] * 100) if r["total"] else 0
+            sections.append(
+                f"SEMAD licenciamento {r['ano']}: {r['total']:,} decisões, "
+                f"{r['aprovados']:,} aprovadas ({taxa:.1f}%), {r['indeferidos']:,} indeferidas"
+            )
+
+    # ANM concession processes count
+    anm_total = _safe_query("SELECT COUNT(*) AS n FROM v_anm")
+    if anm_total and anm_total[0].get("n"):
+        sections.append(f"Processos minerários ANM (MG): {anm_total[0]['n']:,}")
+
+    # COPAM recent meetings
+    copam_recent = _safe_query(
+        """
+        SELECT COUNT(*) AS n
+        FROM v_copam
+        WHERE data IS NOT NULL
+          AND TRY_CAST(data AS DATE) >= CURRENT_DATE - INTERVAL '180 days'
+        """
+    )
+    if copam_recent and copam_recent[0].get("n"):
+        sections.append(f"COPAM: {copam_recent[0]['n']} reuniões nos últimos 6 meses")
+
     # Freshness
     meta = load_metadata()
     fresh_parts = []
-    for key in ["bcb_ptax", "anm_cfem", "comex_mineracao"]:
+    for key in ["bcb_ptax", "anm_cfem", "comex_mineracao", "ibama_infracoes", "mg_semad"]:
         if key in meta:
             dt = meta[key].get("collected_at", "")[:10]
             fresh_parts.append(f"{key}: {dt}")
