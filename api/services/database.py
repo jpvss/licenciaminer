@@ -7,7 +7,6 @@ Gerencia conexão DuckDB e execução de queries com thread-safety.
 import json
 import logging
 import tempfile
-from functools import lru_cache
 from pathlib import Path
 from threading import Lock
 
@@ -133,7 +132,6 @@ def load_metadata() -> dict:
     return {}
 
 
-@lru_cache(maxsize=1)
 def get_dataset_options() -> dict[str, str]:
     """Retorna datasets disponíveis para exploração."""
     from licenciaminer.database.schema import PARQUET_SOURCES
