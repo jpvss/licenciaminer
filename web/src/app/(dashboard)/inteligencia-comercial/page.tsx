@@ -113,7 +113,7 @@ function MercadoTab() {
       <Card>
         <CardContent className="flex flex-col items-center py-12 text-sm text-muted-foreground">
           <DollarSign className="h-8 w-8 text-muted-foreground/30 mb-2" />
-          {error ? `Erro: ${error}` : "Sem dados de câmbio. Execute: licenciaminer collect bcb"}
+          {error ? `Erro: ${error}` : "Dados de câmbio ainda não disponíveis."}
         </CardContent>
       </Card>
     );
@@ -184,7 +184,7 @@ function ComexTab() {
         setYearly(y.rows);
         setByUF(uf.rows);
       })
-      .catch(() => {})
+      .catch((e) => { console.error("comex:", e); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -246,7 +246,7 @@ function ComexTab() {
       )}
 
       {(!yearly || yearly.length === 0) && (
-        <EmptyData message="Sem dados de comércio exterior. Execute: licenciaminer collect comex" />
+        <EmptyData message="Dados de comércio exterior ainda não disponíveis." />
       )}
     </div>
   );
@@ -267,7 +267,7 @@ function ArrecadacaoTab() {
         setCfemSub(sub.rows);
         setRalSub(ral.rows);
       })
-      .catch(() => {})
+      .catch((e) => { console.error("cfem:", e); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -340,7 +340,7 @@ function ArrecadacaoTab() {
       )}
 
       {(!cfemMun || cfemMun.length === 0) && (!cfemSub || cfemSub.length === 0) && (
-        <EmptyData message="Sem dados CFEM/RAL. Execute: licenciaminer collect cfem e ral" />
+        <EmptyData message="Dados CFEM/RAL ainda não disponíveis." />
       )}
     </div>
   );
@@ -361,7 +361,7 @@ function TerritorioTab() {
         setBySubs(subs.rows);
         setStats(st);
       })
-      .catch(() => {})
+      .catch((e) => { console.error("territorio:", e); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -423,7 +423,7 @@ function TerritorioTab() {
       )}
 
       {(!byFase || byFase.length === 0) && (
-        <EmptyData message="Sem dados ANM. Execute: licenciaminer collect anm" />
+        <EmptyData message="Dados ANM ainda não disponíveis." />
       )}
     </div>
   );

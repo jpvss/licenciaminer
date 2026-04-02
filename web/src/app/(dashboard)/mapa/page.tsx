@@ -76,7 +76,7 @@ export default function MapaPage() {
 
   // Load filter options on mount
   useEffect(() => {
-    fetchGeoFilters().then(setFilterOptions).catch(() => {});
+    fetchGeoFilters().then(setFilterOptions).catch((e) => { console.error("geoFilters:", e); });
   }, []);
 
   // Load concessoes
@@ -112,13 +112,13 @@ export default function MapaPage() {
   // Lazy load restriction layers
   useEffect(() => {
     if (showUCs && !ucsGeojson) {
-      fetchGeoLayer("ucs").then(setUcsGeojson).catch(() => {});
+      fetchGeoLayer("ucs").then(setUcsGeojson).catch((e) => { console.error("UCs layer:", e); });
     }
   }, [showUCs, ucsGeojson]);
 
   useEffect(() => {
     if (showTIs && !tisGeojson) {
-      fetchGeoLayer("tis").then(setTisGeojson).catch(() => {});
+      fetchGeoLayer("tis").then(setTisGeojson).catch((e) => { console.error("TIs layer:", e); });
     }
   }, [showTIs, tisGeojson]);
 
@@ -322,7 +322,7 @@ export default function MapaPage() {
 
         {/* Map */}
         <Card className="overflow-hidden">
-          <div className="relative h-[600px] lg:h-[700px]">
+          <div className="relative h-[400px] sm:h-[500px] lg:h-[700px]">
             {loading && !geojson ? (
               <div className="flex h-full items-center justify-center bg-muted/30">
                 <div className="text-center">

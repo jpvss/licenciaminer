@@ -45,7 +45,7 @@ export function DocumentLinks({ raw }: DocumentLinksProps) {
   if (links.length === 0) {
     return (
       <p className="text-xs text-muted-foreground italic">
-        Nenhum documento dispon\u00edvel
+        Nenhum documento disponível
       </p>
     );
   }

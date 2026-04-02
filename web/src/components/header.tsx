@@ -22,7 +22,14 @@ import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 
-const MOBILE_NAV_SECTIONS = [
+interface MobileNavItem {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  disabled?: boolean;
+}
+
+const MOBILE_NAV_SECTIONS: { label: string; items: MobileNavItem[] }[] = [
   {
     label: "Summo Ambiental",
     items: [
@@ -45,12 +52,19 @@ const MOBILE_NAV_SECTIONS = [
     label: "Mineral Intelligence",
     items: [
       { href: "/inteligencia-comercial", label: "Inteligência Comercial", icon: Globe },
+      { href: "/monitoramento", label: "Monitoramento", icon: Search, disabled: true },
     ],
   },
   {
     label: "SQ Solutions",
     items: [
       { href: "/mineradora-modelo", label: "Mineradora Modelo", icon: Factory },
+    ],
+  },
+  {
+    label: "Gestão Interna",
+    items: [
+      { href: "/gestao-interna", label: "Gestão Interna", icon: Construction, disabled: true },
     ],
   },
 ];
@@ -84,6 +98,17 @@ export function Header() {
                   {section.label}
                 </p>
                 {section.items.map((item) => {
+                  if (item.disabled) {
+                    return (
+                      <span
+                        key={item.href}
+                        className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-foreground/30 cursor-not-allowed"
+                      >
+                        <item.icon className="h-4 w-4" />
+                        {item.label}
+                      </span>
+                    );
+                  }
                   const isActive =
                     item.href === "/"
                       ? pathname === "/"

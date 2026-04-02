@@ -247,7 +247,7 @@ export default function ExploradorPage() {
               <>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                    Decis\u00e3o
+                    Decisão
                   </label>
                   <Select value={decisao || "all"} onValueChange={(v) => { setDecisao(v === "all" ? "" : v); setPage(0); }}>
                     <SelectTrigger className="w-[140px]">
@@ -283,7 +283,7 @@ export default function ExploradorPage() {
 
                 <div>
                   <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                    Ano m\u00edn.
+                    Ano mín.
                   </label>
                   <Input
                     type="number"
@@ -298,7 +298,7 @@ export default function ExploradorPage() {
 
                 <div>
                   <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                    Ano m\u00e1x.
+                    Ano máx.
                   </label>
                   <Input
                     type="number"
@@ -318,7 +318,7 @@ export default function ExploradorPage() {
                     onCheckedChange={(v) => { setMiningOnly(!!v); setPage(0); }}
                   />
                   <label htmlFor="mining-only" className="text-xs cursor-pointer">
-                    Apenas minera\u00e7\u00e3o
+                    Apenas mineração
                   </label>
                 </div>
               </>
@@ -395,7 +395,7 @@ function formatCell(value: unknown): string {
       ? value.toLocaleString("pt-BR")
       : value.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
   }
-  if (typeof value === "boolean") return value ? "Sim" : "N\u00e3o";
+  if (typeof value === "boolean") return value ? "Sim" : "Não";
   const s = String(value);
   return s.length > 80 ? s.slice(0, 80) + "\u2026" : s;
 }

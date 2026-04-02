@@ -160,18 +160,18 @@ export function EmpresaDossier({ cnpj }: { cnpj: string }) {
       {/* KPIs */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          label="Decis\u00f5es"
+          label="Decisões"
           value={fmtBR(data.total_decisoes)}
           icon={BarChart3}
         />
         <StatCard
-          label="Taxa Aprova\u00e7\u00e3o"
+          label="Taxa Aprovação"
           value={fmtPct(data.taxa_aprovacao)}
           icon={TrendingUp}
           accentClass="bg-brand-teal"
         />
         <StatCard
-          label="Infra\u00e7\u00f5es IBAMA"
+          label="Infrações IBAMA"
           value={fmtBR(data.total_infracoes)}
           icon={FileWarning}
           accentClass={
@@ -220,7 +220,7 @@ export function EmpresaDossier({ cnpj }: { cnpj: string }) {
             <AccordionTrigger className="px-6 py-4 hover:no-underline">
               <div className="flex items-center gap-2 font-heading text-base">
                 <BarChart3 className="h-4 w-4 text-brand-teal" />
-                Hist\u00f3rico de Decis\u00f5es
+                Histórico de Decisões
                 <Badge variant="secondary" className="ml-2 tabular-nums">
                   {data.decisoes.length}
                 </Badge>
@@ -233,9 +233,9 @@ export function EmpresaDossier({ cnpj }: { cnpj: string }) {
                     <TableRow>
                       <TableHead>Processo</TableHead>
                       <TableHead>Atividade</TableHead>
-                      <TableHead>Decis\u00e3o</TableHead>
+                      <TableHead>Decisão</TableHead>
                       <TableHead>Data</TableHead>
-                      <TableHead>Munic\u00edpio</TableHead>
+                      <TableHead>Município</TableHead>
                       <TableHead className="w-10"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -282,7 +282,7 @@ export function EmpresaDossier({ cnpj }: { cnpj: string }) {
             <AccordionTrigger className="px-6 py-4 hover:no-underline">
               <div className="flex items-center gap-2 font-heading text-base">
                 <MapPin className="h-4 w-4 text-brand-orange" />
-                T\u00edtulos Minerários ANM
+                Títulos Minerários ANM
                 <Badge variant="secondary" className="ml-2 tabular-nums">
                   {anmTitulos.length}
                 </Badge>
@@ -327,7 +327,7 @@ export function EmpresaDossier({ cnpj }: { cnpj: string }) {
             <AccordionTrigger className="px-6 py-4 hover:no-underline">
               <div className="flex items-center gap-2 font-heading text-base">
                 <Coins className="h-4 w-4 text-brand-gold" />
-                CFEM — Compensa\u00e7\u00e3o Financeira
+                CFEM — Compensação Financeira
               </div>
             </AccordionTrigger>
             <AccordionContent className="px-6 pb-4">
@@ -363,9 +363,9 @@ export function EmpresaDossier({ cnpj }: { cnpj: string }) {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Empreendimento</TableHead>
-                      <TableHead>Decis\u00e3o</TableHead>
+                      <TableHead>Decisão</TableHead>
                       <TableHead>Atividade</TableHead>
-                      <TableHead>Munic\u00edpio</TableHead>
+                      <TableHead>Município</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

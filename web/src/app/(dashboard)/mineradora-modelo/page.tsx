@@ -64,7 +64,7 @@ export default function MineradoraModeloPage() {
     setSetorLoading(true);
     fetchSimSetor(activeSetor)
       .then(setSetorData)
-      .catch(() => {})
+      .catch((e) => { console.error("setor:", e); })
       .finally(() => setSetorLoading(false));
   }, [activeSetor]);
 

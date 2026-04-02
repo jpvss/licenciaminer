@@ -66,7 +66,7 @@ export function ViabilidadeTab() {
         setRegionais(regs);
         if (ativs.length > 0) setAtividade(ativs[0]);
       })
-      .catch(() => {})
+      .catch((e) => { console.error("viabilidade options:", e); })
       .finally(() => setLoadingOptions(false));
   }, []);
 

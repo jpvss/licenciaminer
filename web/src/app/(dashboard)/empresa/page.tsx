@@ -15,7 +15,7 @@ export default function EmpresaPage() {
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     const cleaned = cnpj.replace(/\D/g, "");
-    if (cleaned.length >= 11) {
+    if (cleaned.length === 11 || cleaned.length === 14) {
       setActiveCnpj(cleaned);
     }
   }
@@ -50,7 +50,7 @@ export default function EmpresaPage() {
             <div className="relative flex-1">
               <Building2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Digite o CNPJ (somente números)"
+                placeholder="CNPJ (14 dígitos) ou CPF (11 dígitos)"
                 value={cnpj}
                 onChange={(e) => setCnpj(e.target.value)}
                 className="pl-10"

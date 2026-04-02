@@ -195,7 +195,7 @@ export function DataTable<TData>({
             disabled={page >= totalPages - 1}
             onClick={() => onPageChange(page + 1)}
           >
-            Pr\u00f3ximo
+            Próximo
             <ChevronRight className="ml-1 h-3 w-3" />
           </Button>
         </div>
@@ -223,7 +223,7 @@ function defaultFormat(value: unknown): string {
       ? value.toLocaleString("pt-BR")
       : value.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
   }
-  if (typeof value === "boolean") return value ? "Sim" : "N\u00e3o";
+  if (typeof value === "boolean") return value ? "Sim" : "Não";
   const s = String(value);
   return s.length > 100 ? s.slice(0, 100) + "\u2026" : s;
 }

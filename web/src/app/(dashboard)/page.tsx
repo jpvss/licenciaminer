@@ -35,7 +35,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchOverviewStats().then(setStats).catch((e) => setError(e.message));
-    fetchOverviewTrend().then(setTrend).catch(() => {});
+    fetchOverviewTrend().then(setTrend).catch((e) => { console.error("trend:", e); });
   }, []);
 
   return (

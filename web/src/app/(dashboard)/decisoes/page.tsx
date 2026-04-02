@@ -60,11 +60,11 @@ export default function DecisoesPage() {
 
   useEffect(() => {
     fetchRejectionTrend().then(setRejectionTrend).catch((e) => setError(e.message));
-    fetchRegionalRigor().then(setRegionalRigor).catch(() => {});
-    fetchDecisionsByModalidade().then(setModalidade).catch(() => {});
-    fetchApprovalRates().then(setApprovalRates).catch(() => {});
-    fetchInfractionBands().then(setInfractionBands).catch(() => {});
-    fetchInfractionsVsApproval().then(setInfractionsVsApproval).catch(() => {});
+    fetchRegionalRigor().then(setRegionalRigor).catch((e) => { console.error("regionalRigor:", e); });
+    fetchDecisionsByModalidade().then(setModalidade).catch((e) => { console.error("modalidade:", e); });
+    fetchApprovalRates().then(setApprovalRates).catch((e) => { console.error("approvalRates:", e); });
+    fetchInfractionBands().then(setInfractionBands).catch((e) => { console.error("infractionBands:", e); });
+    fetchInfractionsVsApproval().then(setInfractionsVsApproval).catch((e) => { console.error("infractionsVsApproval:", e); });
   }, []);
 
   // Aggregate modalidade data for stacked view
@@ -347,7 +347,7 @@ export default function DecisoesPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 font-heading">
                 <Activity className="h-4 w-4 text-brand-teal" />
-                Taxa de Aprova\u00e7\u00e3o Anual (Todas Atividades)
+                Taxa de Aprovação Anual (Todas Atividades)
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -357,8 +357,8 @@ export default function DecisoesPage() {
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                     <XAxis dataKey="ano" tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} />
                     <YAxis unit="%" domain={[0, 100]} tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} />
-                    <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v, name) => [name === "Taxa Aprova\u00e7\u00e3o" ? `${Number(v).toFixed(1)}%` : fmtNumber(Number(v)), String(name)]} />
-                    <Bar dataKey="taxa" name="Taxa Aprova\u00e7\u00e3o" radius={[4, 4, 0, 0]}>
+                    <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v, name) => [name === "Taxa Aprovação" ? `${Number(v).toFixed(1)}%` : fmtNumber(Number(v)), String(name)]} />
+                    <Bar dataKey="taxa" name="Taxa Aprovação" radius={[4, 4, 0, 0]}>
                       {yearlyRates.map((entry, i) => (
                         <Cell
                           key={i}

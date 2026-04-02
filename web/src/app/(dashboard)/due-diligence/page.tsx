@@ -98,7 +98,7 @@ export default function DueDiligencePage() {
 
   // Load license types
   useEffect(() => {
-    fetchLicenseTypes().then(setLicenseTypes).catch(() => {});
+    fetchLicenseTypes().then(setLicenseTypes).catch((e) => { console.error("licenseTypes:", e); });
   }, []);
 
   // Load documents when license changes

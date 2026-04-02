@@ -84,7 +84,7 @@ export default function ProspeccaoPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchConcessoesFilters().then(setFilterOptions).catch(() => {});
+    fetchConcessoesFilters().then(setFilterOptions).catch((e) => { console.error("filters:", e); });
   }, []);
 
   const loadOpportunities = useCallback(
@@ -115,7 +115,7 @@ export default function ProspeccaoPage() {
     setEmpresasLoading(true);
     fetchEmpresaPortfolios()
       .then((res) => setEmpresas(res.rows))
-      .catch(() => {})
+      .catch((e) => { console.error("empresas:", e); })
       .finally(() => setEmpresasLoading(false));
   };
 
@@ -124,7 +124,7 @@ export default function ProspeccaoPage() {
     setMunicipiosLoading(true);
     fetchMunicipioConcentration()
       .then((res) => setMunicipios(res.rows))
-      .catch(() => {})
+      .catch((e) => { console.error("municipios:", e); })
       .finally(() => setMunicipiosLoading(false));
   };
 
