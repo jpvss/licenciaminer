@@ -10,8 +10,17 @@ tests/
 .DS_Store
 data/raw/
 data/processed/*.csv
+data/processed/tmp_*.parquet
 data/processed/ibama_infracoes.parquet
 data/processed/mg_semad_licencas.parquet
+data/processed/ibama_infracoes_part1.parquet
+data/processed/ibama_infracoes_part2.parquet
+data/processed/mg_semad_licencas_part1.parquet
+data/processed/mg_semad_licencas_part2.parquet
+data/reference/anm_geometrias_mg.parquet
+data/reference/ibge_biomas.parquet
+data/reference/icmbio_ucs.parquet
+data/reference/funai_tis.parquet
 *.duckdb
 *.duckdb.wal
 uv.lock
