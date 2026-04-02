@@ -1,16 +1,16 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Sparkles,
   RefreshCw,
-  AlertCircle,
   ChevronDown,
   ChevronUp,
   Clock,
   Globe,
   BarChart3,
   ShieldAlert,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,121 +18,66 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
-  fetchAiStatus,
-  fetchAiBriefing,
+  fetchBriefing,
+  refreshBriefing,
   type BriefingSection,
 } from "@/lib/api";
 
-const CACHE_KEY = "sq_briefing_v2";
-const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
-
-interface CachedBriefing {
-  sections: BriefingSection[];
-  generatedAt: string;
-}
-
-interface AiPanelProps {
-  context: Record<string, unknown>;
-}
-
-function loadCache(): CachedBriefing | null {
-  try {
-    const raw = sessionStorage.getItem(CACHE_KEY);
-    if (!raw) return null;
-    const cached: CachedBriefing = JSON.parse(raw);
-    const age = Date.now() - new Date(cached.generatedAt).getTime();
-    if (age > CACHE_TTL_MS) return null;
-    return cached;
-  } catch {
-    return null;
-  }
-}
-
-function saveCache(sections: BriefingSection[], generatedAt: string) {
-  try {
-    sessionStorage.setItem(
-      CACHE_KEY,
-      JSON.stringify({ sections, generatedAt })
-    );
-  } catch {
-    // sessionStorage full — ignore
-  }
-}
-
-export function AiPanel({ context }: AiPanelProps) {
-  const cached = loadCache();
-  const [available, setAvailable] = useState<boolean | null>(null);
-  const [sections, setSections] = useState<BriefingSection[]>(
-    cached?.sections ?? []
+export function AiPanel() {
+  const [sections, setSections] = useState<BriefingSection[]>([]);
+  const [generatedAt, setGeneratedAt] = useState<string | null>(null);
+  const [status, setStatus] = useState<"loading" | "ready" | "generating">(
+    "loading"
   );
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(false);
-  const [generatedAt, setGeneratedAt] = useState<string | null>(
-    cached?.generatedAt ?? null
-  );
-  const abortRef = useRef<AbortController | null>(null);
-  const hasGeneratedRef = useRef(!!cached);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const generate = useCallback(() => {
-    if (abortRef.current) abortRef.current.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    setLoading(true);
-    setError(null);
-
-    fetchAiBriefing(context, controller.signal)
-      .then((res) => {
-        setSections(res.sections);
-        setGeneratedAt(res.generated_at);
-        saveCache(res.sections, res.generated_at);
-      })
-      .catch((e) => {
-        if (e.name !== "AbortError") {
-          setError(e.message || "Erro ao gerar análise");
-        }
-      })
-      .finally(() => setLoading(false));
-  }, [context]);
-
-  // Check AI availability + auto-generate once if no cache
   useEffect(() => {
     let cancelled = false;
-    fetchAiStatus()
-      .then((r) => {
-        if (cancelled) return;
-        setAvailable(r.available);
-        if (r.available && !hasGeneratedRef.current && sections.length === 0) {
-          hasGeneratedRef.current = true;
-          generate();
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setAvailable(false);
-      });
+    let retryTimer: ReturnType<typeof setTimeout>;
+
+    function load() {
+      fetchBriefing()
+        .then((res) => {
+          if (cancelled) return;
+          if (res.status === "ready" && res.sections.length > 0) {
+            setSections(res.sections);
+            setGeneratedAt(res.generated_at);
+            setStatus("ready");
+          } else {
+            // Still generating on server — poll again in 5s
+            setStatus("generating");
+            retryTimer = setTimeout(load, 5000);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) setStatus("ready"); // fail silently
+        });
+    }
+
+    load();
     return () => {
       cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Cleanup abort on unmount
-  useEffect(() => {
-    return () => {
-      if (abortRef.current) abortRef.current.abort();
+      clearTimeout(retryTimer);
     };
   }, []);
-
-  if (available === false) return null;
 
   const handleRefresh = () => {
-    try {
-      sessionStorage.removeItem(CACHE_KEY);
-    } catch {
-      // ignore
-    }
-    generate();
+    setRefreshing(true);
+    refreshBriefing()
+      .then(() => {
+        // Poll for the new briefing after a short delay
+        setTimeout(() => {
+          fetchBriefing().then((res) => {
+            if (res.status === "ready" && res.sections.length > 0) {
+              setSections(res.sections);
+              setGeneratedAt(res.generated_at);
+            }
+            setRefreshing(false);
+          });
+        }, 8000); // give the LLM time to generate
+      })
+      .catch(() => setRefreshing(false));
   };
 
   const formattedTimestamp = generatedAt
@@ -146,6 +91,7 @@ export function AiPanel({ context }: AiPanelProps) {
     : null;
 
   const hasSections = sections.length > 0;
+  const isLoading = status === "loading" || status === "generating";
 
   return (
     <Card className="border-brand-gold/20 bg-gradient-to-br from-card to-brand-gold/[0.02]">
@@ -153,6 +99,9 @@ export function AiPanel({ context }: AiPanelProps) {
         <CardTitle className="text-sm font-medium flex items-center gap-1.5">
           <Sparkles className="h-3.5 w-3.5 text-brand-gold" />
           Briefing Estratégico
+          {status === "generating" && !hasSections && (
+            <Loader2 className="h-3 w-3 animate-spin text-muted-foreground ml-1" />
+          )}
         </CardTitle>
         <div className="flex items-center gap-2">
           {formattedTimestamp && (
@@ -164,14 +113,17 @@ export function AiPanel({ context }: AiPanelProps) {
               {formattedTimestamp}
             </Badge>
           )}
-          {hasSections && !loading && (
+          {hasSections && (
             <Button
               variant="ghost"
               size="sm"
               className="h-7 gap-1 text-[10px] text-muted-foreground"
               onClick={handleRefresh}
+              disabled={refreshing}
             >
-              <RefreshCw className="h-3 w-3" />
+              <RefreshCw
+                className={cn("h-3 w-3", refreshing && "animate-spin")}
+              />
               Atualizar
             </Button>
           )}
@@ -194,8 +146,7 @@ export function AiPanel({ context }: AiPanelProps) {
 
       {!collapsed && (
         <CardContent>
-          {/* Loading skeleton */}
-          {loading && (
+          {isLoading && !hasSections && (
             <div className="grid gap-4 md:grid-cols-3">
               {Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="space-y-2">
@@ -209,35 +160,7 @@ export function AiPanel({ context }: AiPanelProps) {
             </div>
           )}
 
-          {/* Structured briefing from server */}
-          {!loading && hasSections && <SectionGrid sections={sections} />}
-
-          {/* Error state */}
-          {error && !hasSections && !loading && (
-            <div className="flex flex-col items-center py-4 gap-2">
-              <AlertCircle className="h-5 w-5 text-muted-foreground/40" />
-              <p className="text-xs text-muted-foreground text-center">
-                {error}
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRefresh}
-                className="gap-1.5 text-xs mt-1"
-              >
-                <RefreshCw className="h-3 w-3" />
-                Tentar novamente
-              </Button>
-            </div>
-          )}
-
-          {/* Initial availability check */}
-          {available === null && !loading && (
-            <div className="space-y-2">
-              <Skeleton className="h-3 w-full" />
-              <Skeleton className="h-3 w-[80%]" />
-            </div>
-          )}
+          {hasSections && <SectionGrid sections={sections} />}
         </CardContent>
       )}
     </Card>
@@ -284,7 +207,6 @@ const DEFAULT_STYLE: SectionStyle = {
 function SectionGrid({ sections }: { sections: BriefingSection[] }) {
   const titled = sections.filter((s) => s.title && s.content);
 
-  // Fallback: untitled section → single block
   if (titled.length === 0) {
     const content = sections[0]?.content ?? "";
     return (
@@ -326,7 +248,6 @@ function SectionGrid({ sections }: { sections: BriefingSection[] }) {
   );
 }
 
-/** Renders inline markdown: **bold**, bullet points. */
 function FormattedText({ text }: { text: string }) {
   const lines = text.split("\n");
 
@@ -336,13 +257,11 @@ function FormattedText({ text }: { text: string }) {
         const trimmed = line.trim();
         if (!trimmed) return <br key={i} />;
 
-        // Bold: **text**
         const formatted = trimmed.replace(
           /\*\*(.+?)\*\*/g,
           '<strong class="font-semibold text-foreground">$1</strong>'
         );
 
-        // Bullet points
         if (trimmed.startsWith("- ") || trimmed.startsWith("• ")) {
           return (
             <div key={i} className="flex gap-1.5 pl-1 py-0.5">

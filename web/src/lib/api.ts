@@ -1004,10 +1004,6 @@ export function fetchSemadLicensingTrend() {
   }>("/intelligence/semad/licensing-trend");
 }
 
-export function fetchAiStatus() {
-  return apiFetch<{ available: boolean }>("/intelligence/ai-status");
-}
-
 export interface BriefingSection {
   title: string;
   content: string;
@@ -1015,24 +1011,17 @@ export interface BriefingSection {
 
 export interface BriefingResponse {
   sections: BriefingSection[];
-  generated_at: string;
+  generated_at: string | null;
+  status: "ready" | "generating";
 }
 
-export function fetchAiBriefing(
-  context: Record<string, unknown>,
-  signal?: AbortSignal,
-): Promise<BriefingResponse> {
-  return fetch(`${API_BASE}/intelligence/ai-summary`, {
+export function fetchBriefing() {
+  return apiFetch<BriefingResponse>("/intelligence/briefing");
+}
+
+export function refreshBriefing() {
+  return apiFetch<{ status: string }>("/intelligence/briefing/refresh", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ context }),
-    signal,
-  }).then(async (res) => {
-    if (!res.ok) {
-      const detail = await res.text().catch(() => "");
-      throw new Error(detail || `AI summary API ${res.status}`);
-    }
-    return res.json();
   });
 }
 

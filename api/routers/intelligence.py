@@ -763,6 +763,63 @@ def get_ai_status():
     return {"available": available}
 
 
+# ── Server-side briefing cache ──
+
+_briefing_cache: dict = {"sections": [], "generated_at": None}
+_briefing_lock = __import__("threading").Lock()
+BRIEFING_TTL_SECONDS = 3600  # 1 hour
+
+
+def _generate_briefing_sync():
+    """Generate briefing and store in server cache. Called from background thread."""
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        logger.warning("ANTHROPIC_API_KEY not set — skipping briefing generation")
+        return
+
+    data_context = _build_data_context()
+    user_message = (
+        "Dados quantitativos do setor mineral brasileiro "
+        "(fonte: banco de dados Summo Quartile):\n\n"
+        f"{data_context}\n\n"
+        "Com base nesses dados e no seu conhecimento do setor mineral "
+        "brasileiro, escreva o briefing executivo."
+    )
+
+    try:
+        client = anthropic.Anthropic(api_key=api_key)
+        response = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=1500,
+            system=_AI_SYSTEM_PROMPT,
+            messages=[{"role": "user", "content": user_message}],
+        )
+        raw_text = response.content[0].text
+        sections = _parse_xml_sections(raw_text)
+        with _briefing_lock:
+            _briefing_cache["sections"] = sections
+            _briefing_cache["generated_at"] = datetime.now().isoformat()
+        logger.info("Briefing generated: %d sections", len(sections))
+    except Exception:
+        logger.exception("Failed to generate briefing")
+
+
+def start_briefing_scheduler():
+    """Start background thread that generates briefing on startup + every hour."""
+    import threading
+
+    def _loop():
+        import time
+        _generate_briefing_sync()
+        while True:
+            time.sleep(BRIEFING_TTL_SECONDS)
+            _generate_briefing_sync()
+
+    t = threading.Thread(target=_loop, daemon=True, name="briefing-scheduler")
+    t.start()
+    logger.info("Briefing scheduler started (TTL=%ds)", BRIEFING_TTL_SECONDS)
+
+
 def _build_data_context() -> str:
     """Coleta dados reais do banco para enriquecer o prompt da AI."""
     sections = []
@@ -956,47 +1013,22 @@ def _parse_xml_sections(raw: str) -> list[dict]:
     return sections
 
 
-@router.post("/intelligence/ai-summary")
-async def generate_ai_summary(request: AISummaryRequest):
-    """Generate structured AI briefing (non-streaming, server-parsed)."""
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not api_key:
-        raise HTTPException(
-            status_code=503,
-            detail="ANTHROPIC_API_KEY não configurada",
-        )
+@router.get("/intelligence/briefing")
+def get_briefing():
+    """Return server-cached briefing (generated in background, shared by all users)."""
+    with _briefing_lock:
+        sections = _briefing_cache["sections"]
+        generated_at = _briefing_cache["generated_at"]
 
-    data_context = _build_data_context()
-    frontend_context = json.dumps(request.context, ensure_ascii=False, default=str)
+    if not sections:
+        return {"sections": [], "generated_at": None, "status": "generating"}
 
-    user_message = f"""Dados quantitativos do setor mineral brasileiro (fonte: banco de dados Summo Quartile):
+    return {"sections": sections, "generated_at": generated_at, "status": "ready"}
 
-{data_context}
 
-Contexto da visualização do usuário:
-{frontend_context}
-
-Com base nesses dados e no seu conhecimento do setor mineral brasileiro, escreva o briefing executivo."""
-
-    client = anthropic.Anthropic(api_key=api_key)
-
-    try:
-        response = client.messages.create(
-            model="claude-opus-4-6",
-            max_tokens=1500,
-            system=_AI_SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": user_message}],
-        )
-        raw_text = response.content[0].text
-        sections = _parse_xml_sections(raw_text)
-
-        return {
-            "sections": sections,
-            "generated_at": datetime.now().isoformat(),
-        }
-    except anthropic.APIError as e:
-        logger.error("AI summary API error: %s", e)
-        raise HTTPException(status_code=502, detail=str(e.message))
-    except Exception as e:
-        logger.error("AI summary error: %s", e)
-        raise HTTPException(status_code=500, detail="Erro ao gerar briefing")
+@router.post("/intelligence/briefing/refresh")
+def refresh_briefing():
+    """Force-regenerate briefing (admin use)."""
+    import threading
+    threading.Thread(target=_generate_briefing_sync, daemon=True).start()
+    return {"status": "regenerating"}

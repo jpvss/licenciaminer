@@ -36,6 +36,8 @@ async def lifespan(app: FastAPI):
     """Gerencia ciclo de vida: conexão DuckDB no startup, cleanup no shutdown."""
     logger.info("Inicializando DuckDB...")
     get_connection()
+    from api.routers.intelligence import start_briefing_scheduler
+    start_briefing_scheduler()
     logger.info("API pronta")
     yield
     logger.info("Encerrando...")

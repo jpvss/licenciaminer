@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState, useMemo } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Globe,
@@ -69,15 +69,6 @@ function InteligenciaContent() {
     window.history.replaceState(null, "", `${window.location.pathname}${q ? `?${q}` : ""}`);
   }, [activeTab, activeMetric]);
 
-  // AI context — the backend will enrich this with real DB data
-  const aiContext = useMemo(() => ({
-    pagina: "inteligencia-comercial",
-    aba: activeTab,
-    preset: activeMetric,
-    tab_label: TAB_LABELS[activeTab],
-    data_atual: new Date().toISOString().slice(0, 10),
-  }), [activeTab, activeMetric]);
-
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -99,7 +90,7 @@ function InteligenciaContent() {
       <KpiStrip />
 
       {/* AI Briefing — full-width, above tabs */}
-      <AiPanel context={aiContext} />
+      <AiPanel />
 
       {/* Regulatory Pulse — signal badges */}
       <RegulatoryPulse />
