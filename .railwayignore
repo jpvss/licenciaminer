@@ -18,10 +18,7 @@ data/processed/ibama_infracoes_part2.parquet
 data/processed/mg_semad_licencas.parquet
 data/processed/mg_semad_licencas_part1.parquet
 data/processed/mg_semad_licencas_part2.parquet
-data/reference/anm_geometrias_mg.parquet
-data/reference/ibge_biomas.parquet
-data/reference/icmbio_ucs.parquet
-data/reference/funai_tis.parquet
+# Geometry files included — needed for Mapa Geoespacial (~64MB total, fits within limit)
 *.duckdb
 *.duckdb.wal
 uv.lock
