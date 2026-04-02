@@ -405,6 +405,59 @@ export function fetchEmpresaANM(cnpj: string) {
   );
 }
 
+/* ── Empresa Infrações (row-level) ── */
+
+export interface InfracaoDetail {
+  data_infracao: string | null;
+  nome: string;
+  descricao: string;
+  municipio: string;
+  uf: string;
+  fonte: string | null;
+}
+
+export function fetchEmpresaInfracoes(cnpj: string) {
+  return apiFetch<InfracaoDetail[]>(`/empresa/${cnpj}/infracoes`);
+}
+
+/* ── Empresa CFEM Breakdown ── */
+
+export interface CfemRow {
+  substancia: string;
+  municipio: string;
+  processo: string;
+  valor: number | null;
+  ano: number | null;
+}
+
+export interface CfemSummary {
+  substancia: string;
+  ano: number;
+  valor: number;
+  meses: number;
+}
+
+export interface CfemBreakdown {
+  rows: CfemRow[];
+  summary: CfemSummary[];
+}
+
+export function fetchEmpresaCfemBreakdown(cnpj: string) {
+  return apiFetch<CfemBreakdown>(`/empresa/${cnpj}/cfem-breakdown`);
+}
+
+/* ── Empresa Filiais ── */
+
+export interface Filial {
+  cnpj: string;
+  total_decisoes: number;
+  empreendimento: string;
+}
+
+export function fetchEmpresaFiliais(cnpj: string) {
+  return apiFetch<Filial[]>(`/empresa/${cnpj}/filiais`);
+}
+
 /* ── Report PDF ── */
 
 export async function downloadReportPDF(cnpj: string): Promise<void> {

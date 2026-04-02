@@ -25,6 +25,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataTable, columnsFromKeys } from "@/components/data-table";
 import { RecordDetail } from "@/components/record-detail";
+import { FilterChips } from "@/components/filter-chips";
 import {
   fetchExplorerDatasets,
   fetchExplorerData,
@@ -334,12 +335,25 @@ export default function ExploradorPage() {
         </CardContent>
       </Card>
 
+      {/* Active filter chips */}
+      <FilterChips
+        chips={[
+          ...(search ? [{ label: "Busca", value: search, onRemove: () => { setSearch(""); setSearchInput(""); setPage(0); } }] : []),
+          ...(decisao ? [{ label: "Decisão", value: decisao, onRemove: () => { setDecisao(""); setPage(0); } }] : []),
+          ...(classe ? [{ label: "Classe", value: classe, onRemove: () => { setClasse(""); setPage(0); } }] : []),
+          ...(anoMin ? [{ label: "Ano mín", value: anoMin, onRemove: () => { setAnoMin(""); setPage(0); } }] : []),
+          ...(anoMax ? [{ label: "Ano máx", value: anoMax, onRemove: () => { setAnoMax(""); setPage(0); } }] : []),
+          ...(miningOnly ? [{ label: "Mineração", value: "Sim", onRemove: () => { setMiningOnly(false); setPage(0); } }] : []),
+        ]}
+        onClearAll={clearFilters}
+      />
+
       {/* Data table */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="flex items-center gap-2 font-heading text-base">
             <FileSearch className="h-4 w-4 text-brand-teal" />
-            {selectedDataset || "\u2014"}
+            {selectedDataset || "—"}
             {data && (
               <Badge variant="secondary" className="ml-2 tabular-nums">
                 {fmtNumber(data.total)} registros

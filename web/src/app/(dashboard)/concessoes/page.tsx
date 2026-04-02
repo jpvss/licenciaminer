@@ -26,6 +26,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { MultiSelect } from "@/components/multi-select";
 import { Separator } from "@/components/ui/separator";
+import { FilterChips } from "@/components/filter-chips";
 import { DataTable, columnsFromKeys } from "@/components/data-table";
 import { StatCard } from "@/components/stat-card";
 import {
@@ -352,6 +353,19 @@ export default function ConcessoesPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Active filter chips */}
+      <FilterChips
+        chips={[
+          ...(search ? [{ label: "Busca", value: search, onRemove: () => { setSearch(""); setSearchInput(""); setPage(0); } }] : []),
+          ...regime.map((r) => ({ label: "Regime", value: regimeLabels[r] ?? r, onRemove: () => { setRegime((prev) => prev.filter((x) => x !== r)); setPage(0); } })),
+          ...categoria.map((c) => ({ label: "Categoria", value: c, onRemove: () => { setCategoria((prev) => prev.filter((x) => x !== c)); setPage(0); } })),
+          ...substancia.map((s) => ({ label: "Substância", value: s, onRemove: () => { setSubstancia((prev) => prev.filter((x) => x !== s)); setPage(0); } })),
+          ...municipio.map((m) => ({ label: "Município", value: m, onRemove: () => { setMunicipio((prev) => prev.filter((x) => x !== m)); setPage(0); } })),
+          ...(cfemStatus ? [{ label: "CFEM", value: cfemStatus === "ativo" ? "Ativo" : "Inativo", onRemove: () => { setCfemStatus(""); setPage(0); } }] : []),
+        ]}
+        onClearAll={clearFilters}
+      />
 
       {/* Data table */}
       <Card>

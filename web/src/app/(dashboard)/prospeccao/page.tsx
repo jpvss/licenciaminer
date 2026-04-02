@@ -212,14 +212,27 @@ export default function ProspeccaoPage() {
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">
                   Score mínimo
                 </label>
-                <Input
-                  type="number"
-                  className="w-[80px]"
-                  value={minScore}
-                  min={0}
-                  max={100}
-                  onChange={(e) => { setMinScore(Number(e.target.value)); setOppPage(0); }}
-                />
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    className="w-[80px]"
+                    value={minScore}
+                    min={0}
+                    max={100}
+                    onChange={(e) => { setMinScore(Number(e.target.value)); setOppPage(0); }}
+                  />
+                  <span className="group relative">
+                    <Info className="h-3.5 w-3.5 text-muted-foreground/50 cursor-help" />
+                    <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-56 rounded-md border bg-popover p-2.5 text-[10px] leading-relaxed text-popover-foreground shadow-md z-50">
+                      <strong className="block mb-1">Composição do Score (0-100):</strong>
+                      CFEM inativa: 30 pts<br />
+                      Mineral estratégico: 25 pts<br />
+                      Área (ha): 8-15 pts<br />
+                      Sem receita CFEM: 15 pts<br />
+                      Categoria alta: 8-15 pts
+                    </span>
+                  </span>
+                </div>
               </div>
 
               <div>

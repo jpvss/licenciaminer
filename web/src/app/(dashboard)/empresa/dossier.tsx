@@ -14,6 +14,7 @@ import {
   MapPin,
   Scale,
   TrendingUp,
+  Users,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -39,10 +40,16 @@ import {
   fetchReportData,
   fetchEmpresa,
   fetchEmpresaANM,
+  fetchEmpresaInfracoes,
+  fetchEmpresaCfemBreakdown,
+  fetchEmpresaFiliais,
   downloadReportPDF,
   type ReportData,
   type ANMTitulo,
   type EmpresaProfile,
+  type InfracaoDetail,
+  type CfemSummary,
+  type Filial,
 } from "@/lib/api";
 import { fmtBR, fmtPct, fmtReais, fmtDate, fmtCNPJ, fmtHa } from "@/lib/format";
 
@@ -50,6 +57,9 @@ export function EmpresaDossier({ cnpj }: { cnpj: string }) {
   const [data, setData] = useState<ReportData | null>(null);
   const [profile, setProfile] = useState<EmpresaProfile | null>(null);
   const [anmTitulos, setAnmTitulos] = useState<ANMTitulo[]>([]);
+  const [infracoes, setInfracoes] = useState<InfracaoDetail[]>([]);
+  const [cfemSummary, setCfemSummary] = useState<CfemSummary[]>([]);
+  const [filiais, setFiliais] = useState<Filial[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
@@ -60,7 +70,11 @@ export function EmpresaDossier({ cnpj }: { cnpj: string }) {
     setError(null);
     setAnmTitulos([]);
     setProfile(null);
+    setInfracoes([]);
+    setCfemSummary([]);
+    setFiliais([]);
 
+    // Core data (blocks render)
     Promise.all([
       fetchReportData(cnpj),
       fetchEmpresa(cnpj).catch(() => null),
@@ -77,6 +91,13 @@ export function EmpresaDossier({ cnpj }: { cnpj: string }) {
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
+
+    // Enrichment data (non-blocking, loads in background)
+    fetchEmpresaInfracoes(cnpj).then(setInfracoes).catch(() => {});
+    fetchEmpresaCfemBreakdown(cnpj)
+      .then((r) => setCfemSummary(r.summary))
+      .catch(() => {});
+    fetchEmpresaFiliais(cnpj).then(setFiliais).catch(() => {});
   }, [cnpj]);
 
   const handlePDFDownload = async () => {
@@ -227,10 +248,10 @@ export function EmpresaDossier({ cnpj }: { cnpj: string }) {
               </div>
             </AccordionTrigger>
             <AccordionContent className="px-0 pb-0">
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
                 <Table>
-                  <TableHeader>
-                    <TableRow>
+                  <TableHeader className="sticky top-0 z-10">
+                    <TableRow className="bg-muted/80 backdrop-blur-sm">
                       <TableHead>Processo</TableHead>
                       <TableHead>Atividade</TableHead>
                       <TableHead>Decisão</TableHead>
@@ -276,6 +297,49 @@ export function EmpresaDossier({ cnpj }: { cnpj: string }) {
           </AccordionItem>
         )}
 
+        {/* Infrações IBAMA detail */}
+        {infracoes.length > 0 && (
+          <AccordionItem value="infracoes" className="rounded-xl border bg-card shadow-sm">
+            <AccordionTrigger className="px-6 py-4 hover:no-underline">
+              <div className="flex items-center gap-2 font-heading text-base">
+                <FileWarning className="h-4 w-4 text-danger" />
+                Infrações IBAMA
+                <Badge variant="destructive" className="ml-2 tabular-nums">
+                  {infracoes.length}
+                </Badge>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="px-0 pb-0">
+              <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
+                <Table>
+                  <TableHeader className="sticky top-0 z-10">
+                    <TableRow className="bg-muted/80 backdrop-blur-sm">
+                      <TableHead>Data</TableHead>
+                      <TableHead>Município</TableHead>
+                      <TableHead>Descrição</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {infracoes.map((inf, i) => (
+                      <TableRow key={i}>
+                        <TableCell className="text-xs tabular-nums whitespace-nowrap">
+                          {inf.data_infracao ? fmtDate(inf.data_infracao) : "—"}
+                        </TableCell>
+                        <TableCell className="text-xs whitespace-nowrap">
+                          {inf.municipio || "—"}
+                        </TableCell>
+                        <TableCell className="text-xs max-w-[400px]">
+                          <span className="line-clamp-2">{inf.descricao || "—"}</span>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        )}
+
         {/* ANM Titles */}
         {anmTitulos.length > 0 && (
           <AccordionItem value="anm" className="rounded-xl border bg-card shadow-sm">
@@ -309,7 +373,7 @@ export function EmpresaDossier({ cnpj }: { cnpj: string }) {
                         <TableCell className="text-xs">{t.FASE}</TableCell>
                         <TableCell className="text-xs">{t.SUBS}</TableCell>
                         <TableCell className="text-xs tabular-nums">
-                          {t.AREA_HA != null ? fmtHa(t.AREA_HA) : "\u2014"}
+                          {t.AREA_HA != null ? fmtHa(t.AREA_HA) : "—"}
                         </TableCell>
                         <TableCell className="text-xs">{t.UF}</TableCell>
                       </TableRow>
@@ -321,26 +385,94 @@ export function EmpresaDossier({ cnpj }: { cnpj: string }) {
           </AccordionItem>
         )}
 
-        {/* CFEM detail */}
-        {data.cfem_meses_pagamento > 0 && (
+        {/* CFEM breakdown */}
+        {(cfemSummary.length > 0 || data.cfem_meses_pagamento > 0) && (
           <AccordionItem value="cfem" className="rounded-xl border bg-card shadow-sm">
             <AccordionTrigger className="px-6 py-4 hover:no-underline">
               <div className="flex items-center gap-2 font-heading text-base">
                 <Coins className="h-4 w-4 text-brand-gold" />
                 CFEM — Compensação Financeira
+                {cfemSummary.length > 0 && (
+                  <Badge variant="secondary" className="ml-2 tabular-nums">
+                    {fmtReais(data.cfem_total_pago)}
+                  </Badge>
+                )}
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="px-0 pb-0">
+              {cfemSummary.length > 0 ? (
+                <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
+                  <Table>
+                    <TableHeader className="sticky top-0 z-10">
+                      <TableRow className="bg-muted/80 backdrop-blur-sm">
+                        <TableHead>Ano</TableHead>
+                        <TableHead>Substância</TableHead>
+                        <TableHead className="text-right">Meses</TableHead>
+                        <TableHead className="text-right">Valor (R$)</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {cfemSummary.map((row, i) => (
+                        <TableRow key={i}>
+                          <TableCell className="text-xs tabular-nums">{row.ano}</TableCell>
+                          <TableCell className="text-xs">{row.substancia}</TableCell>
+                          <TableCell className="text-xs tabular-nums text-right">{row.meses}</TableCell>
+                          <TableCell className="text-xs tabular-nums text-right">{fmtReais(row.valor)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="px-6 pb-4">
+                  <dl className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Total Pago</dt>
+                      <dd className="font-medium tabular-nums">{fmtReais(data.cfem_total_pago)}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Meses com Pagamento</dt>
+                      <dd className="font-medium tabular-nums">{data.cfem_meses_pagamento}</dd>
+                    </div>
+                  </dl>
+                </div>
+              )}
+            </AccordionContent>
+          </AccordionItem>
+        )}
+
+        {/* Filiais (sister companies) */}
+        {filiais.length > 0 && (
+          <AccordionItem value="filiais" className="rounded-xl border bg-card shadow-sm">
+            <AccordionTrigger className="px-6 py-4 hover:no-underline">
+              <div className="flex items-center gap-2 font-heading text-base">
+                <Users className="h-4 w-4 text-brand-teal" />
+                Filiais e Empresas do Grupo
+                <Badge variant="secondary" className="ml-2 tabular-nums">
+                  {filiais.length}
+                </Badge>
               </div>
             </AccordionTrigger>
             <AccordionContent className="px-6 pb-4">
-              <dl className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <dt className="text-xs text-muted-foreground">Total Pago</dt>
-                  <dd className="font-medium tabular-nums">{fmtReais(data.cfem_total_pago)}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-muted-foreground">Meses com Pagamento</dt>
-                  <dd className="font-medium tabular-nums">{data.cfem_meses_pagamento}</dd>
-                </div>
-              </dl>
+              <p className="mb-3 text-xs text-muted-foreground">
+                Empresas com mesmo CNPJ raiz ({cnpj.slice(0, 8)}) encontradas nas decisões SEMAD.
+              </p>
+              <div className="space-y-2">
+                {filiais.map((f, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between rounded-lg border px-3 py-2"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{f.empreendimento}</p>
+                      <p className="text-xs font-mono text-muted-foreground">{fmtCNPJ(f.cnpj)}</p>
+                    </div>
+                    <Badge variant="secondary" className="ml-3 shrink-0 tabular-nums">
+                      {f.total_decisoes} decisões
+                    </Badge>
+                  </div>
+                ))}
+              </div>
             </AccordionContent>
           </AccordionItem>
         )}
@@ -372,7 +504,7 @@ export function EmpresaDossier({ cnpj }: { cnpj: string }) {
                     {data.casos_similares.map((c, i) => (
                       <TableRow key={i}>
                         <TableCell className="text-xs max-w-[200px] truncate">
-                          {String(c.empreendimento ?? "\u2014")}
+                          {String(c.empreendimento ?? "—")}
                         </TableCell>
                         <TableCell>
                           <DecisionBadge decision={String(c.decisao ?? "")} />

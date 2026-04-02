@@ -61,6 +61,90 @@ def get_empresa_anm_titles(
     return run_query(QUERY_CNPJ_ANM_TITULOS, [razao_social])
 
 
+@router.get("/empresa/{cnpj}/infracoes")
+def get_empresa_infracoes(
+    cnpj: str = Path(..., min_length=11, max_length=14),
+):
+    """Row-level IBAMA infractions for a company."""
+    rows = run_query(
+        """
+        SELECT
+            TRY_CAST(DAT_HORA_AUTO_INFRACAO AS TIMESTAMP) AS data_infracao,
+            NOME_INFRATOR AS nome,
+            DES_AUTO_INFRACAO AS descricao,
+            MUNICIPIO AS municipio,
+            UF AS uf,
+            _source_url AS fonte
+        FROM v_ibama_infracoes
+        WHERE REGEXP_REPLACE(CPF_CNPJ_INFRATOR, '[^0-9]', '', 'g') = ?
+        ORDER BY DAT_HORA_AUTO_INFRACAO DESC
+        LIMIT 200
+        """,
+        [cnpj],
+    )
+    return rows
+
+
+@router.get("/empresa/{cnpj}/cfem-breakdown")
+def get_empresa_cfem_breakdown(
+    cnpj: str = Path(..., min_length=11, max_length=14),
+):
+    """CFEM royalty payments broken down by year and substance."""
+    rows = run_query(
+        """
+        SELECT
+            "Substância" AS substancia,
+            "Município" AS municipio,
+            "Processo" AS processo,
+            TRY_CAST(
+                REPLACE(REPLACE(ValorRecolhido, '.', ''), ',', '.') AS DOUBLE
+            ) AS valor,
+            "AnoDoProcesso" AS ano
+        FROM v_cfem
+        WHERE CPF_CNPJ = ?
+        ORDER BY "AnoDoProcesso" DESC, "Substância"
+        LIMIT 500
+        """,
+        [cnpj],
+    )
+    # Aggregate by year + substance for summary
+    from collections import defaultdict
+    agg: dict[str, dict] = defaultdict(lambda: {"substancia": "", "ano": 0, "valor": 0.0, "meses": 0})
+    for r in rows:
+        key = f"{r.get('ano', '?')}|{r.get('substancia', '?')}"
+        agg[key]["substancia"] = r.get("substancia", "—")
+        agg[key]["ano"] = r.get("ano", 0)
+        agg[key]["valor"] += r.get("valor") or 0
+        agg[key]["meses"] += 1
+    summary = sorted(agg.values(), key=lambda x: (-x["ano"], -x["valor"]))
+    return {"rows": rows, "summary": summary}
+
+
+@router.get("/empresa/{cnpj}/filiais")
+def get_empresa_filiais(
+    cnpj: str = Path(..., min_length=11, max_length=14),
+):
+    """Sister companies sharing the same CNPJ root (first 8 digits)."""
+    cnpj_root = cnpj[:8]
+    # Find branches in SEMAD decisions
+    branches = run_query(
+        """
+        SELECT
+            cnpj_cpf AS cnpj,
+            COUNT(*) AS total_decisoes,
+            MIN(empreendimento) AS empreendimento
+        FROM v_mg_semad
+        WHERE cnpj_cpf LIKE ?
+          AND cnpj_cpf != ?
+          AND LENGTH(cnpj_cpf) = 14
+        GROUP BY cnpj_cpf
+        ORDER BY total_decisoes DESC
+        """,
+        [f"{cnpj_root}%", cnpj],
+    )
+    return branches
+
+
 @router.get("/empresas/ranking")
 def get_empresas_ranking():
     """Top 50 empresas por número de decisões (cross-source)."""

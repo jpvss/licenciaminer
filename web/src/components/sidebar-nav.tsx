@@ -134,9 +134,12 @@ export function SidebarNav() {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-sidebar-border px-6 py-3">
-        <p className="text-[10px] text-sidebar-foreground/30">
-          v0.2.0 &middot; Dados: MG SEMAD, IBAMA, ANM
+      <div className="border-t border-sidebar-border px-5 py-3 space-y-1.5">
+        <p className="text-[10px] leading-relaxed text-sidebar-foreground/40">
+          Fontes públicas oficiais · Cada registro rastreável à origem
+        </p>
+        <p className="text-[10px] text-sidebar-foreground/25">
+          v0.2.0 &middot; SEMAD, IBAMA, ANM, CFEM, COPAM
         </p>
       </div>
     </aside>
