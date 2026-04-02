@@ -563,22 +563,23 @@ def get_regulatory_pulse():
     current_year = datetime.now().year
     signals = []
 
-    # IBAMA infractions
+    # IBAMA infractions (EXTRACT returns float, cast to int for comparison)
     ibama = _safe_query(
         """
         SELECT
-            EXTRACT(YEAR FROM TRY_CAST(dat_hora_auto_infracao AS TIMESTAMP)) AS ano,
+            CAST(EXTRACT(YEAR FROM TRY_CAST(DAT_HORA_AUTO_INFRACAO AS TIMESTAMP)) AS INTEGER) AS ano,
             COUNT(*) AS total
         FROM v_ibama_infracoes
-        WHERE dat_hora_auto_infracao IS NOT NULL
-          AND EXTRACT(YEAR FROM TRY_CAST(dat_hora_auto_infracao AS TIMESTAMP)) >= ?
-        GROUP BY ano ORDER BY ano
+        WHERE DAT_HORA_AUTO_INFRACAO IS NOT NULL
+        GROUP BY ano
+        HAVING ano >= ?
+        ORDER BY ano
         """,
         [current_year - 1],
     )
     if ibama:
-        current = next((r for r in ibama if r.get("ano") == current_year), None)
-        previous = next((r for r in ibama if r.get("ano") == current_year - 1), None)
+        current = next((r for r in ibama if int(r.get("ano", 0)) == current_year), None)
+        previous = next((r for r in ibama if int(r.get("ano", 0)) == current_year - 1), None)
         if current:
             delta = None
             if previous and previous["total"]:
@@ -592,7 +593,7 @@ def get_regulatory_pulse():
                 "fonte": "IBAMA",
             })
 
-    # SEMAD approval rate
+    # SEMAD approval rate (ano column is string)
     semad = _safe_query(
         """
         SELECT
@@ -600,7 +601,7 @@ def get_regulatory_pulse():
             SUM(CASE WHEN LOWER(decisao) LIKE '%%deferid%%'
                      AND LOWER(decisao) NOT LIKE '%%indefer%%' THEN 1 ELSE 0 END) AS aprovados
         FROM v_mg_semad
-        WHERE ano = ?
+        WHERE CAST(ano AS INTEGER) = ?
         """,
         [current_year],
     )
@@ -616,36 +617,53 @@ def get_regulatory_pulse():
             "fonte": "SEMAD/MG",
         })
 
-    # ANM new processes (current year)
+    # ANM new processes (current year vs previous)
     anm = _safe_query(
-        "SELECT COUNT(*) AS n FROM v_anm WHERE ANO = ?",
-        [current_year],
+        "SELECT ANO AS ano, COUNT(*) AS n FROM v_anm WHERE ANO >= ? GROUP BY ANO ORDER BY ANO",
+        [current_year - 1],
     )
-    if anm and anm[0].get("n"):
-        signals.append({
-            "key": "anm_processos",
-            "label": "ANM Novos Processos",
-            "value": anm[0]["n"],
-            "year": current_year,
-            "fonte": "ANM/SIGMINE",
-        })
+    if anm:
+        anm_cur = next((r for r in anm if int(r.get("ano", 0)) == current_year), None)
+        anm_prev = next((r for r in anm if int(r.get("ano", 0)) == current_year - 1), None)
+        if anm_cur and anm_cur["n"]:
+            delta = None
+            if anm_prev and anm_prev["n"]:
+                delta = round((anm_cur["n"] - anm_prev["n"]) / anm_prev["n"] * 100, 1)
+            signals.append({
+                "key": "anm_processos",
+                "label": "ANM Novos Processos",
+                "value": anm_cur["n"],
+                "year": current_year,
+                "delta_pct": delta,
+                "fonte": "ANM/SIGMINE",
+            })
 
-    # COPAM meetings (last 90 days)
+    # COPAM meetings (data is DD/MM/YYYY string — use strptime)
     copam = _safe_query(
         """
         SELECT COUNT(*) AS n
         FROM v_copam
         WHERE data IS NOT NULL
-          AND TRY_CAST(data AS DATE) >= CURRENT_DATE - INTERVAL '90 days'
+          AND TRY_STRPTIME(data, '%d/%m/%Y') >= CURRENT_DATE - INTERVAL '365 days'
         """
     )
     if copam and copam[0].get("n"):
         signals.append({
             "key": "copam_reunioes",
-            "label": "COPAM Reuniões (90d)",
+            "label": "COPAM Reuniões (12m)",
             "value": copam[0]["n"],
             "fonte": "COPAM/CMI",
         })
+    else:
+        # Fallback: show total COPAM meetings if no recent data
+        copam_total = _safe_query("SELECT COUNT(*) AS n FROM v_copam")
+        if copam_total and copam_total[0].get("n"):
+            signals.append({
+                "key": "copam_reunioes",
+                "label": "COPAM Reuniões (total)",
+                "value": copam_total[0]["n"],
+                "fonte": "COPAM/CMI",
+            })
 
     return {"signals": signals}
 
