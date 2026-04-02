@@ -261,81 +261,56 @@ interface ParsedSection {
   content: string;
 }
 
-/** Known section titles to detect even when inline with text */
-const KNOWN_SECTIONS = [
-  "Cenário Atual",
-  "Cenario Atual",
-  "Sinais de Mercado",
-  "Riscos e Oportunidades",
-];
+/** XML tag → display title mapping */
+const SECTION_DEFS = [
+  { tag: "cenario", title: "Cenário Atual" },
+  { tag: "sinais", title: "Sinais de Mercado" },
+  { tag: "riscos", title: "Riscos e Oportunidades" },
+] as const;
 
 function parseSections(text: string): ParsedSection[] {
-  // Strategy 1: split by known section headers using regex
-  // This handles both "**Title**\ncontent" and "**Title** content on same line"
+  // Strategy 1: XML tags (most reliable with Claude)
+  const sections: ParsedSection[] = [];
+  for (const { tag, title } of SECTION_DEFS) {
+    // Match <tag>content</tag> or <tag>content (unclosed, during streaming)
+    const regex = new RegExp(`<${tag}>([\\s\\S]*?)(?:</${tag}>|$)`, "i");
+    const match = text.match(regex);
+    if (match?.[1]?.trim()) {
+      sections.push({ title, content: match[1].trim() });
+    }
+  }
+  if (sections.length >= 2) return sections;
+
+  // Strategy 2: fallback — known bold titles (**Title** anywhere in text)
+  const KNOWN_SECTIONS = [
+    "Cenário Atual", "Cenario Atual",
+    "Sinais de Mercado",
+    "Riscos e Oportunidades",
+  ];
   const sectionPattern = new RegExp(
     `\\*\\*(${KNOWN_SECTIONS.join("|")})\\*\\*\\s*[:—–\\-]?\\s*`,
     "gi"
   );
-
   const matches: { title: string; index: number; afterLength: number }[] = [];
   let m: RegExpExecArray | null;
   while ((m = sectionPattern.exec(text)) !== null) {
     matches.push({ title: m[1], index: m.index, afterLength: m[0].length });
   }
-
-  // If we found known sections, split by them
   if (matches.length >= 2) {
-    const sections: ParsedSection[] = [];
-
-    // Content before first section (preamble — skip if empty)
-    const preamble = text.slice(0, matches[0].index).trim();
-    if (preamble) {
-      sections.push({ title: "", content: preamble });
-    }
-
+    const fallback: ParsedSection[] = [];
     for (let i = 0; i < matches.length; i++) {
       const start = matches[i].index + matches[i].afterLength;
       const end = i + 1 < matches.length ? matches[i + 1].index : text.length;
-      sections.push({
+      fallback.push({
         title: matches[i].title.trim(),
         content: text.slice(start, end).trim(),
       });
     }
-    return sections;
+    return fallback;
   }
 
-  // Strategy 2: fallback — split by **Title** at start of line (any title)
-  const lines = text.split("\n");
-  const sections: ParsedSection[] = [];
-  let currentTitle = "";
-  let currentLines: string[] = [];
-
-  for (const line of lines) {
-    const headerMatch =
-      line.match(/^\s*\*\*(.+?)\*\*\s*[:—–\-]?\s*$/) ||
-      line.match(/^\s*#{2,3}\s+(.+?)\s*$/);
-    if (headerMatch) {
-      if (currentTitle || currentLines.length > 0) {
-        sections.push({
-          title: currentTitle,
-          content: currentLines.join("\n").trim(),
-        });
-      }
-      currentTitle = headerMatch[1].replace(/\*\*/g, "").trim();
-      currentLines = [];
-    } else {
-      currentLines.push(line);
-    }
-  }
-
-  if (currentTitle || currentLines.length > 0) {
-    sections.push({
-      title: currentTitle,
-      content: currentLines.join("\n").trim(),
-    });
-  }
-
-  return sections;
+  // Strategy 3: nothing detected — return empty → triggers fallback rendering
+  return [];
 }
 
 interface SectionStyle {
@@ -431,9 +406,14 @@ function StructuredBriefing({ text }: { text: string }) {
   );
 }
 
+/** Strip residual XML section tags from text content. */
+function stripXmlTags(s: string): string {
+  return s.replace(/<\/?(cenario|sinais|riscos)>/gi, "");
+}
+
 /** Renders inline markdown: **bold**, bullet points. */
 function FormattedText({ text }: { text: string }) {
-  const lines = text.split("\n");
+  const lines = stripXmlTags(text).split("\n");
 
   return (
     <>
