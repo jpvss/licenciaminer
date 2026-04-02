@@ -254,32 +254,34 @@ export default function ConcessoesPage() {
       {/* Filters */}
       <Card>
         <CardContent className="space-y-4 p-4">
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="flex flex-1 min-w-[200px] gap-2">
-              <div className="flex-1">
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                  Busca
-                </label>
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    className="pl-9"
-                    placeholder="Processo, titular, substância..."
-                    value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                  />
-                </div>
-              </div>
-              <div className="flex items-end">
-                <Button onClick={handleSearch} size="default">
-                  <Search className="mr-1.5 h-3.5 w-3.5" />
-                  Buscar
-                </Button>
+          {/* Search row */}
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                Busca
+              </label>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  className="pl-9"
+                  placeholder="Processo, titular, substância..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                />
               </div>
             </div>
+            <div className="flex items-end">
+              <Button onClick={handleSearch} size="default">
+                <Search className="mr-1.5 h-3.5 w-3.5" />
+                Buscar
+              </Button>
+            </div>
+          </div>
 
-            <div className="min-w-[160px]">
+          {/* Filter grid */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            <div>
               <label className="mb-1 block text-xs font-medium text-muted-foreground">
                 Regime
               </label>
@@ -292,7 +294,7 @@ export default function ConcessoesPage() {
               />
             </div>
 
-            <div className="min-w-[160px]">
+            <div>
               <label className="mb-1 block text-xs font-medium text-muted-foreground">
                 Categoria
               </label>
@@ -304,7 +306,7 @@ export default function ConcessoesPage() {
               />
             </div>
 
-            <div className="min-w-[160px]">
+            <div>
               <label className="mb-1 block text-xs font-medium text-muted-foreground">
                 Substância
               </label>
@@ -316,7 +318,7 @@ export default function ConcessoesPage() {
               />
             </div>
 
-            <div className="min-w-[160px]">
+            <div>
               <label className="mb-1 block text-xs font-medium text-muted-foreground">
                 Município
               </label>
@@ -333,7 +335,7 @@ export default function ConcessoesPage() {
                 CFEM
               </label>
               <Select value={cfemStatus || "all"} onValueChange={(v) => { setCfemStatus(v === "all" ? "" : v); setPage(0); }}>
-                <SelectTrigger className="w-[120px]">
+                <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -343,14 +345,14 @@ export default function ConcessoesPage() {
                 </SelectContent>
               </Select>
             </div>
-
-            {hasActiveFilters && (
-              <Button variant="ghost" size="sm" onClick={clearFilters} className="mb-0.5">
-                <X className="mr-1 h-3 w-3" />
-                Limpar
-              </Button>
-            )}
           </div>
+
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters}>
+              <X className="mr-1 h-3 w-3" />
+              Limpar filtros
+            </Button>
+          )}
         </CardContent>
       </Card>
 

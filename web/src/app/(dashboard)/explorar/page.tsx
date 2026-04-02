@@ -243,95 +243,91 @@ export default function ExploradorPage() {
           </div>
 
           {/* Row 2: Dataset-specific filters */}
-          <div className="flex flex-wrap items-end gap-3">
-            {isSemad && (
-              <>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                    Decisão
-                  </label>
-                  <Select value={decisao || "all"} onValueChange={(v) => { setDecisao(v === "all" ? "" : v); setPage(0); }}>
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todas</SelectItem>
-                      <SelectItem value="Deferido">Deferido</SelectItem>
-                      <SelectItem value="Indeferido">Indeferido</SelectItem>
-                      <SelectItem value="Arquivamento">Arquivamento</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+          {isSemad && (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:flex md:flex-wrap md:items-end">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Decisão
+                </label>
+                <Select value={decisao || "all"} onValueChange={(v) => { setDecisao(v === "all" ? "" : v); setPage(0); }}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    <SelectItem value="Deferido">Deferido</SelectItem>
+                    <SelectItem value="Indeferido">Indeferido</SelectItem>
+                    <SelectItem value="Arquivamento">Arquivamento</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                    Classe
-                  </label>
-                  <Select value={classe || "all"} onValueChange={(v) => { setClasse(v === "all" ? "" : v); setPage(0); }}>
-                    <SelectTrigger className="w-[100px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todas</SelectItem>
-                      {[1, 2, 3, 4, 5, 6].map((c) => (
-                        <SelectItem key={c} value={String(c)}>
-                          {c}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Classe
+                </label>
+                <Select value={classe || "all"} onValueChange={(v) => { setClasse(v === "all" ? "" : v); setPage(0); }}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    {[1, 2, 3, 4, 5, 6].map((c) => (
+                      <SelectItem key={c} value={String(c)}>
+                        {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                    Ano mín.
-                  </label>
-                  <Input
-                    type="number"
-                    className="w-[100px]"
-                    placeholder="2010"
-                    min={2000}
-                    max={2030}
-                    value={anoMin}
-                    onChange={(e) => { setAnoMin(e.target.value); setPage(0); }}
-                  />
-                </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Ano mín.
+                </label>
+                <Input
+                  type="number"
+                  placeholder="2010"
+                  min={2000}
+                  max={2030}
+                  value={anoMin}
+                  onChange={(e) => { setAnoMin(e.target.value); setPage(0); }}
+                />
+              </div>
 
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                    Ano máx.
-                  </label>
-                  <Input
-                    type="number"
-                    className="w-[100px]"
-                    placeholder="2025"
-                    min={2000}
-                    max={2030}
-                    value={anoMax}
-                    onChange={(e) => { setAnoMax(e.target.value); setPage(0); }}
-                  />
-                </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Ano máx.
+                </label>
+                <Input
+                  type="number"
+                  placeholder="2025"
+                  min={2000}
+                  max={2030}
+                  value={anoMax}
+                  onChange={(e) => { setAnoMax(e.target.value); setPage(0); }}
+                />
+              </div>
 
-                <div className="flex items-center gap-2 pb-2">
-                  <Checkbox
-                    id="mining-only"
-                    checked={miningOnly}
-                    onCheckedChange={(v) => { setMiningOnly(!!v); setPage(0); }}
-                  />
-                  <label htmlFor="mining-only" className="text-xs cursor-pointer">
-                    Apenas mineração
-                  </label>
-                </div>
-              </>
-            )}
+              <div className="flex items-center gap-2 col-span-2 sm:col-span-1 md:pb-2">
+                <Checkbox
+                  id="mining-only"
+                  checked={miningOnly}
+                  onCheckedChange={(v) => { setMiningOnly(!!v); setPage(0); }}
+                />
+                <label htmlFor="mining-only" className="text-xs cursor-pointer">
+                  Apenas mineração
+                </label>
+              </div>
+            </div>
+          )}
 
-            {hasActiveFilters && (
-              <Button variant="ghost" size="sm" onClick={clearFilters} className="mb-0.5">
-                <X className="mr-1 h-3 w-3" />
-                Limpar filtros
-              </Button>
-            )}
-          </div>
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters}>
+              <X className="mr-1 h-3 w-3" />
+              Limpar filtros
+            </Button>
+          )}
         </CardContent>
       </Card>
 
@@ -376,10 +372,13 @@ export default function ExploradorPage() {
               loading={loading}
             />
           ) : !loading && !error ? (
-            <div className="flex flex-col items-center justify-center py-16">
+            <div className="flex flex-col items-center justify-center py-12">
               <FileSearch className="h-10 w-10 text-muted-foreground/30" />
               <p className="mt-3 text-sm text-muted-foreground">
-                Selecione um dataset para explorar
+                Selecione um dataset acima para explorar os dados
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground/60">
+                Mg Semad = decisões de licenciamento · IBAMA = licenças federais · ANM = concessões minerárias
               </p>
             </div>
           ) : !error ? (

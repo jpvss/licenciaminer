@@ -87,6 +87,12 @@ export function ViabilidadeTab() {
   const cnpjClean = cnpjInput.replace(/\D/g, "");
   const showCnpjDossier = cnpjClean.length === 14;
 
+  const applyExample = (ex: { atividade: string; classe: string; regional: string }) => {
+    setAtividade(ex.atividade);
+    setClasse(ex.classe);
+    setRegional(ex.regional);
+  };
+
   return (
     <div className="space-y-6">
       <p className="text-sm text-muted-foreground">
@@ -97,32 +103,31 @@ export function ViabilidadeTab() {
       {/* Filter form */}
       <Card>
         <CardContent className="p-4 space-y-4">
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                Atividade
-              </label>
-              {loadingOptions ? (
-                <Skeleton className="h-10 w-full" />
-              ) : (
-                <Select value={atividade} onValueChange={setAtividade}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {atividades.map((a) => (
-                      <SelectItem key={a} value={a}>
-                        {a} {ATIVIDADE_LABELS[a.slice(0, 4)] ? `— ${ATIVIDADE_LABELS[a.slice(0, 4)]}` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-              <p className="mt-1 text-[10px] text-muted-foreground/60">
-                A-01: Pesquisa · A-02: Lavra · A-03: Beneficiamento
-              </p>
-            </div>
+          {/* Row 1: Atividade (full width — long labels) */}
+          <div>
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">
+              Atividade
+            </label>
+            {loadingOptions ? (
+              <Skeleton className="h-10 w-full" />
+            ) : (
+              <Select value={atividade} onValueChange={setAtividade}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecione uma atividade" />
+                </SelectTrigger>
+                <SelectContent>
+                  {atividades.map((a) => (
+                    <SelectItem key={a} value={a}>
+                      {a} {ATIVIDADE_LABELS[a.slice(0, 4)] ? `— ${ATIVIDADE_LABELS[a.slice(0, 4)]}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
 
+          {/* Row 2: Classe + Regional side by side */}
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-xs font-medium text-muted-foreground">
                 Classe
@@ -169,6 +174,7 @@ export function ViabilidadeTab() {
             </div>
           </div>
 
+          {/* Row 3: CNPJ + Consultar */}
           <div className="flex flex-wrap items-end gap-3">
             <div className="flex-1 min-w-[200px] max-w-xs">
               <label className="mb-1 block text-xs font-medium text-muted-foreground">
@@ -225,14 +231,43 @@ export function ViabilidadeTab() {
       )}
 
       {!data && !loading && !error && (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-16">
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-12">
           <FileText className="h-12 w-12 text-muted-foreground/30" />
           <p className="mt-4 text-sm text-muted-foreground">
-            Configure os parâmetros acima e clique em Consultar
+            Selecione os parâmetros acima e clique em Consultar
           </p>
           <p className="mt-1 text-xs text-muted-foreground/60">
             A análise compara seu perfil contra o histórico de decisões da SEMAD
           </p>
+          {atividades.length > 0 && (
+            <div className="mt-5 space-y-2">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60 text-center">
+                Exemplos para começar
+              </p>
+              <div className="flex flex-wrap justify-center gap-2">
+                {[
+                  { label: "Lavra · Classe 4", prefix: "A-02", classe: "4" },
+                  { label: "Pesquisa · Classe 1", prefix: "A-01", classe: "1" },
+                  { label: "Barragem · Classe 6", prefix: "A-05", classe: "6" },
+                ].map((ex) => {
+                  const atv = atividades.find(a => a.startsWith(ex.prefix));
+                  if (!atv) return null;
+                  return (
+                    <button
+                      key={ex.label}
+                      onClick={() => { applyExample({ atividade: atv, classe: ex.classe, regional: "" }); }}
+                      className="rounded-md border px-3 py-1.5 text-xs transition-colors hover:bg-muted"
+                    >
+                      {ex.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[10px] text-muted-foreground/40 text-center">
+                Clique em um exemplo para preencher os filtros, depois clique Consultar
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>

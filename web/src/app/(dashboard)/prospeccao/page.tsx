@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
+import Link from "next/link";
 import {
   TrendingUp,
   Search,
@@ -207,70 +208,69 @@ export default function ProspeccaoPage() {
         <TabsContent value="opportunities">
           {/* Filters */}
           <Card>
-            <CardContent className="flex flex-wrap items-end gap-3 p-4">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                  Score mínimo
-                </label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    className="w-[80px]"
-                    value={minScore}
-                    min={0}
-                    max={100}
-                    onChange={(e) => { setMinScore(Number(e.target.value)); setOppPage(0); }}
-                  />
-                  <span className="group relative">
-                    <Info className="h-3.5 w-3.5 text-muted-foreground/50 cursor-help" />
-                    <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-56 rounded-md border bg-popover p-2.5 text-[10px] leading-relaxed text-popover-foreground shadow-md z-50">
-                      <strong className="block mb-1">Composição do Score (0-100):</strong>
-                      CFEM inativa: 30 pts<br />
-                      Mineral estratégico: 25 pts<br />
-                      Área (ha): 8-15 pts<br />
-                      Sem receita CFEM: 15 pts<br />
-                      Categoria alta: 8-15 pts
+            <CardContent className="p-4">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 items-end">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                    Score mínimo
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      value={minScore}
+                      min={0}
+                      max={100}
+                      onChange={(e) => { setMinScore(Number(e.target.value)); setOppPage(0); }}
+                    />
+                    <span className="group relative">
+                      <Info className="h-3.5 w-3.5 text-muted-foreground/50 cursor-help" />
+                      <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-56 rounded-md border bg-popover p-2.5 text-[10px] leading-relaxed text-popover-foreground shadow-md z-50">
+                        <strong className="block mb-1">Composição do Score (0-100):</strong>
+                        CFEM inativa: 30 pts<br />
+                        Mineral estratégico: 25 pts<br />
+                        Área (ha): 8-15 pts<br />
+                        Sem receita CFEM: 15 pts<br />
+                        Categoria alta: 8-15 pts
+                      </span>
                     </span>
-                  </span>
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                  Regime
-                </label>
-                <MultiSelect
-                  options={filterOptions?.regimes ?? []}
-                  selected={regime}
-                  onChange={(v) => { setRegime(v); setOppPage(0); }}
-                  placeholder="Todos"
-                  labels={regimeLabels}
-                  className="w-[180px]"
-                />
-              </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                    Regime
+                  </label>
+                  <MultiSelect
+                    options={filterOptions?.regimes ?? []}
+                    selected={regime}
+                    onChange={(v) => { setRegime(v); setOppPage(0); }}
+                    placeholder="Todos"
+                    labels={regimeLabels}
+                  />
+                </div>
 
-              <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                  Categoria
-                </label>
-                <MultiSelect
-                  options={filterOptions?.categorias ?? []}
-                  selected={categoria}
-                  onChange={(v) => { setCategoria(v); setOppPage(0); }}
-                  placeholder="Todas"
-                  className="w-[180px]"
-                />
-              </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                    Categoria
+                  </label>
+                  <MultiSelect
+                    options={filterOptions?.categorias ?? []}
+                    selected={categoria}
+                    onChange={(v) => { setCategoria(v); setOppPage(0); }}
+                    placeholder="Todas"
+                  />
+                </div>
 
-              <div className="flex items-center gap-2 pb-2">
-                <Checkbox
-                  id="estrategico"
-                  checked={estrategicoOnly}
-                  onCheckedChange={(v) => { setEstrategicoOnly(!!v); setOppPage(0); }}
-                />
-                <label htmlFor="estrategico" className="text-xs cursor-pointer">
-                  Apenas estratégicos
-                </label>
+                <div className="flex items-center gap-2 pb-2">
+                  <Checkbox
+                    id="estrategico"
+                    checked={estrategicoOnly}
+                    onCheckedChange={(v) => { setEstrategicoOnly(!!v); setOppPage(0); }}
+                  />
+                  <label htmlFor="estrategico" className="text-xs cursor-pointer">
+                    Apenas estratégicos
+                  </label>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -312,9 +312,15 @@ export default function ProspeccaoPage() {
                             <ScoreBadge score={opp.score} />
                           </TableCell>
                           <TableCell className="font-mono text-xs">
-                            {opp.processo_norm}
+                            <Link
+                              href={`/concessoes?search=${encodeURIComponent(opp.processo_norm)}`}
+                              className="text-brand-teal hover:underline"
+                              title="Ver no Concessões"
+                            >
+                              {opp.processo_norm}
+                            </Link>
                           </TableCell>
-                          <TableCell className="text-xs max-w-[200px] truncate">
+                          <TableCell className="text-xs max-w-[200px] truncate" title={opp.titular}>
                             {opp.titular}
                           </TableCell>
                           <TableCell className="text-xs">
@@ -329,7 +335,7 @@ export default function ProspeccaoPage() {
                           <TableCell className="text-xs text-right tabular-nums">
                             {opp.AREA_HA != null ? fmtHa(opp.AREA_HA) : "—"}
                           </TableCell>
-                          <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
+                          <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate" title={opp.motivo}>
                             {opp.motivo}
                           </TableCell>
                         </TableRow>
@@ -418,7 +424,7 @@ export default function ProspeccaoPage() {
                     <TableBody>
                       {empresas.map((emp, i) => (
                         <TableRow key={i} className="cursor-pointer" onClick={() => setExpandedEmpresa(expandedEmpresa === emp.titular ? null : emp.titular)}>
-                          <TableCell className="text-xs max-w-[250px] truncate font-medium">
+                          <TableCell className="text-xs max-w-[250px] truncate font-medium" title={emp.titular}>
                             {emp.titular}
                           </TableCell>
                           <TableCell className="text-xs text-right tabular-nums">

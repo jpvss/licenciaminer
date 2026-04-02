@@ -193,11 +193,11 @@ export default function DueDiligencePage() {
       </div>
 
       {/* Stepper */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center justify-between sm:justify-start sm:gap-1">
         {STEPS.map((s, i) => (
           <div key={s.num} className="flex items-center">
             <div
-              className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs sm:text-sm sm:px-4 sm:gap-2 font-medium transition-colors ${
                 step === s.num
                   ? "bg-brand-orange text-white"
                   : step > s.num
@@ -209,7 +209,7 @@ export default function DueDiligencePage() {
               <span className="hidden sm:inline">{s.label}</span>
             </div>
             {i < STEPS.length - 1 && (
-              <ChevronRight className="mx-1 h-4 w-4 text-muted-foreground/50" />
+              <ChevronRight className="mx-0.5 sm:mx-1 h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground/50" />
             )}
           </div>
         ))}

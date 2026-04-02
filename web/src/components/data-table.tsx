@@ -156,11 +156,15 @@ export function DataTable<TData>({
                   className={onRowClick ? "cursor-pointer hover:bg-muted/50" : undefined}
                   onClick={() => onRowClick?.(row.original)}
                 >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="tabular-nums whitespace-nowrap max-w-[300px] truncate">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
+                  {row.getVisibleCells().map((cell) => {
+                    const raw = cell.getValue();
+                    const title = typeof raw === "string" && raw.length > 30 ? raw : undefined;
+                    return (
+                      <TableCell key={cell.id} className="tabular-nums whitespace-nowrap max-w-[300px] truncate" title={title}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    );
+                  })}
                 </TableRow>
               ))
             ) : (
