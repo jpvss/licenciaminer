@@ -7,12 +7,11 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   Building2,
-  Construction,
   Database,
   Factory,
   FileSearch,
   Globe,
-  LayoutDashboard,
+  Home,
   Map,
   Menu,
   Search,
@@ -30,42 +29,52 @@ interface MobileNavItem {
   disabled?: boolean;
 }
 
-const MOBILE_NAV_SECTIONS: { label: string; items: MobileNavItem[] }[] = [
+const MOBILE_NAV_SECTIONS: { label: string; color?: string; standalone?: boolean; items: MobileNavItem[] }[] = [
   {
-    label: "Summo Ambiental",
+    label: "",
+    standalone: true,
     items: [
-      { href: "/", label: "Painel Principal", icon: LayoutDashboard },
-      { href: "/explorar", label: "Explorar Dados", icon: Database },
+      { href: "/", label: "Início", icon: Home },
+    ],
+  },
+  {
+    label: "Análise & Pesquisa",
+    color: "text-brand-orange",
+    items: [
       { href: "/empresa", label: "Consulta Empresa", icon: Building2 },
-      { href: "/decisoes", label: "Análise Decisões", icon: BarChart3 },
-      { href: "/due-diligence", label: "Due Diligence", icon: ShieldCheck },
+      { href: "/explorar", label: "Explorador", icon: Database },
+      { href: "/decisoes", label: "Análise de Decisões", icon: BarChart3 },
     ],
   },
   {
-    label: "Direitos e Concessões",
+    label: "Direitos Minerários",
+    color: "text-brand-teal",
     items: [
-      { href: "/concessoes", label: "Base de Concessões", icon: FileSearch },
-      { href: "/mapa", label: "Mapa Geoespacial", icon: Map },
-      { href: "/prospeccao", label: "Prospecção", icon: TrendingUp },
+      { href: "/mapa", label: "Mapa Interativo", icon: Map },
+      { href: "/concessoes", label: "Concessões", icon: FileSearch },
+      { href: "/prospeccao", label: "Prospecção Mineral", icon: TrendingUp },
     ],
   },
   {
-    label: "Mineral Intelligence",
+    label: "Mercado & Inteligência",
+    color: "text-brand-gold",
     items: [
       { href: "/inteligencia-comercial", label: "Inteligência Comercial", icon: Globe },
       { href: "/monitoramento", label: "Monitoramento", icon: Search, disabled: true },
     ],
   },
   {
-    label: "SQ Solutions",
+    label: "Conformidade",
+    color: "text-brand-orange",
     items: [
-      { href: "/mineradora-modelo", label: "Mineradora Modelo", icon: Factory },
+      { href: "/due-diligence", label: "Due Diligence", icon: ShieldCheck },
     ],
   },
   {
-    label: "Gestão Interna",
+    label: "Simulação",
+    color: "text-sidebar-foreground/40",
     items: [
-      { href: "/gestao-interna", label: "Gestão Interna", icon: Construction, disabled: true },
+      { href: "/mineradora-modelo", label: "Mineradora Modelo", icon: Factory },
     ],
   },
 ];
@@ -92,45 +101,52 @@ export function Header() {
               Summo Quartile
             </span>
           </div>
-          <nav className="px-3 py-4 space-y-4">
+          <nav className="px-3 py-4 space-y-6">
             {MOBILE_NAV_SECTIONS.map((section) => (
-              <div key={section.label}>
-                <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40">
-                  {section.label}
-                </p>
-                {section.items.map((item) => {
-                  if (item.disabled) {
+              <div key={section.label || "home"}>
+                {!section.standalone && (
+                  <p className={cn(
+                    "px-3 mb-2 text-[10px] font-semibold uppercase tracking-widest",
+                    section.color ?? "text-sidebar-foreground/40"
+                  )}>
+                    {section.label}
+                  </p>
+                )}
+                <ul className="space-y-0.5">
+                  {section.items.map((item) => {
+                    if (item.disabled) {
+                      return (
+                        <li key={item.href}>
+                          <span className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/30 cursor-not-allowed">
+                            <item.icon className="h-4 w-4" />
+                            {item.label}
+                          </span>
+                        </li>
+                      );
+                    }
+                    const isActive =
+                      item.href === "/"
+                        ? pathname === "/"
+                        : pathname.startsWith(item.href);
                     return (
-                      <span
-                        key={item.href}
-                        className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-foreground/30 cursor-not-allowed"
-                      >
-                        <item.icon className="h-4 w-4" />
-                        {item.label}
-                      </span>
+                      <li key={item.href}>
+                        <Link
+                          href={item.href}
+                          onClick={() => setOpen(false)}
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            isActive
+                              ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                              : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                          )}
+                        >
+                          <item.icon className="h-4 w-4" />
+                          {item.label}
+                        </Link>
+                      </li>
                     );
-                  }
-                  const isActive =
-                    item.href === "/"
-                      ? pathname === "/"
-                      : pathname.startsWith(item.href);
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setOpen(false)}
-                      className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
-                        isActive
-                          ? "bg-sidebar-accent text-white font-medium"
-                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-white"
-                      )}
-                    >
-                      <item.icon className="h-4 w-4" />
-                      {item.label}
-                    </Link>
-                  );
-                })}
+                  })}
+                </ul>
               </div>
             ))}
           </nav>
