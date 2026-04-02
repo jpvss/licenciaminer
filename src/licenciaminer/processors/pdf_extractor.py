@@ -149,12 +149,12 @@ def get_full_context(
 def enrich_parquet_with_texts(
     data_dir: Path,
     max_records: int | None = None,
-    mining_only: bool = False,
+    mining_only: bool = True,
 ) -> Path:
     """Enriquece o parquet MG SEMAD com texto extraído dos PDFs.
 
     Adiciona coluna 'texto_documentos' com o texto concatenado de todos
-    os PDFs de cada registro.
+    os PDFs de cada registro. Por padrão filtra apenas mineração (A-0x).
     """
     import pandas as pd
 

@@ -123,16 +123,18 @@ def mg(
     help="Limitar número de registros (para testes).",
 )
 @click.option(
-    "--mining-only", is_flag=True, default=False,
-    help="Enriquecer apenas registros de mineração (A-0x).",
+    "--all-activities", is_flag=True, default=False,
+    help="Enriquecer todas as atividades (não filtrar apenas mineração).",
 )
 @click.pass_context
-def mg_docs(ctx: click.Context, max_records: int | None, mining_only: bool) -> None:
+def mg_docs(ctx: click.Context, max_records: int | None, all_activities: bool) -> None:
     """Buscar links de documentos PDF das páginas de detalhe da SEMAD/MG."""
     from licenciaminer.collectors.mg_scraper import enrich_with_details
 
     output_dir: Path = ctx.obj["data_dir"]
-    path = enrich_with_details(output_dir, max_records=max_records, mining_only=mining_only)
+    path = enrich_with_details(
+        output_dir, max_records=max_records, mining_only=not all_activities,
+    )
     click.echo(f"MG SEMAD Docs: parquet atualizado em {path}")
 
 
@@ -142,17 +144,17 @@ def mg_docs(ctx: click.Context, max_records: int | None, mining_only: bool) -> N
     help="Limitar número de registros (para testes).",
 )
 @click.option(
-    "--mining-only", is_flag=True, default=False,
-    help="Processar apenas registros de mineração (A-0x).",
+    "--all-activities", is_flag=True, default=False,
+    help="Processar todas as atividades (não filtrar apenas mineração).",
 )
 @click.pass_context
-def mg_textos(ctx: click.Context, max_records: int | None, mining_only: bool) -> None:
+def mg_textos(ctx: click.Context, max_records: int | None, all_activities: bool) -> None:
     """Baixar PDFs e extrair texto das decisões da SEMAD/MG."""
     from licenciaminer.processors.pdf_extractor import enrich_parquet_with_texts
 
     output_dir: Path = ctx.obj["data_dir"]
     path = enrich_parquet_with_texts(
-        output_dir, max_records=max_records, mining_only=mining_only
+        output_dir, max_records=max_records, mining_only=not all_activities,
     )
     click.echo(f"MG SEMAD Textos: parquet atualizado em {path}")
 

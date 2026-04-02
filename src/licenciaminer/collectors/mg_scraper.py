@@ -202,12 +202,13 @@ def _fetch_detail(client: httpx.Client, detail_id: str) -> dict[str, str]:
 def enrich_with_details(
     data_dir: Path,
     max_records: int | None = None,
-    mining_only: bool = False,
+    mining_only: bool = True,
 ) -> Path:
     """Enriquece parquet existente com links de documentos das páginas de detalhe.
 
     Lê o parquet salvo pelo scraper, busca a página de detalhe para cada
     registro que tem detail_id, e adiciona colunas com links de PDFs.
+    Por padrão filtra apenas registros de mineração (A-0x).
     """
     parquet_path = data_dir / "processed" / "mg_semad_licencas.parquet"
     if not parquet_path.exists():
