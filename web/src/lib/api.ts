@@ -875,6 +875,47 @@ export function fetchViabilidade(params: {
   return apiFetch<ViabilidadeResponse>(`/consulta/viabilidade${q ? `?${q}` : ""}`);
 }
 
+/* ── COPAM ── */
+
+export interface CopamMeeting {
+  data: string;
+  titulo: string;
+  total_documents: number;
+  documents_str: string | null;
+  municipio: string | null;
+  sede: string | null;
+}
+
+export interface CopamStats {
+  total_reunioes: number;
+  total_documentos: number;
+  ultima_reuniao: string | null;
+}
+
+export interface CopamResponse {
+  total: number;
+  limit: number;
+  offset: number;
+  stats: CopamStats;
+  rows: CopamMeeting[];
+}
+
+export function fetchCopamMeetings(limit = 200, offset = 0) {
+  return apiFetch<CopamResponse>(`/copam?limit=${limit}&offset=${offset}`);
+}
+
+/* ── Top Empresas (for Caso Detalhado) ── */
+
+export interface TopEmpresa {
+  cnpj_cpf: string;
+  empreendimento: string;
+  n: number;
+}
+
+export function fetchTopEmpresas() {
+  return apiFetch<TopEmpresa[]>("/decisions/top-empresas");
+}
+
 /* ── Formatting re-exports (canonical source: lib/format.ts) ── */
 
 export { fmtReais, fmtPct, fmtBR as fmtNumber } from "./format";

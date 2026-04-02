@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.routers import (
     chat,
     concessoes,
+    copam,
     decisions,
     due_diligence,
     empresa,
@@ -73,6 +74,7 @@ app.include_router(intelligence.router, prefix="/api", tags=["Inteligência Come
 app.include_router(simulator.router, prefix="/api", tags=["Mineradora Modelo"])
 app.include_router(reports.router, prefix="/api", tags=["Relatórios"])
 app.include_router(due_diligence.router, prefix="/api", tags=["Due Diligence"])
+app.include_router(copam.router, prefix="/api", tags=["COPAM"])
 app.include_router(chat.router, prefix="/api", tags=["Chat"])
 
 

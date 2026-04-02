@@ -116,3 +116,20 @@ def get_approval_stats(
     """Estatísticas de aprovação filtradas."""
     q, p = query_approval_stats(atividade, classe, regional)
     return run_query(q, p)
+
+
+@router.get("/decisions/top-empresas")
+def get_top_empresas():
+    """Top 50 empresas de mineração por volume de decisões (com nome)."""
+    return run_query(
+        """
+        SELECT cnpj_cpf, MIN(empreendimento) AS empreendimento, COUNT(*) AS n
+        FROM v_mg_semad
+        WHERE atividade LIKE 'A-0%'
+          AND cnpj_cpf IS NOT NULL AND cnpj_cpf != '' AND LENGTH(cnpj_cpf) = 14
+        GROUP BY cnpj_cpf
+        HAVING COUNT(*) >= 3
+        ORDER BY n DESC
+        LIMIT 50
+        """
+    )
