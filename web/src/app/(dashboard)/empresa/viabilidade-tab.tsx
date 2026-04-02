@@ -246,8 +246,8 @@ export function ViabilidadeTab() {
               </p>
               <div className="flex flex-wrap justify-center gap-2">
                 {[
-                  { label: "Lavra · Classe 4", prefix: "A-02", classe: "4" },
-                  { label: "Pesquisa · Classe 1", prefix: "A-01", classe: "1" },
+                  { label: "Lavra · Classe 3", prefix: "A-02", classe: "3" },
+                  { label: "Beneficiamento · Classe 2", prefix: "A-03", classe: "2" },
                   { label: "Barragem · Classe 6", prefix: "A-05", classe: "6" },
                 ].map((ex) => {
                   const atv = atividades.find(a => a.startsWith(ex.prefix));
