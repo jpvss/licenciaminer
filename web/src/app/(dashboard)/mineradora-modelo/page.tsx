@@ -12,6 +12,7 @@ import {
   Area,
   AreaChart,
   CartesianGrid,
+  ReferenceArea,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -183,10 +184,25 @@ function PageHeader() {
   );
 }
 
+// KPIs where lower is better (costs, times) — delta color should be inverted
+const INVERTED_DELTA = new Set([
+  "Ciclo de Transporte",
+  "Consumo de Diesel",
+  "MTTR",
+  "Custo por Tonelada",
+  "Lead Time Médio",
+  "Demurrage",
+  "TRIFR",
+  "Volume Disposto",
+  "REM (Relação Estéril/Minério)",
+]);
+
 function KPICard({ kpi }: { kpi: SimKPI }) {
   const isPositive = kpi.delta >= 0;
+  const inverted = INVERTED_DELTA.has(kpi.nome);
+  const isGood = inverted ? !isPositive : isPositive;
   const DeltaIcon = isPositive ? ArrowUp : ArrowDown;
-  const deltaColor = isPositive ? "text-success" : "text-danger";
+  const deltaColor = isGood ? "text-success" : "text-danger";
 
   return (
     <Card>
@@ -249,6 +265,13 @@ function KPIChart({ kpi }: { kpi: SimKPI }) {
               width={50}
             />
             <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
+            <ReferenceArea
+              y1={kpi.min_val}
+              y2={kpi.max_val}
+              fill="rgba(196,91,82,0.06)"
+              stroke="rgba(196,91,82,0.2)"
+              strokeDasharray="3 3"
+            />
             <ReferenceLine
               y={kpi.target}
               stroke="var(--brand-orange)"

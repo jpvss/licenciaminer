@@ -68,6 +68,7 @@ def query_dataset(
     ano_min: int | None = Query(None, ge=2000, le=2030),
     ano_max: int | None = Query(None, ge=2000, le=2030),
     mining_only: bool = Query(False, description="Apenas atividades de mineração (A-0x)"),
+    uf: str | None = Query(None, max_length=2, description="Filtro por UF (ex: MG)"),
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ):
@@ -98,6 +99,10 @@ def query_dataset(
 
     if mining_only and dataset == "v_mg_semad":
         where_clauses.append("atividade LIKE 'A-0%'")
+
+    if uf and dataset in ("v_ibama_infracoes", "v_anm"):
+        where_clauses.append("UF = ?")
+        params.append(uf.upper())
 
     if decisao:
         where_clauses.append("decisao = ?")

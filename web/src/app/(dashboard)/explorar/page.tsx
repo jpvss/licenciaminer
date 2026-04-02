@@ -38,6 +38,18 @@ import {
 
 const PAGE_SIZE = 50;
 
+const SOURCE_ATTRIBUTION: Record<string, string> = {
+  v_mg_semad: "Fonte: Secretaria de Meio Ambiente e Desenvolvimento Sustentável de Minas Gerais (SEMAD/MG)",
+  v_ibama: "Fonte: Instituto Brasileiro do Meio Ambiente (IBAMA) — SISLIC",
+  v_ibama_infracoes: "Fonte: Instituto Brasileiro do Meio Ambiente (IBAMA) — Autos de Infração",
+  v_anm: "Fonte: Agência Nacional de Mineração (ANM) — SIGMINE",
+  v_cfem: "Fonte: Agência Nacional de Mineração (ANM) — CFEM",
+  v_ral: "Fonte: Agência Nacional de Mineração (ANM) — Relatório Anual de Lavra",
+  v_scm: "Fonte: Agência Nacional de Mineração (ANM) — SCM Concessões",
+  v_cnpj_empresas: "Fonte: Receita Federal — Cadastro CNPJ",
+  v_copam_deliberacoes: "Fonte: COPAM/MG — Câmara de Atividades Minerárias",
+};
+
 // Columns to hide by default (heavy or low-value in list view)
 const HIDDEN_COLUMNS = new Set([
   "texto_documentos",
@@ -109,6 +121,7 @@ function ExploradorContent() {
   const [anoMin, setAnoMin] = useState<string>("");
   const [anoMax, setAnoMax] = useState<string>("");
   const [miningOnly, setMiningOnly] = useState(false);
+  const [uf, setUf] = useState<string>("");
 
   // Detail panel
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
@@ -141,8 +154,9 @@ function ExploradorContent() {
       ano_min: anoMin ? Number(anoMin) : undefined,
       ano_max: anoMax ? Number(anoMax) : undefined,
       mining_only: miningOnly || undefined,
+      uf: uf || undefined,
     }),
-    [search, decisao, classe, anoMin, anoMax, miningOnly]
+    [search, decisao, classe, anoMin, anoMax, miningOnly, uf]
   );
 
   const loadData = useCallback(
@@ -186,10 +200,11 @@ function ExploradorContent() {
     setAnoMin("");
     setAnoMax("");
     setMiningOnly(false);
+    setUf("");
     setPage(0);
   };
 
-  const hasActiveFilters = !!(search || decisao || classe || anoMin || anoMax || miningOnly);
+  const hasActiveFilters = !!(search || decisao || classe || anoMin || anoMax || miningOnly || uf);
   const isSemad = selectedDataset === "v_mg_semad";
 
   // Build columns from first row keys with per-dataset formatting
@@ -406,6 +421,26 @@ function ExploradorContent() {
             </div>
           )}
 
+          {/* IBAMA-specific UF filter */}
+          {(selectedDataset === "v_ibama_infracoes" || selectedDataset === "v_anm") && (
+            <div className="flex items-end gap-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                  UF
+                </label>
+                <Select value={uf || "all"} onValueChange={(v) => { setUf(v === "all" ? "" : v); setPage(0); }}>
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="MG">MG</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
           {hasActiveFilters && (
             <Button variant="ghost" size="sm" onClick={clearFilters}>
               <X className="mr-1 h-3 w-3" />
@@ -424,6 +459,7 @@ function ExploradorContent() {
           ...(anoMin ? [{ label: "Ano mín", value: anoMin, onRemove: () => { setAnoMin(""); setPage(0); } }] : []),
           ...(anoMax ? [{ label: "Ano máx", value: anoMax, onRemove: () => { setAnoMax(""); setPage(0); } }] : []),
           ...(miningOnly ? [{ label: "Mineração", value: "Sim", onRemove: () => { setMiningOnly(false); setPage(0); } }] : []),
+          ...(uf ? [{ label: "UF", value: uf, onRemove: () => { setUf(""); setPage(0); } }] : []),
         ]}
         onClearAll={clearFilters}
       />
@@ -474,6 +510,13 @@ function ExploradorContent() {
           ) : null}
         </CardContent>
       </Card>
+
+      {/* Source attribution */}
+      {selectedDataset && SOURCE_ATTRIBUTION[selectedDataset] && (
+        <p className="text-[10px] text-muted-foreground/60">
+          {SOURCE_ATTRIBUTION[selectedDataset]}
+        </p>
+      )}
 
       {/* Detail panel */}
       <RecordDetail

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -17,6 +18,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { fetchFreshness } from "@/lib/api";
 
 interface NavItem {
   href: string;
@@ -72,6 +74,13 @@ const NAV_SECTIONS: { label: string; color?: string; items: NavItem[] }[] = [
 
 export function SidebarNav() {
   const pathname = usePathname();
+  const [freshness, setFreshness] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchFreshness()
+      .then((r) => setFreshness(r.last_updated))
+      .catch(() => {});
+  }, []);
 
   return (
     <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 bg-sidebar text-sidebar-foreground">
@@ -138,9 +147,16 @@ export function SidebarNav() {
         <p className="text-[10px] leading-relaxed text-sidebar-foreground/40">
           Fontes públicas oficiais · Cada registro rastreável à origem
         </p>
-        <p className="text-[10px] text-sidebar-foreground/25">
-          v0.2.0 &middot; SEMAD, IBAMA, ANM, CFEM, COPAM
-        </p>
+        <div className="flex items-center gap-1.5 text-[10px] text-sidebar-foreground/25">
+          {freshness && (
+            <>
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-green-500" />
+              <span>Dados: {freshness}</span>
+              <span>&middot;</span>
+            </>
+          )}
+          <span>v0.2.0</span>
+        </div>
       </div>
     </aside>
   );
