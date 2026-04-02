@@ -923,9 +923,33 @@ def _build_data_context() -> str:
     return "\n".join(f"- {s}" for s in sections)
 
 
-@router.post("/intelligence/ai-summary/stream")
-async def stream_ai_summary(request: AISummaryRequest):
-    """Streaming de resumo de inteligência mineral via SSE."""
+def _parse_xml_sections(raw: str) -> list[dict]:
+    """Parse XML-tagged briefing into structured sections."""
+    import re
+
+    section_defs = [
+        ("cenario", "Cenário Atual"),
+        ("sinais", "Sinais de Mercado"),
+        ("riscos", "Riscos e Oportunidades"),
+    ]
+    sections = []
+    for tag, title in section_defs:
+        match = re.search(rf"<{tag}>([\s\S]*?)</{tag}>", raw, re.IGNORECASE)
+        if match and match.group(1).strip():
+            sections.append({"title": title, "content": match.group(1).strip()})
+
+    # Fallback: if XML parsing failed, return raw text as single section
+    if not sections:
+        cleaned = re.sub(r"</?(?:cenario|sinais|riscos)>", "", raw, flags=re.IGNORECASE).strip()
+        if cleaned:
+            sections.append({"title": "", "content": cleaned})
+
+    return sections
+
+
+@router.post("/intelligence/ai-summary")
+async def generate_ai_summary(request: AISummaryRequest):
+    """Generate structured AI briefing (non-streaming, server-parsed)."""
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         raise HTTPException(
@@ -933,7 +957,6 @@ async def stream_ai_summary(request: AISummaryRequest):
             detail="ANTHROPIC_API_KEY não configurada",
         )
 
-    # Build rich context from actual database data
     data_context = _build_data_context()
     frontend_context = json.dumps(request.context, ensure_ascii=False, default=str)
 
@@ -948,29 +971,23 @@ Com base nesses dados e no seu conhecimento do setor mineral brasileiro, escreva
 
     client = anthropic.Anthropic(api_key=api_key)
 
-    def generate():
-        try:
-            with client.messages.stream(
-                model="claude-opus-4-6",
-                max_tokens=1500,
-                system=_AI_SYSTEM_PROMPT,
-                messages=[{"role": "user", "content": user_message}],
-            ) as stream:
-                for text in stream.text_stream:
-                    yield f"data: {text}\n\n"
-            yield "data: [DONE]\n\n"
-        except anthropic.APIError as e:
-            logger.error("AI summary API error: %s", e)
-            yield f"data: [ERROR] {e.message}\n\n"
-        except Exception as e:
-            logger.error("AI summary stream error: %s", e)
-            yield "data: [ERROR] Erro interno\n\n"
+    try:
+        response = client.messages.create(
+            model="claude-opus-4-6",
+            max_tokens=1500,
+            system=_AI_SYSTEM_PROMPT,
+            messages=[{"role": "user", "content": user_message}],
+        )
+        raw_text = response.content[0].text
+        sections = _parse_xml_sections(raw_text)
 
-    return StreamingResponse(
-        generate(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",
-        },
-    )
+        return {
+            "sections": sections,
+            "generated_at": datetime.now().isoformat(),
+        }
+    except anthropic.APIError as e:
+        logger.error("AI summary API error: %s", e)
+        raise HTTPException(status_code=502, detail=str(e.message))
+    except Exception as e:
+        logger.error("AI summary error: %s", e)
+        raise HTTPException(status_code=500, detail="Erro ao gerar briefing")

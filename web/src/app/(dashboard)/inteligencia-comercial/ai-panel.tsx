@@ -17,14 +17,18 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { fetchAiStatus, streamMarketSummary } from "@/lib/api";
+import {
+  fetchAiStatus,
+  fetchAiBriefing,
+  type BriefingSection,
+} from "@/lib/api";
 
-const CACHE_KEY = "sq_briefing_cache";
+const CACHE_KEY = "sq_briefing_v2";
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 interface CachedBriefing {
-  text: string;
-  generatedAt: string; // ISO
+  sections: BriefingSection[];
+  generatedAt: string;
 }
 
 interface AiPanelProps {
@@ -44,55 +48,45 @@ function loadCache(): CachedBriefing | null {
   }
 }
 
-function saveCache(text: string) {
-  const entry: CachedBriefing = {
-    text,
-    generatedAt: new Date().toISOString(),
-  };
+function saveCache(sections: BriefingSection[], generatedAt: string) {
   try {
-    sessionStorage.setItem(CACHE_KEY, JSON.stringify(entry));
+    sessionStorage.setItem(
+      CACHE_KEY,
+      JSON.stringify({ sections, generatedAt })
+    );
   } catch {
     // sessionStorage full — ignore
   }
 }
 
 export function AiPanel({ context }: AiPanelProps) {
-  // Initialize from cache synchronously to avoid effect-based setState
+  const cached = loadCache();
   const [available, setAvailable] = useState<boolean | null>(null);
-  const [text, setText] = useState(() => loadCache()?.text ?? "");
+  const [sections, setSections] = useState<BriefingSection[]>(
+    cached?.sections ?? []
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(false);
   const [generatedAt, setGeneratedAt] = useState<string | null>(
-    () => loadCache()?.generatedAt ?? null
+    cached?.generatedAt ?? null
   );
   const abortRef = useRef<AbortController | null>(null);
-  const hasGeneratedRef = useRef(!!loadCache());
+  const hasGeneratedRef = useRef(!!cached);
 
-  const generateSummary = useCallback(() => {
+  const generate = useCallback(() => {
     if (abortRef.current) abortRef.current.abort();
     const controller = new AbortController();
     abortRef.current = controller;
 
     setLoading(true);
     setError(null);
-    setText("");
-    setGeneratedAt(null);
 
-    let accumulated = "";
-    streamMarketSummary(
-      context,
-      (chunk) => {
-        accumulated += chunk;
-        setText(accumulated);
-      },
-      controller.signal,
-    )
-      .then(() => {
-        if (accumulated) {
-          saveCache(accumulated);
-          setGeneratedAt(new Date().toISOString());
-        }
+    fetchAiBriefing(context, controller.signal)
+      .then((res) => {
+        setSections(res.sections);
+        setGeneratedAt(res.generated_at);
+        saveCache(res.sections, res.generated_at);
       })
       .catch((e) => {
         if (e.name !== "AbortError") {
@@ -109,16 +103,18 @@ export function AiPanel({ context }: AiPanelProps) {
       .then((r) => {
         if (cancelled) return;
         setAvailable(r.available);
-        if (r.available && !hasGeneratedRef.current && !text) {
+        if (r.available && !hasGeneratedRef.current && sections.length === 0) {
           hasGeneratedRef.current = true;
-          generateSummary();
+          generate();
         }
       })
       .catch(() => {
         if (!cancelled) setAvailable(false);
       });
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Cleanup abort on unmount
@@ -128,7 +124,6 @@ export function AiPanel({ context }: AiPanelProps) {
     };
   }, []);
 
-  // Don't render if AI is not available
   if (available === false) return null;
 
   const handleRefresh = () => {
@@ -137,7 +132,7 @@ export function AiPanel({ context }: AiPanelProps) {
     } catch {
       // ignore
     }
-    generateSummary();
+    generate();
   };
 
   const formattedTimestamp = generatedAt
@@ -149,6 +144,8 @@ export function AiPanel({ context }: AiPanelProps) {
         minute: "2-digit",
       })
     : null;
+
+  const hasSections = sections.length > 0;
 
   return (
     <Card className="border-brand-gold/20 bg-gradient-to-br from-card to-brand-gold/[0.02]">
@@ -167,7 +164,7 @@ export function AiPanel({ context }: AiPanelProps) {
               {formattedTimestamp}
             </Badge>
           )}
-          {text && !loading && (
+          {hasSections && !loading && (
             <Button
               variant="ghost"
               size="sm"
@@ -178,7 +175,7 @@ export function AiPanel({ context }: AiPanelProps) {
               Atualizar
             </Button>
           )}
-          {text && (
+          {hasSections && (
             <Button
               variant="ghost"
               size="icon"
@@ -198,7 +195,7 @@ export function AiPanel({ context }: AiPanelProps) {
       {!collapsed && (
         <CardContent>
           {/* Loading skeleton */}
-          {loading && !text && (
+          {loading && (
             <div className="grid gap-4 md:grid-cols-3">
               {Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="space-y-2">
@@ -212,18 +209,11 @@ export function AiPanel({ context }: AiPanelProps) {
             </div>
           )}
 
-          {/* Structured briefing */}
-          {text && (
-            <div className="relative">
-              <StructuredBriefing text={text} />
-              {loading && (
-                <span className="inline-block w-1.5 h-3.5 bg-brand-gold animate-pulse ml-0.5 align-middle" />
-              )}
-            </div>
-          )}
+          {/* Structured briefing from server */}
+          {!loading && hasSections && <SectionGrid sections={sections} />}
 
           {/* Error state */}
-          {error && !text && (
+          {error && !hasSections && !loading && (
             <div className="flex flex-col items-center py-4 gap-2">
               <AlertCircle className="h-5 w-5 text-muted-foreground/40" />
               <p className="text-xs text-muted-foreground text-center">
@@ -242,7 +232,7 @@ export function AiPanel({ context }: AiPanelProps) {
           )}
 
           {/* Initial availability check */}
-          {available === null && (
+          {available === null && !loading && (
             <div className="space-y-2">
               <Skeleton className="h-3 w-full" />
               <Skeleton className="h-3 w-[80%]" />
@@ -254,64 +244,7 @@ export function AiPanel({ context }: AiPanelProps) {
   );
 }
 
-/* ── Structured Section Parser ── */
-
-interface ParsedSection {
-  title: string;
-  content: string;
-}
-
-/** XML tag → display title mapping */
-const SECTION_DEFS = [
-  { tag: "cenario", title: "Cenário Atual" },
-  { tag: "sinais", title: "Sinais de Mercado" },
-  { tag: "riscos", title: "Riscos e Oportunidades" },
-] as const;
-
-function parseSections(text: string): ParsedSection[] {
-  // Strategy 1: XML tags (most reliable with Claude)
-  const sections: ParsedSection[] = [];
-  for (const { tag, title } of SECTION_DEFS) {
-    // Match <tag>content</tag> or <tag>content (unclosed, during streaming)
-    const regex = new RegExp(`<${tag}>([\\s\\S]*?)(?:</${tag}>|$)`, "i");
-    const match = text.match(regex);
-    if (match?.[1]?.trim()) {
-      sections.push({ title, content: match[1].trim() });
-    }
-  }
-  if (sections.length >= 2) return sections;
-
-  // Strategy 2: fallback — known bold titles (**Title** anywhere in text)
-  const KNOWN_SECTIONS = [
-    "Cenário Atual", "Cenario Atual",
-    "Sinais de Mercado",
-    "Riscos e Oportunidades",
-  ];
-  const sectionPattern = new RegExp(
-    `\\*\\*(${KNOWN_SECTIONS.join("|")})\\*\\*\\s*[:—–\\-]?\\s*`,
-    "gi"
-  );
-  const matches: { title: string; index: number; afterLength: number }[] = [];
-  let m: RegExpExecArray | null;
-  while ((m = sectionPattern.exec(text)) !== null) {
-    matches.push({ title: m[1], index: m.index, afterLength: m[0].length });
-  }
-  if (matches.length >= 2) {
-    const fallback: ParsedSection[] = [];
-    for (let i = 0; i < matches.length; i++) {
-      const start = matches[i].index + matches[i].afterLength;
-      const end = i + 1 < matches.length ? matches[i + 1].index : text.length;
-      fallback.push({
-        title: matches[i].title.trim(),
-        content: text.slice(start, end).trim(),
-      });
-    }
-    return fallback;
-  }
-
-  // Strategy 3: nothing detected — return empty → triggers fallback rendering
-  return [];
-}
+/* ── Section Rendering ── */
 
 interface SectionStyle {
   border: string;
@@ -320,35 +253,26 @@ interface SectionStyle {
   Icon: React.ElementType;
 }
 
-const SECTION_MATCHERS: { test: (s: string) => boolean; style: SectionStyle }[] = [
-  {
-    test: (s) => /cenário|cenario|atual|contexto|panorama/i.test(s),
-    style: {
-      border: "border-l-brand-gold",
-      bg: "bg-brand-gold/5",
-      iconColor: "text-brand-gold",
-      Icon: Globe,
-    },
+const SECTION_STYLES: Record<string, SectionStyle> = {
+  "Cenário Atual": {
+    border: "border-l-brand-gold",
+    bg: "bg-brand-gold/5",
+    iconColor: "text-brand-gold",
+    Icon: Globe,
   },
-  {
-    test: (s) => /sinais|mercado|indicador|dado|número/i.test(s),
-    style: {
-      border: "border-l-brand-teal",
-      bg: "bg-brand-teal/5",
-      iconColor: "text-brand-teal",
-      Icon: BarChart3,
-    },
+  "Sinais de Mercado": {
+    border: "border-l-brand-teal",
+    bg: "bg-brand-teal/5",
+    iconColor: "text-brand-teal",
+    Icon: BarChart3,
   },
-  {
-    test: (s) => /risco|oportunidade|alerta|atenção/i.test(s),
-    style: {
-      border: "border-l-brand-orange",
-      bg: "bg-brand-orange/5",
-      iconColor: "text-brand-orange",
-      Icon: ShieldAlert,
-    },
+  "Riscos e Oportunidades": {
+    border: "border-l-brand-orange",
+    bg: "bg-brand-orange/5",
+    iconColor: "text-brand-orange",
+    Icon: ShieldAlert,
   },
-];
+};
 
 const DEFAULT_STYLE: SectionStyle = {
   border: "border-l-brand-gold",
@@ -357,20 +281,16 @@ const DEFAULT_STYLE: SectionStyle = {
   Icon: Globe,
 };
 
-function getSectionStyle(title: string): SectionStyle {
-  return SECTION_MATCHERS.find((m) => m.test(title))?.style ?? DEFAULT_STYLE;
-}
-
-function StructuredBriefing({ text }: { text: string }) {
-  const sections = parseSections(text);
+function SectionGrid({ sections }: { sections: BriefingSection[] }) {
   const titled = sections.filter((s) => s.title && s.content);
 
-  // Fallback: no clear sections — render as a single styled block
-  if (titled.length <= 1) {
+  // Fallback: untitled section → single block
+  if (titled.length === 0) {
+    const content = sections[0]?.content ?? "";
     return (
       <div className="rounded-lg border-l-2 border-l-brand-gold bg-brand-gold/5 p-4">
         <div className="text-xs leading-relaxed text-muted-foreground">
-          <FormattedText text={text} />
+          <FormattedText text={content} />
         </div>
       </div>
     );
@@ -379,7 +299,7 @@ function StructuredBriefing({ text }: { text: string }) {
   return (
     <div className="grid gap-3 md:grid-cols-3">
       {titled.map((section, i) => {
-        const style = getSectionStyle(section.title);
+        const style = SECTION_STYLES[section.title] ?? DEFAULT_STYLE;
         const { Icon } = style;
         return (
           <div
@@ -406,14 +326,9 @@ function StructuredBriefing({ text }: { text: string }) {
   );
 }
 
-/** Strip residual XML section tags from text content. */
-function stripXmlTags(s: string): string {
-  return s.replace(/<\/?(cenario|sinais|riscos)>/gi, "");
-}
-
 /** Renders inline markdown: **bold**, bullet points. */
 function FormattedText({ text }: { text: string }) {
-  const lines = stripXmlTags(text).split("\n");
+  const lines = text.split("\n");
 
   return (
     <>
