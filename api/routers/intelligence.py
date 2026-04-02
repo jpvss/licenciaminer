@@ -751,7 +751,7 @@ REGRAS OBRIGATÓRIAS:
 - Comece IMEDIATAMENTE com <cenario> — sem preâmbulo
 - Cite fontes: BCB PTAX, ANM/CFEM, Comex Stat/MDIC, IBAMA, SEMAD/MG
 - Português brasileiro executivo, números em formato BR (1.234,56)
-- Máximo ~500 palavras total
+- Máximo ~1000 palavras total
 - NÃO comece com "Com base nos dados"
 - OBRIGATÓRIO incluir as 3 seções: <cenario>, <sinais>, <riscos> — nunca omita nenhuma
 """
@@ -791,7 +791,7 @@ def _generate_briefing_sync():
         client = anthropic.Anthropic(api_key=api_key)
         response = client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=4000,
+            max_tokens=10000,
             system=_AI_SYSTEM_PROMPT,
             messages=[{"role": "user", "content": user_message}],
         )
