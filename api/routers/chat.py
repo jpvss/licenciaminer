@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from api.services.database import run_query
+from api.services.database import run_query, safe_query
 
 logger = logging.getLogger(__name__)
 

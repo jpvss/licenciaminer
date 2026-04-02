@@ -4,7 +4,7 @@ import logging
 
 from fastapi import APIRouter, HTTPException, Query
 
-from api.services.database import run_query
+from api.services.database import run_query, safe_query
 
 logger = logging.getLogger(__name__)
 

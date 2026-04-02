@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Path, Query
 from typing import Optional
 
-from api.services.database import run_query
+from api.services.database import run_query, safe_query
 from licenciaminer.database.queries import (
     QUERY_CNPJ_ANM_TITULOS,
     QUERY_CNPJ_CFEM,
@@ -148,13 +148,13 @@ def get_empresa_filiais(
 @router.get("/empresas/ranking")
 def get_empresas_ranking():
     """Top 50 empresas por número de decisões (cross-source)."""
-    return run_query(QUERY_EMPRESA_PROFILE)
+    return safe_query(QUERY_EMPRESA_PROFILE)
 
 
 @router.get("/consulta/atividades")
 def get_atividades():
     """Distinct mining activity codes from SEMAD decisions."""
-    rows = run_query(
+    rows = safe_query(
         "SELECT DISTINCT atividade FROM v_mg_semad "
         "WHERE atividade LIKE 'A-0%' ORDER BY atividade"
     )
@@ -164,7 +164,7 @@ def get_atividades():
 @router.get("/consulta/regionais")
 def get_regionais():
     """Distinct SEMAD regional offices."""
-    rows = run_query(
+    rows = safe_query(
         "SELECT DISTINCT regional FROM v_mg_semad "
         "WHERE regional IS NOT NULL ORDER BY regional"
     )
@@ -185,7 +185,7 @@ def get_viabilidade(
         classe=classe,
         regional=regional,
     )
-    stats_rows = run_query(sql, params)
+    stats_rows = safe_query(sql, params)
     stats = stats_rows[0] if stats_rows else {
         "total": 0, "deferidos": 0, "indeferidos": 0,
         "arquivamentos": 0, "taxa_aprovacao": 0,
@@ -193,7 +193,7 @@ def get_viabilidade(
 
     # Overall average (no filters)
     overall_sql, overall_params = query_approval_stats()
-    overall_rows = run_query(overall_sql, overall_params)
+    overall_rows = safe_query(overall_sql, overall_params)
     media_geral = overall_rows[0]["taxa_aprovacao"] if overall_rows else 0
 
     # Similar cases
@@ -201,7 +201,7 @@ def get_viabilidade(
         cases_sql, cases_params = query_similar_cases(
             atividade=atividade, classe=classe, regional=regional, limit=10
         )
-        casos = run_query(cases_sql, cases_params)
+        casos = safe_query(cases_sql, cases_params)
     else:
         casos = []
 

@@ -6,7 +6,7 @@ import io
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
-from api.services.database import get_dataset_options, run_query
+from api.services.database import get_dataset_options, run_query, safe_query
 
 router = APIRouter()
 

@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Query
 from typing import Optional
 
-from api.services.database import run_query
+from api.services.database import run_query, safe_query
 
 router = APIRouter()
 
@@ -14,10 +14,10 @@ def get_copam_meetings(
     offset: int = Query(0, ge=0),
 ):
     """Reuniões da CMI/COPAM com documentos."""
-    count_row = run_query("SELECT COUNT(*) AS n FROM v_copam")
+    count_row = safe_query("SELECT COUNT(*) AS n FROM v_copam")
     total = count_row[0]["n"] if count_row else 0
 
-    rows = run_query(
+    rows = safe_query(
         """
         SELECT
             data,
@@ -34,7 +34,7 @@ def get_copam_meetings(
     )
 
     # Summary KPIs
-    stats_row = run_query(
+    stats_row = safe_query(
         """
         SELECT
             COUNT(*) AS total_reunioes,

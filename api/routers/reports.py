@@ -8,7 +8,7 @@ from datetime import datetime
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Path
 from fastapi.responses import Response
 
-from api.services.database import fmt_reais, run_query
+from api.services.database import fmt_reais, run_query, safe_query
 from licenciaminer.database.queries import (
     QUERY_CNPJ_ANM_TITULOS,
     QUERY_CNPJ_CFEM,

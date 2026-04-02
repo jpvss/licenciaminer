@@ -73,6 +73,18 @@ def run_query(query: str, params: list | None = None) -> list[dict]:
         cursor.close()
 
 
+def safe_query(query: str, params: list | None = None) -> list[dict]:
+    """Like run_query but returns [] on any error (missing view, bad SQL, etc.).
+
+    Use for non-critical queries where an empty result is acceptable.
+    """
+    try:
+        return run_query(query, params) or []
+    except Exception as exc:
+        logger.warning("safe_query failed: %s — %s", exc, query[:120])
+        return []
+
+
 def run_query_df(query: str, params: list | None = None):
     """Executa query e retorna DataFrame pandas."""
     con = get_connection()

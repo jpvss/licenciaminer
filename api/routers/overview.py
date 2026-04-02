@@ -4,7 +4,7 @@ import logging
 
 from fastapi import APIRouter
 
-from api.services.database import load_metadata, run_query
+from api.services.database import load_metadata, run_query, safe_query
 from licenciaminer.database.queries import (
     QUERY_ANM_SUMMARY,
     QUERY_IBAMA_SUMMARY,
@@ -21,10 +21,10 @@ router = APIRouter()
 @router.get("/overview/stats")
 def get_overview_stats():
     """Retorna KPIs agregados do dashboard principal."""
-    mg = run_query(QUERY_MG_SUMMARY)
-    mining = run_query(QUERY_MINING_SUMMARY)
-    ibama = run_query(QUERY_IBAMA_SUMMARY)
-    anm = run_query(QUERY_ANM_SUMMARY)
+    mg = safe_query(QUERY_MG_SUMMARY)
+    mining = safe_query(QUERY_MINING_SUMMARY)
+    ibama = safe_query(QUERY_IBAMA_SUMMARY)
+    anm = safe_query(QUERY_ANM_SUMMARY)
 
     return {
         "mg_summary": mg[0] if mg else None,
@@ -37,7 +37,7 @@ def get_overview_stats():
 @router.get("/overview/trend")
 def get_mining_trend():
     """Tendência temporal de aprovação de mineração."""
-    return run_query(QUERY_MINING_TREND)
+    return safe_query(QUERY_MINING_TREND)
 
 
 @router.get("/overview/insights")

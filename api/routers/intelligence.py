@@ -15,21 +15,12 @@ from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from api.services.database import load_metadata, run_query
+from api.services.database import load_metadata, run_query, safe_query as _safe_query
 from licenciaminer.config import DATA_DIR, REFERENCE_DIR
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-
-def _safe_query(sql: str, params: list | None = None) -> list[dict]:
-    """Query com fallback para lista vazia."""
-    try:
-        return run_query(sql, params) or []
-    except Exception:
-        logger.exception("Erro query intelligence")
-        return []
 
 
 # ── Mercado & Cotações ──
