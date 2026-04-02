@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -92,9 +93,7 @@ export function SidebarNav() {
     <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 bg-sidebar text-sidebar-foreground">
       {/* Logo */}
       <div className="flex h-16 items-center gap-3 px-6 border-b border-sidebar-border">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
-          <ShieldCheck className="h-4.5 w-4.5 text-sidebar-primary-foreground" />
-        </div>
+        <Image src="/logo2.png" alt="Summo Quartile" width={32} height={32} className="rounded-lg" />
         <div>
           <span className="font-heading text-sm font-bold tracking-tight text-white">
             Summo Quartile

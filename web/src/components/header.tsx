@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -86,7 +87,7 @@ export function Header() {
         <SheetContent side="left" className="w-72 bg-sidebar p-0">
           <SheetTitle className="sr-only">Navegação</SheetTitle>
           <div className="flex h-16 items-center gap-3 px-6 border-b border-sidebar-border">
-            <ShieldCheck className="h-5 w-5 text-brand-orange" />
+            <Image src="/logo2.png" alt="Summo Quartile" width={20} height={20} className="rounded" />
             <span className="font-heading text-sm font-bold text-white">
               Summo Quartile
             </span>
